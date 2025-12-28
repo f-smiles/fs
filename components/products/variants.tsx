@@ -139,9 +139,9 @@ className="card-anim relative rounded-[16px] h-[460px] will-change-transform gro
 
     <div
       className="relative h-[90%] w-full overflow-hidden"
-      style={{
-        clipPath: "polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)",
-      }}
+style={{
+  clipPath: "polygon(0 0, 90% 0, 100% 10%, 100% 100%, 0 100%)",
+}}
     >
       {backgroundUrl && (
         <img

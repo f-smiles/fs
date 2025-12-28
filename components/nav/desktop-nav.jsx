@@ -460,10 +460,10 @@ className="
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <p className="text-sm font-saolitalic opacity-60">
-                      ({j + 1})
+                    <p className="text-xs font-canelathin italic opacity-60">
+                      {j + 1}.
                     </p>
-                    <h2 className="text-[20px] font-neuehaas45">
+                    <h2 className="text-[18px] font-neuehaas45">
                       {sublink}
                     </h2>
                   </div>

@@ -177,7 +177,7 @@ export default function Page() {
   }, [])
   
   return (
-    <div ref={mainSection} className="AdultOrthodontics MainSection` --dark --in-view" style={{ backgroundColor: 'var(--blue)', '--91c5acce': 5, }}>
+    <div ref={mainSection} className="EarlyOrthodontics-section MainSection` --dark --in-view" style={{ backgroundColor: 'var(--blue)', '--91c5acce': 5, }}>
       <div className="MainSection-wrap">
         <div className="MainSection-head">
           <h2 className="SplitText AnimatedSplitText --anim-title MainSection-headTitle AppTitle-1 --in-view" style={{ opacity: 1, visibility: "inherit" }}>

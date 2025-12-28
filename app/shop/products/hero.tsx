@@ -97,6 +97,17 @@ scene.traverse((child: any) => {
   }, [scene]);
 
 
+useEffect(() => {
+  const tl = gsap.timeline({ delay: 1 });
+
+  tl.from(".line-inner", {
+    y: 100,
+    skewY: 7,
+    duration: 1.8,
+    ease: "power4.out",
+    stagger: 0.15
+  });
+}, []);
   useEffect(() => {
     if (!actions) return;
 

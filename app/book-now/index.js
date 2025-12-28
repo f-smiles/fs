@@ -336,9 +336,6 @@ mat2 Rot(float a)
     return mat2(c, -s, s, c);
 }
 
-// -------------------------
-// Noise from your original
-// -------------------------
 vec2 hash( vec2 p )
 {
     p = vec2( dot(p,vec2(2127.1,81.17)), dot(p,vec2(1269.5,283.37)) );
@@ -366,7 +363,6 @@ void main() {
     float ratio = iResolution.x / iResolution.y;
     vec2 tuv = uv - 0.5;
 
-    // --- Rotation driven by noise ---
     float degree = noise(vec2(iTime*.1, tuv.x*tuv.y));
     tuv.y *= 1.0 / ratio;
     tuv *= Rot(radians((degree - .5) * 720. + 60.0));
@@ -380,44 +376,36 @@ void main() {
     tuv.x += sin(tuv.y * frequency + speed) / amplitude;
     tuv.y += sin(tuv.x * (frequency * 1.4) + speed) / (amplitude * .5);
 
-    // -------------------------------------------------------------
-    // NEW COLOR PALETTE (inspired by screenshot)
-    // -------------------------------------------------------------
+vec3 cold1 = vec3(0.86, 0.87, 0.94);
+vec3 cold2 = vec3(0.75, 0.76, 0.84);
+vec3 cold3 = vec3(0.66, 0.67, 0.73);
 
-    // Arctic/fog blues
-    vec3 cold1 = vec3(0.72, 0.78, 0.85);   // steel blue
-    vec3 cold2 = vec3(0.58, 0.64, 0.72);   // deeper blue-gray
-    vec3 cold3 = vec3(0.42, 0.46, 0.52);   // muted gray edge
+vec3 warm1 = vec3(1.00, 0.68, 0.90); // airy blush
+vec3 warm2 = vec3(0.95, 0.82, 1.00); // lavender-white
 
-    // Warm inner glow
-    vec3 warm1 = vec3(1.0, 0.86, 0.72);    // peach highlight
-    vec3 warm2 = vec3(1.0, 0.74, 0.52);    // orange core
+// vec3 warm1 = vec3(1.00, 0.55, 0.85); // hot pink
+// vec3 warm2 = vec3(0.95, 0.77, 1.00); // lavender pink
 
-    // -------------------------------------------------------------
-    // Horizontal blends (like your original multi-layer Frey gradient)
-    // -------------------------------------------------------------
     vec3 layer1 = mix(cold1, cold2, S(-0.5, 0.3, (tuv * Rot(radians(-5.))).x));
     layer1 = mix(layer1, cold3, S(-0.1, 0.7, (tuv * Rot(radians(-5.))).x));
 
     vec3 layer2 = mix(cold2, cold3, S(-0.8, 0.2, (tuv * Rot(radians(-5.))).x));
     layer2 = mix(layer2, cold1, S(-0.2, 0.9, (tuv * Rot(radians(-5.))).x));
 
-    // -------------------------------------------------------------
-    // Add warm radial glow in the center like screenshot
-    // -------------------------------------------------------------
+
     float dist = length(tuv * vec2(1.2, 1.0));
     float glow = smoothstep(0.7, 0.0, dist);    // soft radial falloff
     glow = pow(glow, 1.8);                     // softer edge
 
     vec3 warmGlow = mix(warm1, warm2, glow);
 
-    // -------------------------------------------------------------
-    // Combine layers with glow
-    // -------------------------------------------------------------
-    vec3 base = mix(layer1, layer2, S(.6, -.4, tuv.y));
-    vec3 col = mix(base, warmGlow, glow * 1.3);
 
-    gl_FragColor = vec4(col, 1.0);
+vec3 base = mix(layer1, layer2, S(.6, -.4, tuv.y));
+vec3 col = mix(base, warmGlow, glow * 1.3);
+
+col = mix(col, vec3(0.98, 0.97, 1.0), 0.05);
+
+gl_FragColor = vec4(col, 1.0);
 }
 `;
 
@@ -679,17 +667,20 @@ useEffect(() => {
     </div>
   </div>
 
-  <div
-    className="relative z-10 flex flex-col items-center overflow-hidden"
-    ref={containerOneRef}
-  >
+<div
+  className="relative z-10 flex flex-col items-center"
+  ref={containerOneRef}
+>
+
+  <div className="overflow-hidden pb-[0.1em]">
     <h1
-      className="lowercase text-[32px] lg:text-[34px] font-canelathin text-center"
+      className="lowercase text-[32px] lg:text-[34px] font-canelathin text-center leading-[1.2]"
       ref={h1Ref}
     >
       Website Coming Soon
     </h1>
   </div>
+</div>
 
 <div
   className="

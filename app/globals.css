@@ -71,12 +71,12 @@
 
 @font-face {
   font-family: "Canela-ThinItalic";
-  src: url("/fonts/Canela-ThinItalic-Trial.otf") format("opentype");
+  src: url("/fonts/Canela-ThinItalic-Web.woff2") format("truetype");
 }
 
 @font-face {
   font-family: "Canela-ThinStraight";
-  src: url("/fonts/CanelaText-Thin-Trial.otf") format("opentype");
+  src: url("/fonts/Canela-Thin-Web.woff2") format("opentype");
 }
 @font-face {
   font-family: "Amribail";
@@ -112,7 +112,7 @@
 }
 @font-face {
   font-family: "NeueHaasGroteskDisplayExtraLight";
-  src: url("/fonts/Neue Haas Grotesk Display Pro 45 Light.ttf")
+  src: url("/fonts/NeueHaasGroteskDisplay-45Light-Web.woff2")
     format("truetype");
 }
 @font-face {
