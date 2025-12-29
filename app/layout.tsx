@@ -21,6 +21,9 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+      </head>
       <body suppressHydrationWarning>
         <Logo className="absolute top-12 left-5 h-6 w-auto fill-zinc-50/80 z-[999] xl:h-7" />
         <main>
