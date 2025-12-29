@@ -22,7 +22,7 @@ const vertexShader = `
 const fragmentShader = `
   #define S(a,b,t) smoothstep(a,b,t)
   precision mediump float;
-
+  
   uniform float iTime;
   uniform vec3 iResolution;
   varying vec2 vUv;
@@ -32,8 +32,7 @@ const fragmentShader = `
     float c = cos(a);
     return mat2(c, -s, s, c);
   }
-  // Created by inigo quilez - iq/2014
-  // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+
   vec2 hash( vec2 p ) {
     p = vec2( dot(p,vec2(2127.1,81.17)), dot(p,vec2(1269.5,283.37)) );
     return fract(sin(p)*43758.5453);
@@ -43,55 +42,64 @@ const fragmentShader = `
     vec2 i = floor( p );
     vec2 f = fract( p );
     vec2 u = f*f*(3.0-2.0*f);
+
     float n = mix( mix( dot( -1.0+2.0*hash( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
                         dot( -1.0+2.0*hash( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
-                    mix( dot( -1.0+2.0*hash( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+                   mix( dot( -1.0+2.0*hash( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
                         dot( -1.0+2.0*hash( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
     return 0.5 + 0.5*n;
   }
 
   void main() {
-    // Convert to fragCoord like Shadertoy
     vec2 fragCoord = vec2(vUv.x * iResolution.x, vUv.y * iResolution.y);
     vec2 uv = fragCoord / iResolution.xy;
+
     float ratio = iResolution.x / iResolution.y;
-    vec2 tuv = uv;
-    tuv -= .5;
-    // rotate with Noise
+    vec2 tuv = uv - 0.5;
+
     float degree = noise(vec2(iTime*.1, tuv.x*tuv.y));
-    tuv.y *= 1./ratio;
-    tuv *= Rot(radians((degree-.5)*720.+75.));
+    tuv.y *= 1.0 / ratio;
+    tuv *= Rot(radians((degree - .5) * 720. + 60.0));
     tuv.y *= ratio;
-    
-    // Wave warp with sin
+
+    // --- Soft wave drifting ---
     float frequency = 2.;
-    float amplitude = 30.;
-    float speed = iTime * 4.;
-    tuv.x += sin(tuv.y*frequency+speed)/amplitude;
-    tuv.y += sin(tuv.x*frequency*1.5+speed)/(amplitude*.5);
-    
-    
-    // draw the image
-    // Your 6 exact Frey gradient hex colors (adapted to the shader's color slots)
-    vec3 colorWhite = vec3(0.9137, 0.8627, 0.8039); // #e9dccd (TOP, assigned to white)
-    vec3 colorRed = vec3(0.9098, 0.7569, 0.6863); // #e8c1b0 (assigned to red)
-    vec3 colorPurple = vec3(0.7686, 0.7216, 0.7882); // #c4b8c9 (assigned to purple)
-    vec3 colorGreen = vec3(0.7176, 0.7490, 0.8471); // #b7bfd8 (assigned to green)
-    vec3 colorBlue = vec3(0.6824, 0.7490, 0.8549); // #aebfda (BOTTOM, assigned to blue)
-    vec3 colorYellow = vec3(0.8509, 0.7176, 0.7137); // #d9b7b6 (assigned to yellow)
-    
-    vec3 layer1 = mix(colorRed, colorYellow, S(-.6, .2, (tuv*Rot(radians(-5.))).x));
-    layer1 = mix(layer1, colorWhite, S(-.6, .2, (tuv*Rot(radians(-5.))).x));
-    layer1 = mix(layer1, colorPurple, S(-.2, .6, (tuv*Rot(radians(-5.))).x));
-    
-    vec3 layer2 = mix(colorRed, colorYellow, S(-.8, .2, (tuv*Rot(radians(-5.))).x));
-    layer2 = mix(layer2, colorGreen, S(-.1, .9, (tuv*Rot(radians(-5.))).x));
-    layer2 = mix(layer2, colorBlue, S(-.5, .5, (tuv*Rot(radians(-5.))).x));
-    
-    vec3 finalComp = mix(layer1, layer2, S(.7, -.5, tuv.y));
-    
-    vec3 col = finalComp;
-    
+    float amplitude = 35.;
+    float speed = iTime * 3.;
+
+    tuv.x += sin(tuv.y * frequency + speed) / amplitude;
+    tuv.y += sin(tuv.x * (frequency * 1.4) + speed) / (amplitude * .5);
+
+    vec3 cold1 = vec3(0.86, 0.87, 0.94);
+    vec3 cold2 = vec3(0.75, 0.76, 0.84);
+    vec3 cold3 = vec3(0.66, 0.67, 0.73);
+
+    vec3 warm1 = vec3(1.00, 0.55, 0.85); 
+    vec3 warm2 = vec3(0.95, 0.72, 1.00);
+
+    // vec3 warm1 = vec3(1.00, 0.68, 0.90); // airy blush
+    // vec3 warm2 = vec3(0.95, 0.82, 1.00); // lavender-white
+
+    // vec3 warm1 = vec3(1.00, 0.55, 0.85); // hot pink
+    // vec3 warm2 = vec3(0.95, 0.77, 1.00); // lavender pink
+
+    vec3 layer1 = mix(cold1, cold2, S(-0.5, 0.3, (tuv * Rot(radians(-5.))).x));
+    layer1 = mix(layer1, cold3, S(-0.1, 0.7, (tuv * Rot(radians(-5.))).x));
+
+    vec3 layer2 = mix(cold2, cold3, S(-0.8, 0.2, (tuv * Rot(radians(-5.))).x));
+    layer2 = mix(layer2, cold1, S(-0.2, 0.9, (tuv * Rot(radians(-5.))).x));
+
+    float dist = length(tuv * vec2(1.2, 1.0));
+    float glow = smoothstep(0.7, 0.0, dist);    // soft radial falloff
+    glow = pow(glow, 1.8);                     // softer edge
+
+    vec3 warmGlow = mix(warm1, warm2, glow);
+
+    vec3 base = mix(layer1, layer2, S(.6, -.4, tuv.y));
+    vec3 col = mix(base, warmGlow, glow * 1.3);
+
+    col = mix(col, vec3(0.98, 0.97, 1.0), 0.05);
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -180,8 +188,8 @@ export default function BookNow() {
           </div>
         </div>
 
-        <div ref={containerOneRef} className="z-10 absolute top-1/2 -translate-y-1/2 overflow-hidden">
-          <h1 ref={h1Ref} className="lowercase text-[32px] font-seaword text-center lg:text-[34px]">Website Coming Soon</h1>
+        <div ref={containerOneRef} className="z-10 absolute top-1/2 -translate-y-1/2 pb-[0.1em] overflow-hidden">
+          <h1 ref={h1Ref} className="text-[32px] font-canela-italic text-center leading-[1.2em] lowercase lg:text-[34px]">Website Coming Soon</h1>
           <Link href="#acuity-calendar" className="mt-[14px] flex flex-col items-center justify-center text-center font-seaword lowercase text-[16px] md:hidden">
             Book Now
             <ChevronDown className="animate-bounce size-5" />
