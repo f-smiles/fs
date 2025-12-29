@@ -24,11 +24,13 @@ const nextConfig = {
       },
     ],
   },
-  turbopack: {},
+  turbopack: {
+    root: __dirname,
+  },
   async redirects() {
     return [
       {
-        source: '/:path((?!book-now).*)',
+        source: '/:path((?!book-now|icon\\.svg).*)',
         destination: '/book-now',
         permanent: true,
       }
