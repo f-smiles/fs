@@ -19,6 +19,20 @@
   src: url("../public/fonts/Seaword2.ttf") format("truetype");
   font-display: swap;
 }
+@font-face {
+	font-family: 'Canela Thin';
+	src: url("../public/fonts/Canela-Thin-Web.woff2") format("woff2");
+	font-weight: 100;
+	font-style: normal;
+  font-display: swap;
+}
+@font-face {
+	font-family: 'Canela Thin Italic';
+	src: url("../public/fonts/Canela-ThinItalic-Web.woff2") format("woff2");
+	font-weight: 100;
+	font-style: italic;
+  font-display: swap;
+}
 
 html {
   scroll-behavior: smooth;

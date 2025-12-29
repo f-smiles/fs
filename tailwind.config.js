@@ -12,6 +12,8 @@ module.exports = {
 				'neuehaas35':'NeueHaasDisplay35',
 				'neuehaas45': 'NeueHaasGroteskDisplayPro45Light',
 				'seaword': 'Seaword2',
+				'canela': 'Canela Thin',
+				'canela-italic': 'Canela Thin Italic',
 			},
   		borderRadius: {
   			lg: 'var(--radius)',
