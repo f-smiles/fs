@@ -2,7 +2,7 @@
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import Flip from "gsap/Flip";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -15,8 +15,9 @@ import styles from "./style.module.css";
 import CartComponent from "@/components/cart/cart-component";
 import UserButton from "@/components/auth/user-button";
 import { useCartStore } from "@/lib/cart-store";
+import SplitText from "gsap/SplitText";
 
-gsap.registerPlugin(ScrollTrigger, Flip);
+gsap.registerPlugin(ScrollTrigger, Flip, SplitText);
 
 export default function DesktopNav({ user }) {
 
@@ -148,6 +149,157 @@ const bgRef = useRef(null);
 
   const [hovered, setHovered] = useState(false);
 const menuText = "Menu";
+
+const linksContainerRef = useRef(null);
+
+useLayoutEffect(() => {
+  if (!linksContainerRef.current) return;
+
+  const ctx = gsap.context(() => {
+    const buttons = linksContainerRef.current.querySelectorAll(".menu-link-button");
+
+    buttons.forEach((button) => {
+      const text = button.querySelector(".split-textflip");
+      if (!text) return;
+
+      const split = new SplitText(text, {
+        type: "chars",
+        charsClass: "char",
+      });
+
+
+      const topLayer = split.chars.map((char) => char.cloneNode(true));
+      const bottomLayer = split.chars.map((char) => char.cloneNode(true));
+
+
+      text.innerHTML = "";
+      text.style.position = "relative";
+      text.style.display = "inline-block";
+
+
+      const bottomWrapper = document.createElement("div");
+      bottomWrapper.style.position = "absolute";
+      bottomWrapper.style.inset = "0";
+      bottomWrapper.style.pointerEvents = "none";
+      bottomLayer.forEach((char) => bottomWrapper.appendChild(char));
+      text.appendChild(bottomWrapper);
+
+
+      const topWrapper = document.createElement("div");
+      topWrapper.style.position = "relative";
+      topLayer.forEach((char) => topWrapper.appendChild(char));
+      text.appendChild(topWrapper);
+
+
+      gsap.set(bottomWrapper, { opacity: 0 });
+      gsap.set(bottomLayer, {
+        rotationX: -100,
+        rotationY: 20,
+        z: -15,
+        opacity: 0,
+        force3D: true,
+      });
+      gsap.set(topLayer, {
+        rotationX: 0,
+        rotationY: 0,
+        z: 0,
+        opacity: 1,
+        force3D: true,
+      });
+
+
+      const enterTl = gsap.timeline({ paused: true });
+      enterTl
+        .to(topLayer, {
+          rotationX: -100,
+          rotationY: 20,
+          z: -15,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.inOut",
+          stagger: { each: 0.05, from: "start" },
+        })
+        .to(bottomWrapper, { opacity: 1, duration: 0.01 }, "-=0.75")
+        .to(
+          bottomLayer,
+          {
+            rotationX: 0,
+            rotationY: 0,
+            z: 0,
+            opacity: 1,
+            duration: 0.9,
+            ease: "power3.inOut",
+            stagger: { each: 0.05, from: "start" },
+          },
+          "-=0.85"
+        );
+
+
+      const leaveTl = gsap.timeline({ paused: true });
+      leaveTl
+        .to(bottomLayer, {
+          rotationX: 90,
+          rotationY: -15,
+          z: -10,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+          stagger: { each: 0.04, from: "end" },
+        })
+        .to(
+          topLayer,
+          {
+            rotationX: 0,
+            rotationY: 0,
+            z: 0,
+            opacity: 1,
+            duration: 0.5,
+            ease: "power2.out",
+            stagger: { each: 0.04, from: "end" },
+          },
+          "-=0.45"
+        )
+        .to(bottomWrapper, { opacity: 0, duration: 0.01 }, "-=0.5");
+
+const onEnter = () => {
+
+  leaveTl.progress(1, true).pause();
+
+
+  enterTl.restart();
+};
+
+const onLeave = () => {
+
+  if (enterTl.progress() > 0 || enterTl.isActive()) {
+    enterTl.pause();
+    leaveTl.restart();
+  } else {
+
+    enterTl.progress(0);
+    leaveTl.progress(1);
+  }
+};
+
+      button.addEventListener("mouseenter", onEnter);
+      button.addEventListener("mouseleave", onLeave);
+
+
+      button._enterTl = enterTl;
+      button._leaveTl = leaveTl;
+      button._split = split;
+      button._cleanup = () => {
+        button.removeEventListener("mouseenter", onEnter);
+        button.removeEventListener("mouseleave", onLeave);
+      };
+    });
+  }, linksContainerRef);
+
+
+  return () => {
+    ctx.revert();
+  };
+}, []);
   return (
     <>
 
@@ -199,13 +351,14 @@ className="
   }}
   aria-hidden="true"
 >
+  
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
   <path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" />
 </svg>
 
 </motion.div>
 <motion.div
-  className={`relative ml-12 flex items-center rounded-full h-14 overflow-hidden
+  className={`relative ml-12 flex items-center rounded-full h-12 overflow-hidden
     transition-all duration-300 ease-[cubic-bezier(0.16,0.3,0.3,1)]
     backdrop-blur-md
     bg-gradient-to-b from-white/30 to-white/10
@@ -241,6 +394,7 @@ className="
 
 
     <motion.div
+    ref={linksContainerRef}
       className="absolute left-6 flex items-center gap-3"
       initial="hide"
       animate={hovered ? "show" : "hide"}
@@ -249,10 +403,10 @@ className="
         hide: { transition: { staggerChildren: 0.03 } },
       }}
     >
-      {links.slice(0, 5).map((link, i) => {
-        const isDirect = !link.sublinks || link.sublinks.length === 0;
-        const href = isDirect && link.hrefs && link.hrefs[0];
-
+{links.slice(0, 5).map((link, i) => {
+  const isDirect = !link.sublinks || link.sublinks.length === 0;
+  const href = isDirect && link.hrefs && link.hrefs[0];
+  
         const activate = () => {
           if (isDirect && href) {
             setIsActive(false);
@@ -265,17 +419,18 @@ className="
         };
 
         return (
-          <motion.button
-            key={link.title}
-            type="button"
-            className="text-black tracking-[0.06em] px-2 py-2 flex items-center cursor-pointer outline-none "
-            variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: -10 } }}
-            transition={{ duration: 0.35, ease: [0.16, 0.3, 0.3, 1] }}
-            onClick={activate}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && activate()}
-          >
-            <span className="text-[11px] text-black font-neuehaas35">{link.title}</span>
-          </motion.button>
+<motion.button
+  key={link.title}
+  type="button"
+  className="menu-link-button relative overflow-hidden px-2 py-2"
+  variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: -10 } }}
+  transition={{ duration: 0.35, ease: [0.16, 0.3, 0.3, 1] }}
+  onClick={activate}
+>
+  <div className="relative inline-block text-[11px] font-neuehaas35 leading-none">
+    <span className="split-textflip">{link.title}</span>
+  </div>
+</motion.button>
         );
       })}
     </motion.div>
@@ -283,7 +438,7 @@ className="
 
   <motion.div
   className="
-    relative w-12 h-12 rounded-full
+    relative w-10 h-10 rounded-full
     backdrop-blur-md
     bg-gradient-to-b from-white/35 to-white/10
     shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]
