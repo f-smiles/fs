@@ -37,7 +37,7 @@ import {
 import React, { useState, useEffect, useRef, forwardRef, useLayoutEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { ScrollTrigger, MotionPathPlugin, SplitText } from "gsap/all";
+import { ScrollTrigger, MotionPathPlugin, SplitText, CustomEase } from "gsap/all";
 import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 import { TextPlugin } from "gsap/TextPlugin";
 
@@ -46,7 +46,8 @@ gsap.registerPlugin(
   MotionPathPlugin,
   ScrollTrigger,
   SplitText,
-  MorphSVGPlugin
+  MorphSVGPlugin,
+  CustomEase
 );
 
 
@@ -325,7 +326,6 @@ const ShaderBackground = ({ className = '' }) => {
       return;
     }
 
-    // Vertex shader
     const vertexShaderSource = `
       attribute vec2 position;
       void main() {
@@ -333,7 +333,7 @@ const ShaderBackground = ({ className = '' }) => {
       }
     `;
 
-    // Fragment shader (adapted from provided code)
+
     const fragmentShaderSource = `
       precision mediump float;
       uniform float u_time;
@@ -413,7 +413,6 @@ const ShaderBackground = ({ className = '' }) => {
       }
     `;
 
-    // Compile shader helper
     const createShader = (gl, type, source) => {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, source);
@@ -440,7 +439,7 @@ const ShaderBackground = ({ className = '' }) => {
 
     gl.useProgram(program);
 
-    // Full-screen quad vertices
+
     const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -1178,7 +1177,7 @@ ScrollTrigger.create({
   return (
     <>
 
-
+<Loader />
       <div className="relative bg-[#FEFCFF]">
 
 
@@ -2426,33 +2425,37 @@ function WebGLGalleryApp() {
     cameraRef.current = camera;
     geometryRef.current = geometry;
 
-    const resize = () => {
-      screenRef.current = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      };
+const resize = () => {
+  screenRef.current = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
 
-      renderer.setSize(screenRef.current.width, screenRef.current.height);
+  renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
-      camera.perspective({
-        aspect: gl.canvas.width / gl.canvas.height,
-      });
+  renderer.setSize(
+    screenRef.current.width,
+    screenRef.current.height
+  );
 
-      const fov = camera.fov * (Math.PI / 180);
-      const height = 2 * Math.tan(fov / 2) * camera.position.z;
-      const width = height * camera.aspect;
+  camera.perspective({
+    aspect: gl.canvas.width / gl.canvas.height,
+  });
 
-      viewportRef.current = { width, height };
+  const fov = camera.fov * (Math.PI / 180);
+  const height =
+    2 * Math.tan(fov / 2) * camera.position.z;
+  const width = height * camera.aspect;
 
-      if (mediasRef.current.length) {
-        mediasRef.current.forEach((media) =>
-          media.onResize({
-            screen: screenRef.current,
-            viewport: viewportRef.current,
-          })
-        );
-      }
-    };
+  viewportRef.current = { width, height };
+
+  mediasRef.current.forEach((media) =>
+    media.onResize({
+      screen: screenRef.current,
+      viewport: viewportRef.current,
+    })
+  );
+};
 
     resize();
 
@@ -2542,7 +2545,11 @@ function createMedia({
   fragment,
 }) {
   const img = element.querySelector("img");
-  const texture = new Texture(gl, { generateMipmaps: false });
+const texture = new Texture(gl, {
+  generateMipmaps: true,
+  minFilter: gl.LINEAR_MIPMAP_LINEAR,
+  magFilter: gl.LINEAR,
+});
   const image = new Image();
   image.crossOrigin = "anonymous";
   image.src = img.src;
@@ -2579,19 +2586,28 @@ function createMedia({
     state.plane.scale.y = (rect.height / screen.height) * viewport.height;
   };
 
-  const updateX = () => {
-    const rect = element.getBoundingClientRect();
-    state.plane.position.x =
-      ((rect.left + rect.width / 2) / screen.width * viewport.width) -
-      viewport.width / 2;
-  };
+const snap = (value, step = 1) =>
+  Math.round(value / step) * step;
 
-  const updateY = () => {
-    const rect = element.getBoundingClientRect();
-    state.plane.position.y =
-      viewport.height / 2 -
-      ((rect.top + rect.height / 2) / screen.height * viewport.height);
-  };
+const updateX = () => {
+  const rect = element.getBoundingClientRect();
+  const x =
+    ((rect.left + rect.width / 2) / screen.width) *
+      viewport.width -
+    viewport.width / 2;
+
+  state.plane.position.x = snap(x, viewport.width / screen.width);
+};
+
+const updateY = () => {
+  const rect = element.getBoundingClientRect();
+  const y =
+    viewport.height / 2 -
+    ((rect.top + rect.height / 2) / screen.height) *
+      viewport.height;
+
+  state.plane.position.y = snap(y, viewport.height / screen.height);
+};
 
   const updateBounds = () => {
     updateScale();
@@ -2623,11 +2639,14 @@ function createMedia({
     updateY();
 
     // Calculate base strength using smoothed scroll delta
-    const baseStrength = ((scroll.current - scroll.last) / screen.width) * 30; // Amped up from 10 to 30 for more prominent bulge
+const rawStrength =
+  ((scroll.current - scroll.last) / screen.width) * 30;
 
-    // Reverse the strength based on direction
-    state.program.uniforms.uStrength.value =
-      direction === "down" ? -Math.abs(baseStrength) : Math.abs(baseStrength);
+// Clamp to prevent blur at rest
+const strength = Math.min(Math.abs(rawStrength), 1.5);
+
+state.program.uniforms.uStrength.value =
+  direction === "down" ? -strength : strength;
 
     state.program.uniforms.uPlaneSizes.value = [
       state.plane.scale.x,
@@ -2658,10 +2677,564 @@ function createMedia({
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const images = [
-  "/images/ajomockupchair.png",
-  "/images/ajomockupchair.png",
+  "/images/fscards.png",
+  "/images/futuresmiles.png",
   "/images/ajomockupchair.png",
   "/images/background_min.png",
   "/images/background_min.png",
   "/images/background_min.png",
 ];
+
+CustomEase.create("customEase", "0.6, 0.01, 0.05, 1");
+gsap.config({ force3D: true });
+
+const preloaderImages = [
+    "/images/Sustainablepackage.jpg",
+  "/images/Free-Poster-02.jpg",
+  "/images/handholdingbook.png",
+  "/images/futureffscard.png",
+  "/images/imagecopy.jpg",
+  // "https://images.unsplash.com/photo-1658498042419-be460a938f93?q=80&w=2187&auto=format&fit=crop"
+];
+function Loader() {
+  const preloaderRef = useRef(null);
+  const textContainerRef = useRef(null);
+  const cosmicRef = useRef(null);
+  const reflectionsRef = useRef(null);
+  const imagesContainerRef = useRef(null);
+  const gridColumnsRef = useRef([]);
+  const titleLinesRef = useRef([]);
+  const heroProjectRef = useRef(null);
+  const heroDescRef = useRef(null);
+  const heroMetaRef = useRef(null);
+  const heroImageRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline();
+ const images = imagesContainerRef.current.querySelectorAll(".preloader__image");
+
+      if (!images || images.length === 0) return;
+
+gsap.set(images, {
+  clearProps: "transform",
+  y: "100%",
+  opacity: 0
+});
+
+
+gsap.set(images[0], {
+  y: "0%",
+  opacity: 1
+});
+      gsap.set([...images].slice(1), {
+        y: "100%",
+        opacity: 0,
+        zIndex: 1
+      });
+
+
+      tl.fromTo(
+        textContainerRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+      );
+
+
+
+for (let i = 1; i < images.length; i++) {
+  const img = images[i];
+
+  tl
+    .to({}, { duration: i === 1 ? 0.7 : 0.4 })
+
+
+    .fromTo(
+      img,
+      { y: "100%", opacity: 0 },
+      {
+        y: "0%",
+        opacity: 1,
+        duration: 1.4,
+        ease: "power4.out",
+        immediateRender: false
+      }
+    )
+
+    .set(img, { clearProps: "transform" });
+}
+
+      const windowWidth = window.innerWidth;
+      const moveDistance = windowWidth / 3;
+
+      tl.to(
+        cosmicRef.current,
+        {
+          x: -moveDistance,
+          color: "#2c3e50",
+          duration: 1.2,
+          ease: "customEase"
+        },
+        "+=0.6"
+      );
+
+      tl.to(
+        reflectionsRef.current,
+        {
+          x: moveDistance,
+          color: "#2c3e50",
+          duration: 1.2,
+          ease: "customEase"
+        },
+        "-=1.2"
+      );
+
+      tl.to({}, { duration: 0.8 });
+
+      tl.to(preloaderRef.current, {
+        y: "-100%",
+        duration: 1,
+        ease: "power3.inOut",
+        onComplete: () => {
+          if (preloaderRef.current) {
+            preloaderRef.current.style.display = "none";
+          }
+          animateGridAndHero();
+        }
+      });
+    });
+
+    function animateGridAndHero() {
+
+      const validGridColumns = gridColumnsRef.current.filter(col => col !== null);
+      
+      gsap.to(validGridColumns, {
+        height: "100%",
+        duration: 1.2,
+        ease: "power3.out",
+        stagger: 0.06
+      });
+
+      const heroTl = gsap.timeline();
+
+      heroTl.to(titleLinesRef.current, {
+        y: 0,
+        opacity: 1,
+        duration: 1.4,
+        stagger: 0.2,
+        ease: "power4.out"
+      });
+
+      heroTl.to(
+        [heroProjectRef.current, heroDescRef.current, heroMetaRef.current],
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1.2,
+          stagger: 0.2,
+          ease: "power3.out"
+        },
+        "-=0.9"
+      );
+
+      heroTl.to(
+        heroImageRef.current,
+        {
+          scale: 1,
+          duration: 2.2,
+          ease: "power3.inOut"
+        },
+        "-=1.4"
+      );
+    }
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <>
+      <style jsx global>{`
+        :root {
+          --bg: #E6E7E8;
+          --text: #2c3e50;
+          --text-secondary: rgba(44,62,80,0.75);
+          --grid: rgba(44,62,80,0.03);
+          --spacing-lg: 2rem;
+          --spacing-xl: 4rem;
+          --grid-gap: 1rem;
+          --spacing-md: 1.5rem;
+          --color-text-secondary: rgba(44,62,80,0.75);
+          --color-text-muted: rgba(44,62,80,0.5);
+          --letter-spacing-wide: 0.1em;
+          --font-weight-bold: 600;
+          --z-index-main: 10;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'General Sans', sans-serif; overflow-x: hidden; }
+
+        /* Responsive Grid System */
+        .grid-container {
+          position: fixed;
+          inset: 0;
+          padding: 0 var(--spacing-md);
+          display: grid;
+          gap: var(--grid-gap);
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        /* Mobile: 3 columns */
+        .grid-container {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* On mobile, only show first 3 columns */
+        .grid-container .grid-column:nth-child(n+4) {
+          display: none;
+        }
+
+        @media (min-width: 768px) {
+          .grid-container {
+            grid-template-columns: repeat(5, 1fr);
+            padding: 0 var(--spacing-lg);
+          }
+          
+          /* On desktop, show all columns */
+          .grid-container .grid-column:nth-child(n+4) {
+            display: block;
+          }
+        }
+
+        .grid-column {
+          background: var(--grid);
+          height: 0;
+        }
+
+        .preloader {
+          position: fixed;
+          inset: 0;
+          background: var(--bg);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+        }
+        .preloader__text-container {
+          position: absolute;
+          display: flex;
+          gap: 0.5rem;
+          font-size: 1.5rem;
+          font-weight: 500;
+          color: var(--bg);
+          z-index: 10;
+        }
+        
+        @media (min-width: 768px) {
+          .preloader__text-container {
+            font-size: 2rem;
+          }
+        }
+        
+        .preloader__content {
+          width: 90%;
+          max-width: 450px;
+          height: 200px;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        @media (min-width: 768px) {
+          .preloader__content {
+            width: 450px;
+            height: 280px;
+          }
+        }
+        
+        .preloader__image {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transform-origin: center;
+        }
+        .preloader__overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(44,62,80,0.2);
+          z-index: 2;
+        }
+
+        .header {
+          padding: var(--spacing-md);
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: var(--z-index-main);
+        }
+
+        @media (min-width: 768px) {
+          .header {
+            padding: var(--spacing-md) var(--spacing-lg);
+          }
+        }
+
+        .header__container {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 1rem;
+          width: 100%;
+        }
+
+        @media (min-width: 768px) {
+          .header__container {
+            grid-template-columns: repeat(12, 1fr);
+          }
+        }
+
+        .header__logo {
+          grid-column: 1 / span 2;
+          font-weight: 600;
+          font-size: 1.2rem;
+          letter-spacing: -0.03em;
+        }
+
+        @media (min-width: 768px) {
+          .header__logo {
+            font-size: 1.4rem;
+          }
+        }
+
+        .header__contact {
+          display: none;
+        }
+
+        @media (min-width: 768px) {
+          .header__contact {
+            display: block;
+            grid-column: 4 / span 6;
+            font-size: 0.75rem;
+            letter-spacing: var(--letter-spacing-wide);
+            line-height: 1.5;
+          }
+        }
+
+        .header__nav {
+          grid-column: 5 / span 2;
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          align-items: center;
+        }
+
+        @media (min-width: 768px) {
+          .header__nav {
+            grid-column: 10 / span 3;
+            gap: var(--spacing-lg);
+          }
+        }
+
+        /* 12-grid system - responsive */
+        .container {
+          width: 100%;
+          max-width: 100%;
+          margin: 0 auto;
+          padding: 0 var(--spacing-md);
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: var(--grid-gap);
+        }
+
+        @media (min-width: 768px) {
+          .container {
+            grid-template-columns: repeat(12, 1fr);
+            padding: 0 var(--spacing-lg);
+          }
+        }
+
+        .hero {
+          height: 100vh;
+          width: 100%;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .hero__content {
+          grid-column: 1 / -1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: var(--spacing-lg) 0;
+        }
+
+        @media (min-width: 768px) {
+          .hero__content {
+            grid-column: 1 / span 6;
+            padding-right: var(--spacing-xl);
+            padding: 0;
+          }
+        }
+
+        .hero__project {
+          font-size: 10px;
+          color: var(--color-text-secondary);
+          margin-bottom: var(--spacing-md);
+          transform: translateY(20px);
+          opacity: 0;
+           color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: var(--letter-spacing-wide);
+        }
+
+        .hero__title {
+          font-size: clamp(2.5rem, 6vw, 9rem);
+          line-height: 0.9;
+          margin-bottom: var(--spacing-md);
+          // letter-spacing: 0.05em;
+        }
+
+        @media (min-width: 768px) {
+          .hero__title {
+            margin-bottom: var(--spacing-lg);
+          }
+        }
+
+        .hero__title-line {
+          display: block;
+          transform: translateY(100%);
+          opacity: 0;
+        }
+
+        .hero__description {
+          font-size: 1rem;
+          line-height: 1.6;
+          color: var(--color-text-secondary);
+          max-width: 100%;
+          transform: translateY(20px);
+          opacity: 0;
+          margin-bottom: var(--spacing-lg);
+        }
+
+        @media (min-width: 768px) {
+          .hero__description {
+            font-size: 1.1rem;
+            max-width: 460px;
+            margin-bottom: var(--spacing-xl);
+          }
+        }
+
+        .hero__meta {
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: var(--letter-spacing-wide);
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          transform: translateY(20px);
+          opacity: 0;
+        }
+
+        @media (min-width: 768px) {
+          .hero__meta {
+            display: flex;
+            justify-content: space-between;
+          }
+        }
+
+        .hero__image-container {
+          grid-column: 1 / -1;
+          height: 50vh;
+          display: flex;
+          align-items: center;
+          position: relative;
+          overflow: hidden;
+          padding: 0;
+          margin: 0;
+        }
+
+        @media (min-width: 768px) {
+          .hero__image-container {
+            grid-column: 7 / span 6;
+            height: 100vh;
+          }
+        }
+
+.hero__image {
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  object-fit: contain;
+  transform: scale(1.1);
+  transform-origin: center;
+  will-change: transform;
+}
+      `}</style>
+
+      <div className="grid-container">
+        {/* Always render 5 columns, but CSS will hide/show based on screen size */}
+        {Array.from({ length: 5 }, (_, i) => (
+          <div 
+            key={i} 
+            className="grid-column" 
+            ref={el => {
+              if (el && !gridColumnsRef.current[i]) {
+                gridColumnsRef.current[i] = el;
+              }
+            }} 
+          />
+        ))}
+      </div>
+
+      {/* Preloader */}
+      <div className="preloader" ref={preloaderRef}>
+        <div className="font-neuehaas45 preloader__text-container" ref={textContainerRef}>
+          <div ref={cosmicRef}>Your</div>
+          <div ref={reflectionsRef}>Care</div>
+        </div>
+        <div className="preloader__content" ref={imagesContainerRef}>
+          <div className="preloader__overlay" />
+          {preloaderImages.map((src, i) => (
+            <img key={i} src={src} alt="Space" className="preloader__image" />
+          ))}
+        </div>
+      </div>
+
+      <section className="hero">
+        <div className="container">
+          <div className="hero__content">
+            <div className="hero__project font-neuehaas45" ref={heroProjectRef}>Our Expertise</div>
+            <h1 className="hero__title">
+              <span className="hero__title-line font-canelathin" ref={el => titleLinesRef.current[0] = el}>Our</span>
+              <span className="hero__title-line font-canelathin" ref={el => titleLinesRef.current[1] = el}>Expertise</span>
+            </h1>
+            <p className="font-canelathin hero__description" ref={heroDescRef}>
+              While any orthodontist can move teeth into place, we focus on how alignment integrates with facial harmony — creating results that feel naturally your own.
+            </p>
+            <div className="hero__meta font-neuehaas45 text-[12px]" ref={heroMetaRef}>
+<div>
+  <p  className="font-neuehaas45 text-[10px]">Craft</p>
+  <p className="font-neuehaas45 text-[12px]">Detail-Driven Care</p>
+</div>
+<div>
+  <p className="font-neuehaas45 text-[10px]">Perspective</p>
+  <p className="font-neuehaas45 text-[12px]">Form Meets Function</p>
+</div>
+            </div>
+          </div>
+          <div className="hero__image-container">
+            <img
+              src="/images/aurela-redenica-VuN-RYI4XU4-unsplash_2400x3600.jpg"
+              alt="Astronaut"
+              className="hero__image"
+              ref={heroImageRef}
+            />
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
