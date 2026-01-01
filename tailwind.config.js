@@ -9,11 +9,10 @@ module.exports = {
   theme: {
   	extend: {
 			fontFamily: {
-				'neuehaas35':'NeueHaasDisplay35',
-				'neuehaas45': 'NeueHaasGroteskDisplayPro45Light',
-				'seaword': 'Seaword2',
-				'canela': 'Canela Thin',
-				'canela-italic': 'Canela Thin Italic',
+				'neuehaas35':['NeueHaasDisplay35', 'sans-serif'],
+				'neuehaas45': ['NeueHaasGroteskDisplayPro45Light', 'sans-serif'],
+				'canela': ['CanelaThin', 'serif'],
+				'canela-italic': ['CanelaThinItalic', 'serif'],
 			},
   		borderRadius: {
   			lg: 'var(--radius)',
