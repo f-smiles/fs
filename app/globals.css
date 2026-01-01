@@ -6,24 +6,24 @@
 
 @font-face {
   font-family: "NeueHaasDisplay35";
-  src: url("/fonts/Neue-Haas-Grotesk-Display-Pro-35-ExtraLight.ttf") format("truetype");
+  src: url("../public/fonts/Neue-Haas-Grotesk-Display-Pro-35-ExtraLight.ttf") format("truetype");
   font-display: swap;
 }
 @font-face {
   font-family: "NeueHaasGroteskDisplayPro45Light";
-  src: url("/fonts/NeueHaasGroteskDisplay-45Light-Web.woff2") format("woff2");
+  src: url("../public/fonts/NeueHaasGroteskDisplay-45Light-Web.woff2") format("woff2");
   font-display: swap;
 }
 @font-face {
 	font-family: 'CanelaThin';
-	src: url("/fonts/Canela-Thin-Web.woff2") format("woff2");
+	src: url("../public/fonts/Canela-Thin-Web.woff2") format("woff2");
 	font-weight: 100;
 	font-style: normal;
   font-display: swap;
 }
 @font-face {
 	font-family: 'CanelaThinItalic';
-	src: url("/fonts/Canela-Thin-Italic-Web.woff2") format("woff2");
+	src: url("../public/fonts/Canela-Thin-Italic-Web.woff2") format("woff2");
 	font-weight: 100;
 	font-style: italic;
   font-display: swap;
