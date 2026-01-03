@@ -15,7 +15,118 @@ import {
   useAnimations
 } from "@react-three/drei";
 import * as THREE from "three";
+const GlassRingMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uResolution: new THREE.Vector2(),
+  },
 
+  `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+
+  `
+   varying vec2 vUv;
+uniform float uTime;
+uniform vec2 uResolution;
+
+#define SLICE_SIZE 0.05
+#define STRENGTH 0.05
+
+vec3 sdfCircle(vec2 uv, float r) {
+  float d = length(uv) - r;
+  return vec3(smoothstep(0.01, 0.015, d)) * -1.0;
+}
+
+void main() {
+  vec2 uv = vUv - 0.5;
+  uv.x *= uResolution.x / uResolution.y;
+uv *= 1.5;
+  vec2 fv = uv;
+  fv.x = fract(uv.x / SLICE_SIZE);
+  uv.x += tan(uTime * 0.5 + fv.x * STRENGTH) / 5.0;
+
+vec3 col = vec3(1.0); // white base
+  float brightness = 0.85;
+
+  col += sdfCircle(uv, 0.3) * brightness;
+  col -= sdfCircle(uv, 0.18) * brightness;
+
+  vec3 glass = vec3(abs(fv.x));
+  col += glass * 0.1;
+
+  col *= vec3(0.8, 0.6, 1.0);
+
+float alpha = smoothstep(0.0, 0.15, length(col));
+gl_FragColor = vec4(col, alpha);
+}
+  `
+);
+
+extend({ GlassRingMaterial });
+
+
+const GradientMaterial = shaderMaterial(
+  {},
+  `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  `
+    varying vec2 vUv;
+    void main() {
+      // Purple (#8B5CF6) at top → Teal/Cyan (#5EEAD4) at bottom
+   vec3 topColor = vec3(0.663, 0.678, 0.765); // #A9ADC3
+      vec3 bottomColor = vec3(0.369, 0.918, 0.831); 
+
+      float mixValue = vUv.y; // 0 at bottom, 1 at top
+      vec3 color = mix(bottomColor, topColor, mixValue);
+
+gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // pure red
+    }
+  `
+);
+
+extend({ GradientMaterial });
+
+function ShaderScene() {
+  const ringRef = useRef();
+  const { viewport } = useThree(); 
+
+  useFrame(({ clock, size }) => {
+    if (ringRef.current) {
+      ringRef.current.uTime = clock.getElapsedTime();
+      ringRef.current.uResolution.set(size.width, size.height);
+    }
+  });
+
+  return (
+    <>
+
+      <mesh scale={[viewport.width, viewport.height, 1]} position={[0, 0, -1]}>
+        <planeGeometry args={[1, 1]} />
+        <gradientMaterial />
+      </mesh>
+
+
+      <mesh scale={[viewport.width, viewport.height, 1]}>
+        <planeGeometry args={[1, 1]} />
+<glassRingMaterial
+  ref={ringRef}
+  transparent
+  depthWrite={false}
+/>
+      </mesh>
+    </>
+  );
+}
 
 const Marquee = () => {
   const text =
@@ -133,11 +244,17 @@ const Hero: React.FC = () => {
 
   return (
     <section> 
-         
-      <Marquee />
 
-      <AnimatedBackground />
+      {/* <Marquee /> */}
+
+      {/* <AnimatedBackground /> */}
 <div className="relative min-h-screen">
+<div className="w-full h-screen bg-black"> 
+  <Canvas orthographic camera={{ zoom: 300, position: [0, 0, 100] }}>
+    <ShaderScene />
+  </Canvas>
+</div>
+
 <section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen px-6 py-20">
 
 <Canvas camera={{ position: [4, 3, 6], fov: 45 }}>

@@ -1472,6 +1472,7 @@ export default function WhyChooseUs() {
    {/* <FluidSimulation /> */}
 
       <div className="relative bg-[#F9F9F9]">
+
         <div className=" w-full">
           {/* <div className="relative w-full h-screen" style={{ zIndex: 1 }}>
             <Canvas
@@ -1489,11 +1490,11 @@ export default function WhyChooseUs() {
               <RibbonAroundSphere />
             </Canvas>
           </div> */}
-          <div>
+
             <div>
               <ScrollPanels />
             </div>
-          </div>
+
 
      
            <StackCards />
@@ -2119,122 +2120,6 @@ void main(void) {
   }
 }
 
-function WigglyString({
-  segments = 600,
-  baseAmplitude = 0.05,
-  frequency = 2,
-  cycles = 5.5,
-  margin = 0.12,
-}) {
-  const { viewport } = useThree();
-  const { width, height } = viewport;
-
-  const easedSin = (v, pow = 2.4, blend = 0.3) => {
-    const raw = Math.sin(v);
-    const eased = Math.sign(raw) * Math.pow(Math.abs(raw), pow);
-    return THREE.MathUtils.lerp(raw, eased, blend);
-  };
-
-  const mouse = useRef({ x: 0, y: 0 });
-  const lastMouse = useRef({ x: 0, y: 0, time: performance.now() });
-  const velocity = useRef(0);
-  const amplitudes = useRef(new Array(segments + 1).fill(baseAmplitude));
-
-  const geometry = useMemo(() => {
-    const points = new Float32Array((segments + 1) * 3);
-    const totalHeight = height * 4;
-    const snakeAmplitude = width * (0.5 - margin);
-
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const y = t * totalHeight - totalHeight / 2;
-      const x = easedSin(t * Math.PI * 2 * cycles) * snakeAmplitude;
-
-      points[i * 3] = x;
-      points[i * 3 + 1] = y;
-      points[i * 3 + 2] = 0;
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(points, 3));
-    return geo;
-  }, [segments, width, height, cycles, margin]);
-
-  useEffect(() => {
-    const handleMove = (e) => {
-      const now = performance.now();
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-      mouse.current.x = x;
-      mouse.current.y = y;
-
-      const dx = x - lastMouse.current.x;
-      const dy = y - lastMouse.current.y;
-      const dt = now - lastMouse.current.time;
-
-      velocity.current = Math.sqrt(dx * dx + dy * dy) / Math.max(dt, 1);
-      lastMouse.current = { x, y, time: now };
-    };
-
-    window.addEventListener("mousemove", handleMove);
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, []);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const scroll = window.scrollY / window.innerHeight;
-    const revealProgress = THREE.MathUtils.clamp(scroll, 0.001, 1);
-    const pos = geometry.attributes.position.array;
-    const pulse = Math.min(velocity.current * 0.5, 0.2);
-    const totalHeight = height * 4;
-    const snakeAmplitude = width * (0.5 - margin);
-    const maxY = revealProgress * totalHeight - totalHeight / 2;
-
-    for (let i = 0; i <= segments; i++) {
-      const idx = i * 3;
-      const tNorm = i / segments;
-      const yTarget = tNorm * totalHeight - totalHeight / 2;
-
-      if (yTarget > maxY) continue;
-
-      const dist = Math.abs(mouse.current.y - (yTarget * 2) / height);
-      const falloff = Math.max(0, 1 - dist * 3);
-      const targetAmp = baseAmplitude + falloff * (0.1 + pulse);
-      amplitudes.current[i] = THREE.MathUtils.lerp(
-        amplitudes.current[i],
-        targetAmp,
-        0.08
-      );
-      const amp = amplitudes.current[i];
-
-      const angle = tNorm * Math.PI * 2 * frequency + t * frequency;
-      const baseX = easedSin(tNorm * Math.PI * 4 * cycles) * snakeAmplitude;
-      const offsetX = Math.sin(angle) * amp;
-      const offsetZ = Math.cos(angle) * amp;
-
-      pos[idx] = baseX + offsetX;
-      pos[idx + 1] = yTarget;
-      pos[idx + 2] = offsetZ;
-    }
-
-    geometry.attributes.position.needsUpdate = true;
-  });
-
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial attach="material" color="black" />
-    </line>
-  );
-}
-function StringScene() {
-  return (
-    <Canvas camera={{ position: [0, 0, 1.5] }}>
-      <ambientLight intensity={0.5} />
-      <WigglyString />
-    </Canvas>
-  );
-}
 
 
 function ScrollPanels() {
@@ -2278,24 +2163,25 @@ function ScrollPanels() {
   }, []);
 
 
-  
+
   return (
     <div ref={sectionRef} className="bg-[#F9F9F9]">
+
       <div className="relative">
         <section ref={heroRef} className="w-full h-screen text-black flex flex-col justify-between font-neuehaas35 relative ">
           <div className="flex justify-between px-8 md:px-16 pt-8 h-full relative">
             <div className="flex flex-col justify-between w-1/2 relative">
               <div className="absolute top-[65%] left-0 -translate-y-1/2 text-left">
-                <h1 className="text-[4.5rem] md:text-[4.5rem] leading-[1.05] font-neuehaas45 uppercase">
-                  Backed By<br />Over 60 Years
+                <h1 className="text-xs tracking-widest text-gray-600 uppercase font-neuehaas45">
+                  Backed By over 60 Years Of <br /> Combined Orthodontic Experience
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-col w-1/2 relative">
-              <div className="absolute top-[50%] right-0 -translate-y-1/2 text-left">
-                <h1 className="text-[4.5rem] md:text-[4.5rem] leading-[1.05] font-neuehaas45 uppercase">
-                  Of Combined<br />Orthodontic<br />Experience
+              <div className="max-w-[500px] absolute top-[50%] right-0 -translate-y-1/2 text-left">
+                 <h1 className="text-[17px] tracking-wide text-gray-600 font-neuehaas45">
+Our doctors aren’t just orthodontists — they’re in the top 1%. That’s a level fewer than 1 in 4 orthodontists reach. And when it comes to Invisalign? We don’t follow trends — we set them. As Diamond Plus providers, we’ve shaped how clear aligners are done in the region (and treated thousands along the way).
                 </h1>
               </div>
             </div>
@@ -2331,7 +2217,7 @@ function ScrollPanels() {
 
 
 
-        <section className="w-full bg-[#f9f9f9] flex flex-col items-center">
+        <section className="w-full flex flex-col items-center">
           <div className="w-full px-[6vw]">
             <div className="border-t border-black/10 w-full" />
           </div>
@@ -2346,7 +2232,7 @@ function ScrollPanels() {
                   className="w-full h-auto object-cover"
                 />
               </div>
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
                 <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
                   Redefining
                   <span className="block">Excellence</span>
@@ -2363,7 +2249,7 @@ function ScrollPanels() {
 
           <div className="w-full px-[6vw] py-[10vh]">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
               <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
   Smart
   <span className="block">Orthodontics</span>
@@ -2388,7 +2274,7 @@ function ScrollPanels() {
 
           <div className="w-full px-[6vw] py-[10vh]">
             <div className="flex flex-col lg:flex-row-reverse items-center justify-between gap-12">
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
                 <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
                   3D 
                   <span className="block">Imaging</span>

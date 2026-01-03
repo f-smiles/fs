@@ -438,88 +438,129 @@ function Background() {
     `;
 
     const fragment = `
-      precision highp float;
+     precision highp float;
 
-      uniform vec3 uColor1;   // deeper peach orange glow
-      uniform vec3 uColor2;   // stronger AAAEC3 blue (powder lavender updated)
-      uniform vec3 uColor3;   // slate lavender
-      uniform float uTime;
-      uniform float uScroll;
+uniform vec3 uColor1;   // peach glow
+uniform vec3 uColor2;   // powder lavender blue
+uniform vec3 uColor3;   // slate lavender
+uniform float uTime;
+uniform float uScroll;
 
-      varying vec2 vUv;
+varying vec2 vUv;
 
-      vec4 permute(vec4 x){ return mod(((x*34.0)+1.0)*x,289.0); }
-      vec2 fade(vec2 t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
 
-      float cnoise(vec2 P){
-        vec4 Pi=floor(P.xyxy)+vec4(0.0,0.0,1.0,1.0);
-        vec4 Pf=fract(P.xyxy)-vec4(0.0,0.0,1.0,1.0);
-        Pi=mod(Pi,289.0);
-        vec4 ix=Pi.xzxz, iy=Pi.yyww, fx=Pf.xzxz, fy=Pf.yyww;
-        vec4 i=permute(permute(ix)+iy);
-        vec4 gx=2.0*fract(i*0.0243902439)-1.0;
-        vec4 gy=abs(gx)-0.5;
-        vec4 tx=floor(gx+0.5);
-        gx=gx-tx;
-        vec2 g00=vec2(gx.x,gy.x), g10=vec2(gx.y,gy.y);
-        vec2 g01=vec2(gx.z,gy.z), g11=vec2(gx.w,gy.w);
-        vec4 norm=1.79284291400159-0.85373472095314*
-          vec4(dot(g00,g00),dot(g01,g01),dot(g10,g10),dot(g11,g11));
-        g00*=norm.x; g01*=norm.y; g10*=norm.z; g11*=norm.w;
-        float n00=dot(g00,vec2(fx.x,fy.x));
-        float n10=dot(g10,vec2(fx.y,fy.y));
-        float n01=dot(g01,vec2(fx.z,fy.z));
-        float n11=dot(g11,vec2(fx.w,fy.w));
-        vec2 fade_xy=fade(Pf.xy);
-        vec2 n_x=mix(vec2(n00,n01),vec2(n10,n11),fade_xy.x);
-        float n_xy=mix(n_x.x,n_x.y,fade_xy.y);
-        return 2.3*n_xy;
-      }
+vec4 permute(vec4 x){ 
+  return mod(((x*34.0)+1.0)*x,289.0); 
+}
 
-      // fbm for cloud coat
-      float fbm(vec2 p){
-        float a = 0.0;
-        float w = 0.55;
-        a += w * cnoise(p*0.6);  w *= 0.55;
-        a += w * cnoise(p*1.1);  w *= 0.55;
-        a += w * cnoise(p*2.0);
-        return a;
-      }
+vec2 fade(vec2 t){ 
+  return t*t*t*(t*(t*6.0-15.0)+10.0); 
+}
 
-      void main(){
-        // moving band
-        float n = cnoise(vUv + uScroll + sin(uTime*0.1));
-        float t = 0.5 + 0.5*n;
-        t = pow(t, 0.25);
-        t = mix(t, 1.0, 0.1);  // Maintains the 10% shift to favor blue more
+float cnoise(vec2 P){
+  vec4 Pi=floor(P.xyxy)+vec4(0.0,0.0,1.0,1.0);
+  vec4 Pf=fract(P.xyxy)-vec4(0.0,0.0,1.0,1.0);
+  Pi=mod(Pi,289.0);
+  vec4 ix=Pi.xzxz, iy=Pi.yyww, fx=Pf.xzxz, fy=Pf.yyww;
+  vec4 i=permute(permute(ix)+iy);
+  vec4 gx=2.0*fract(i*0.0243902439)-1.0;
+  vec4 gy=abs(gx)-0.5;
+  vec4 tx=floor(gx+0.5);
+  gx=gx-tx;
+  vec2 g00=vec2(gx.x,gy.x), g10=vec2(gx.y,gy.y);
+  vec2 g01=vec2(gx.z,gy.z), g11=vec2(gx.w,gy.w);
+  vec4 norm=1.79284291400159-0.85373472095314*
+    vec4(dot(g00,g00),dot(g01,g01),dot(g10,g10),dot(g11,g11));
+  g00*=norm.x; g01*=norm.y; g10*=norm.z; g11*=norm.w;
+  float n00=dot(g00,vec2(fx.x,fy.x));
+  float n10=dot(g10,vec2(fx.y,fy.y));
+  float n01=dot(g01,vec2(fx.z,fy.z));
+  float n11=dot(g11,vec2(fx.w,fy.w));
+  vec2 fade_xy=fade(Pf.xy);
+  vec2 n_x=mix(vec2(n00,n01),vec2(n10,n11),fade_xy.x);
+  float n_xy=mix(n_x.x,n_x.y,fade_xy.y);
+  return 2.3*n_xy;
+}
 
-        vec3 color = mix(uColor1, uColor2, t);
+/* -------------------------
+   FBM for soft cloud coat
+-------------------------- */
+float fbm(vec2 p){
+  float a = 0.0;
+  float w = 0.55;
+  a += w * cnoise(p*0.6);  w *= 0.55;
+  a += w * cnoise(p*1.1);  w *= 0.55;
+  a += w * cnoise(p*2.0);
+  return a;
+}
 
-        // vignette / depth
-        float vign = smoothstep(0.68, 1.10, distance(vUv, vec2(0.5)));
-        color = mix(color, uColor3, vign * 0.10);
+void main() {
 
-        float valley = smoothstep(0.50, 0.28, t);
-        color = mix(color, uColor3, valley * 0.08);
 
-        // cloud coat
-        float clouds = fbm(vUv*0.9 + vec2(uScroll*0.2, 0.0) + uTime*0.015);
-        float cMask  = smoothstep(0.35, 0.85, 0.5 + 0.5*clouds);
-        vec3 coat    = mix(uColor2, vec3(0.96, 0.97, 1.0), 0.65);
-        color = mix(color, coat, cMask * 0.55);
+  float n = cnoise(vUv + uScroll + sin(uTime * 0.1));
+  float t = 0.5 + 0.5 * n;
+  t = pow(t, 0.25);
+  t = mix(t, 1.0, 0.1); // gentle bias toward blue
 
-        vec2 center = vec2(0.92, 0.06);
-        float r = distance(vUv, center);
-        float lift = 1.0 - smoothstep(0.25, 0.95, r);
-        color = mix(color, vec3(0.98, 0.985, 1.0), lift * 0.35);
+  vec3 color = mix(uColor1, uColor2, t);
 
-        vec2 glowCenter = vec2(0.08, 0.92);
-        float glow = 1.0 - smoothstep(0.0, 0.8, distance(vUv, glowCenter));
-        color += uColor1 * glow * 0.108;  // Keeps reduced glow for balance
+float vign = smoothstep(0.68, 1.10, distance(vUv, vec2(0.5)));
 
-        // final output
-        gl_FragColor = vec4(color, 1.0);
-      }
+// soften vignette near the bright top-right corner
+float cornerMask = smoothstep(
+  0.0,
+  0.35,
+  distance(vUv, vec2(0.92, 0.06))
+);
+vign *= cornerMask;
+
+color = mix(color, uColor3, vign * 0.08);
+
+float valley = smoothstep(0.50, 0.28, t);
+color = mix(color, uColor3, valley * 0.08);
+
+  float clouds = fbm(
+    vUv * 0.9 +
+    vec2(uScroll * 0.2, 0.0) +
+    uTime * 0.015
+  );
+
+  float cMask = smoothstep(0.35, 0.85, 0.5 + 0.5 * clouds);
+  vec3 coat = mix(uColor2, vec3(0.975, 0.98, 1.0), 0.72);
+  color = mix(color, coat, cMask * 0.55);
+
+
+vec2 liftCenter = vec2(0.92, 0.06);
+float r = distance(vUv, liftCenter);
+float localLift = 1.0 - smoothstep(0.30, 0.95, r);
+
+// soften peak
+localLift = pow(localLift, 1.4);
+
+// perceptual lift (not fully additive)
+color = mix(
+  color,
+  vec3(0.985, 0.99, 1.0),
+  localLift * 0.16
+);
+
+float whiteField = fbm(vUv * 0.55 + uTime * 0.01);
+whiteField = smoothstep(0.35, 0.75, 0.5 + 0.5 * whiteField);
+
+// suppress when local lift is strong
+whiteField *= (1.0 - localLift * 0.65);
+
+// gentle luminance lift
+color += whiteField * 0.12 * vec3(1.0);
+
+
+  vec2 glowCenter = vec2(0.08, 0.92);
+  float glow = 1.0 - smoothstep(0.0, 0.8, distance(vUv, glowCenter));
+
+  color += uColor1 * glow * 0.07;
+
+  gl_FragColor = vec4(color, 1.0);
+}
     `;
     
     const program = new Program(gl, {
@@ -1449,7 +1490,7 @@ useEffect(() => {
           whileDrag={{ scale: 1.03, transition: { duration: 0.1 } }}
           dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
           dragMomentum={false}
-          className="relative bg-[#FEFCFF]/50 backdrop-blur-2xl backdrop-saturate-150
+          className="relative bg-[#FEFCFF]/80
                      w-[320px] min-h-[450px] flex flex-col justify-start
                      border border-white cursor-grab active:cursor-grabbing
                      will-change-transform"
@@ -1462,7 +1503,7 @@ useEffect(() => {
         >
           <div className="relative w-full h-[240px] p-2">
             <div
-              className="w-full h-full bg-cover bg-center rounded-[8px] overflow-hidden relative"
+              className="w-full h-full bg-cover bg-center overflow-hidden relative"
               style={{ backgroundImage: `url(${t.image})` }}
             >
               <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />

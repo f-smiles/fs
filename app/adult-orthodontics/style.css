@@ -1,15 +1,15 @@
 :root {
   --terra:  #BDD5E6;
   --green:  #C57B57;
-  --pink: #BDBECF;
-  --blue: #D9CA51;
+  --pink: #CEC3EA;
+  --blue: #CDB729;
   --black: #0e0e0e;
   --beige: #C2CB23 ;
   --grey: #666d73;
   --91c5acce: 5;
   --sbw: 0px;
 }
-
+/* #BDBECF */
 .image-wrapper {
   position: relative;
   width: 100%;

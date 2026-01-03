@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Renderer,
   Camera,
@@ -21,7 +22,9 @@ import {
   OrbitControls,
   Environment,
   shaderMaterial,
-  useTexture
+  useTexture,
+  OrthographicCamera,
+  Clouds, Cloud, CameraControls, Sky as SkyImpl, StatsGl
 } from "@react-three/drei";
 import { Media } from "/utils/Media.js";
 import { EffectComposer } from "@react-three/postprocessing";
@@ -132,186 +135,6 @@ function CrossCursor() {
     </div>
   );
 }
-
-
-const ScrollAnimation = () => {
-  const stickySectionRef = useRef(null);
-  const cardRefs = useRef([]);
-  const textSectionRef = useRef(null);
-
-  const cardsData = [
-    {
-      title: "Complimentary Consultation",
-      description: "Initial consultations are always free of charge",
-    },
-    {
-      title: "Payment Plans are Available",
-      description: "We offer payment plans through Klarna and Ortho Banc",
-    },
-    {
-      title: "No Hidden Fees",
-      description:
-        "Comprehensive treatment plans include a set of retainers and supervision",
-    },
-    {
-      title: "One Year Post-Treatment Follow-Up",
-      description: "",
-    },
-  ];
-
-  const addToRefs = (el, index) => {
-    if (el && !cardRefs.current.includes(el)) {
-      cardRefs.current[index] = el;
-    }
-  };
-
-  useEffect(() => {
-    const stickySection = stickySectionRef.current;
-    const cards = cardRefs.current;
-    const stickyHeight = window.innerHeight * 5;
-
-    const transforms = [
-      [
-        [10, 50, -10, 10],
-        [20, -10, -45, 20],
-      ],
-      [
-        [0, 47.5, -10, 15],
-        [-25, 15, -45, 30],
-      ],
-      [
-        [0, 52.5, -10, 5],
-        [15, -5, -40, 60],
-      ],
-      [
-        [0, 50, 30, -80],
-        [20, -10, 60, 5],
-      ],
-      [
-        [0, 55, -15, 30],
-        [25, -15, 60, 95],
-      ],
-    ];
-
-    ScrollTrigger.create({
-      trigger: stickySection,
-      start: "top top",
-      end: `+=${stickyHeight}px`,
-      pin: true,
-      pinSpacing: true,
-      onUpdate: (self) => {
-        const progress = self.progress;
-
-        cards.forEach((card, index) => {
-          if (!card) return;
-
-          const delay = index * 0.1125;
-          const cardProgress = Math.max(0, Math.min((progress - delay) * 2, 1));
-
-          if (cardProgress > 0) {
-            const cardStartX = 25;
-            const cardEndX = -650;
-            const yPos = transforms[index][0];
-            const rotations = transforms[index][1];
-
-            const cardX = gsap.utils.interpolate(
-              cardStartX,
-              cardEndX,
-              cardProgress
-            );
-
-            const yProgress = cardProgress * 3;
-            const yIndex = Math.min(Math.floor(yProgress), yPos.length - 2);
-            const yInterpolation = yProgress - yIndex;
-            const cardY = gsap.utils.interpolate(
-              yPos[yIndex],
-              yPos[yIndex + 1],
-              yInterpolation
-            );
-
-            const cardRotation = gsap.utils.interpolate(
-              rotations[yIndex],
-              rotations[yIndex + 1],
-              yInterpolation
-            );
-
-            gsap.set(card, {
-              xPercent: cardX,
-              yPercent: cardY,
-              rotation: cardRotation,
-              opacity: 1,
-            });
-          } else {
-            gsap.set(card, { opacity: 0 });
-          }
-        });
-      },
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
-  }, []);
-
-  return (
-    <div className="relative">
-      <section
-        className="movingcard-sticky-section h-screen w-full relative"
-        ref={stickySectionRef}
-      >
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center z-0"
-          ref={textSectionRef}
-        >
-          <div className="w-full max-w-5xl px-8">
-            <h1 className="text-[3vw] sm:text-[4vw] lg:text-[3.5vw] font-neuehaas45 text-white leading-[1.1]">
-              Orthodontic treatment is more than just straightening teeth — it’s
-              about setting the foundation for long-term health, confidence,
-              <br />
-              and facial harmony.
-            </h1>
-            <div className="font-neuehaas45 mt-10 max-w-xl text-[16px] text-white leading-[1.2] mx-auto">
-              While many orthodontists offer Invisalign or braces, the
-              difference lies in how they approach treatment — what they’re
-              aiming to achieve, and how precisely they execute it. Advances in
-              modern orthodontics now allow us to do far more than align teeth.
-              We can optimize jaw positioning, enhance facial balance, and
-              design results that feel both natural and transformative. We
-              understand that cost matters — but choosing an orthodontist is
-              ultimately about trust. Who do you believe will deliver the best
-              result? Who sees the full picture, not just the teeth? A slightly
-              lower fee might save money in the short term, but true value comes
-              from results that last a lifetime.
-            </div>
-          </div>
-        </div>
-
-        {cardsData.map((card, index) => (
-          <div
-            className="movingcard-card absolute z-10"
-            key={index}
-            ref={(el) => addToRefs(el, index)}
-          >
-            <div className="movingcard-content">
-              <div className="movingcard-title">
-                <h2 className="movingcard-title-text font-neuehaas45">
-                  {card.title}
-                </h2>
-              </div>
-              <div className="movingcard-description">
-                <p className="movingcard-description-text font-neuehaas45">
-                  {card.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
-    </div>
-  );
-};
-
-
 
 const ShaderBackground = ({ className = '' }) => {
   const canvasRef = useRef(null);
@@ -449,7 +272,6 @@ const ShaderBackground = ({ className = '' }) => {
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-    // Get uniform locations
     const timeLocation = gl.getUniformLocation(program, 'u_time');
     const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
 
@@ -487,14 +309,6 @@ const resize = () => {
 
   return <canvas ref={canvasRef} className={className} style={{ display: 'block' }} />;
 };
-
-
-
-
-
-
-
-
 
 const FinancingTreatment = () => {
   // const containerRef = useRef(null);
@@ -581,199 +395,6 @@ const FinancingTreatment = () => {
   //   );
   // }, []);
 
-  const sectionRef = useRef(null);
-  const scrollContainerRef = useRef(null);
-  const drawPathRef = useRef(null);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const stepContent = [
-        {
-          title: "Complimentary consultation",
-          description: "Initial consultations are always free of charge.",
-        },
-        {
-          title: "Payment plans are available",
-          description: "We offer a variety of payment plans at no interest.",
-        },
-        {
-          title: "No hidden fees",
-          description:
-            "Comprehensive treatment plans include retainers and supervision",
-        },
-      ];
-      const section = sectionRef.current;
-      const scrollContainer = scrollContainerRef.current;
-      const path = drawPathRef.current;
-
-      if (!section || !scrollContainer || !path) return;
-
-      const scrollDistance = scrollContainer.scrollWidth - window.innerWidth;
-      const pathLength = path.getTotalLength();
-
-      gsap.set(path, {
-        strokeDasharray: pathLength,
-        strokeDashoffset: pathLength,
-      });
-
-      const mainTrigger = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: () => `+=${scrollDistance}`,
-        pin: true,
-        pinSpacing: false,
-        scrub: true,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          scrollContainer.style.transform = `translateX(${
-            -scrollDistance * progress
-          }px)`;
-          path.style.strokeDashoffset = pathLength * (1 - progress);
-        },
-      });
-      gsap.fromTo(
-        textCurveRef.current,
-        { attr: { startOffset: "150%" } },
-        {
-          attr: { startOffset: "-50%" },
-          scrollTrigger: {
-            trigger: section,
-            start: "top top",
-            end: () => `+=${scrollDistance}`,
-            scrub: true,
-          },
-          ease: "none",
-        }
-      );
-      const getCriticalPoints = () => {
-        const points = [];
-        let prevAngle = null;
-        const samples = 150;
-        const angleThreshold = 0.4; // the more speciifc the angle the more logged steps
-        const minProgressDistance = 0.03; // dist etween points
-        let lastValidProgress = -Infinity;
-
-        for (let i = 1; i <= samples; i++) {
-          const progress = i / samples;
-          const currentPoint = path.getPointAtLength(progress * pathLength);
-          const prevPoint = path.getPointAtLength(
-            ((i - 1) / samples) * pathLength
-          );
-
-          const angle = Math.atan2(
-            currentPoint.y - prevPoint.y,
-            currentPoint.x - prevPoint.x
-          );
-
-          // Only count large direction changes
-          if (
-            prevAngle !== null &&
-            Math.abs(angle - prevAngle) > angleThreshold &&
-            progress - lastValidProgress >= minProgressDistance
-          ) {
-            points.push({
-              point: currentPoint,
-              progress,
-              scrollPosition: scrollDistance * progress,
-            });
-            lastValidProgress = progress;
-          }
-          prevAngle = angle;
-        }
-
-        return points;
-      };
-
-      const criticalPoints = getCriticalPoints();
-
-      const textMarkers = criticalPoints.map(
-        ({ point, scrollPosition }, index) => {
-          const content = stepContent[index] || {
-            title: `Phase ${index + 1}`,
-            description: "",
-          };
-
-          const marker = document.createElement("div");
-          marker.className = "path-marker";
-          marker.innerHTML = `
-      <div class="relative inline-block">
-
-  <img
-    src="../images/filleddiamond.svg"
-    alt="diamond background"
-    class="block w-[400px] h-[400px]"  
-  />
-
-
-  <div
-    class="marker-content absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none"
-  >
-    <p class="font-neuehaas45 marker-title text-[20px]">
-      ${content.title}
-    </p>
-    <p class="font-neuehaas45 marker-desc">
-      ${content.description}
-    </p>
-  </div>
-</div>
-
-      `;
-
-          Object.assign(marker.style, {
-            position: "absolute",
-            left: `${point.x}px`,
-            top: `${point.y}px`,
-            transform: "translate(-50%, -50%)",
-            opacity: "0",
-            willChange: "opacity",
-            // border: '2px solid red',
-            padding: "4px",
-          });
-
-          scrollContainer.appendChild(marker);
-
-          ScrollTrigger.create({
-            trigger: section,
-            start: `top top+=${scrollPosition - 200}`,
-            end: `top top+=${scrollPosition + 200}`,
-            scrub: 0.5,
-            onEnter: () => gsap.to(marker, { opacity: 1, duration: 0.3 }),
-            onLeaveBack: () => gsap.to(marker, { opacity: 0, duration: 0.3 }),
-          });
-
-          return marker;
-        }
-      );
-
-      return () => {
-        ScrollTrigger.getAll().forEach((t) => t.kill());
-        textMarkers.forEach((marker) => {
-          if (marker.parentNode) {
-            marker.parentNode.removeChild(marker);
-          }
-        });
-      };
-    });
-  }, []);
-
-  const textPathRef = useRef();
-  const svgRef = useRef();
-
-  useEffect(() => {
-    if (!textPathRef.current || !svgRef.current) return;
-
-    gsap.to(textPathRef.current, {
-      scrollTrigger: {
-        trigger: svgRef.current,
-        start: "top +=40",
-        end: "bottom center",
-        scrub: true,
-      },
-      attr: { startOffset: "100%" },
-      ease: "none",
-    });
-  }, []);
-
   const textCurveRef = useRef();
   const filterRef = useRef();
 
@@ -781,65 +402,65 @@ const FinancingTreatment = () => {
   const lerp = (a, b, n) => (1 - n) * a + n * b;
   const clamp = (val, min, max) => Math.max(Math.min(val, max), min);
 
-  const starRef = useRef(null);
-  useEffect(() => {
-    const svg = starRef.current;
-    const group = svg.querySelector(".shape-wrapper");
-    const content = svg.querySelector(".scrolling-content");
+  // const starRef = useRef(null);
+  // useEffect(() => {
+  //   const svg = starRef.current;
+  //   const group = svg.querySelector(".shape-wrapper");
+  //   const content = svg.querySelector(".scrolling-content");
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const scaleFactor = Math.min(viewportWidth, viewportHeight) / 162;
+  //   const viewportWidth = window.innerWidth;
+  //   const viewportHeight = window.innerHeight;
+  //   const scaleFactor = Math.min(viewportWidth, viewportHeight) / 162;
 
-    gsap.set(group, {
-      scale: 0.1,
-      opacity: 0,
-      transformOrigin: "center center",
-    });
+  //   gsap.set(group, {
+  //     scale: 0.1,
+  //     opacity: 0,
+  //     transformOrigin: "center center",
+  //   });
 
-    gsap.set(content, {
-      opacity: 0,
-      y: "20%",
-    });
+  //   gsap.set(content, {
+  //     opacity: 0,
+  //     y: "20%",
+  //   });
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: svg,
-        start: "center center",
-        end: "+=1500",
-        scrub: 1,
-        markers: false,
-        pin: true,
-        toggleActions: "play none none reverse",
-      },
-    });
+  //   const tl = gsap.timeline({
+  //     scrollTrigger: {
+  //       trigger: svg,
+  //       start: "center center",
+  //       end: "+=1500",
+  //       scrub: 1,
+  //       markers: false,
+  //       pin: true,
+  //       toggleActions: "play none none reverse",
+  //     },
+  //   });
 
-    tl.to(group, {
-      opacity: 1,
-      duration: 0.5,
-    })
-      .to(group, {
-        rotation: 130,
-        scale: scaleFactor * 1.1,
-        duration: 4,
-        ease: "none",
-      })
-      .to(
-        content,
-        {
-          opacity: 1,
-          y: "0%",
-          duration: 2,
-          ease: "power2.out",
-        },
-        "-=2"
-      );
+  //   tl.to(group, {
+  //     opacity: 1,
+  //     duration: 0.5,
+  //   })
+  //     .to(group, {
+  //       rotation: 130,
+  //       scale: scaleFactor * 1.1,
+  //       duration: 4,
+  //       ease: "none",
+  //     })
+  //     .to(
+  //       content,
+  //       {
+  //         opacity: 1,
+  //         y: "0%",
+  //         duration: 2,
+  //         ease: "power2.out",
+  //       },
+  //       "-=2"
+  //     );
 
-    return () => {
-      tl.kill();
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
-  }, []);
+  //   return () => {
+  //     tl.kill();
+  //     ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+  //   };
+  // }, []);
 
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -874,73 +495,9 @@ const FinancingTreatment = () => {
     setIsComplete(true);
   };
 
-  const processingRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          startLoadingAnimation();
-          observer.disconnect();
-        }
-      },
-      { threshold: 1 }
-    );
-
-    if (processingRef.current) {
-      observer.observe(processingRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   const svgPathRef = useRef();
   const pathRef = useRef();
-  const dotRef = useRef();
 
-  useEffect(() => {
-    if (!pathRef.current || !dotRef.current) return;
-
-    gsap.set(dotRef.current, {
-      motionPath: {
-        path: pathRef.current,
-        align: pathRef.current,
-        alignOrigin: [0.5, 0.5],
-        start: 0,
-        end: 0,
-      },
-    });
-
-    gsap.to(dotRef.current, {
-      scrollTrigger: {
-        trigger: svgPathRef.current,
-        start: "top center",
-        end: "bottom center",
-        scrub: true,
-      },
-      motionPath: {
-        path: pathRef.current,
-        align: pathRef.current,
-        alignOrigin: [0.5, 0.5],
-        autoRotate: false,
-      },
-      scale: 1,
-      transformOrigin: "center center",
-      ease: "none",
-    });
-
-    gsap.to(dotRef.current, {
-      scrollTrigger: {
-        trigger: svgPathRef.current,
-        start: "bottom center",
-        end: "+=100%",
-        scrub: true,
-        pin: true,
-      },
-      scale: 250,
-      ease: "power1.inOut",
-    });
-  }, []);
 
   const lineRef = useRef();
 
@@ -1093,84 +650,6 @@ const FinancingTreatment = () => {
   }, []);
 
 
-    const scrollAwayRef = useRef(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const items = gsap.utils.toArray(".work-item");
-
-      items.forEach((item) => {
-        const img = item.querySelector(".work-item-img");
-        const nameH1 = item.querySelector(".work-item-name h1");
-
-
-        const split = SplitText.create(nameH1, { type: "chars", mask: "chars" });
-        gsap.set(split.chars, { y: "125%" });
-
-
-        split.chars.forEach((char, index) => {
-          ScrollTrigger.create({
-            trigger: item,
-            start: `top+=${index * 25 - 250} top`,
-            end: `top+=${index * 25 - 100} top`,
-            scrub: 1,
-            animation: gsap.fromTo(
-              char,
-              { y: "125%" },
-              { y: "0%", ease: "none" }
-            ),
-          });
-        });
-
-
-ScrollTrigger.create({
-  trigger: item,
-  start: "top+=120 bottom",
-  end: "top top",
-  scrub: 0.8,
-  animation: gsap.fromTo(
-    img,
-    {
-      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
-      rotateX: 15,
-      scale: 0.9,
-      transformOrigin: "center bottom",
-    },
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      rotateX: 0,
-      scale: 1,
-      ease: "power2.out",
-    }
-  ),
-});
-
-
-ScrollTrigger.create({
-  trigger: item,
-  start: "bottom+=120 bottom", 
-  end: "bottom top",
-  scrub: 0.8,
-  animation: gsap.fromTo(
-    img,
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      rotateX: 0,
-      scale: 1,
-    },
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 75% 60%, 25% 75%)",
-      rotateX: -12,
-      scale: 0.95,
-      ease: "power2.inOut",
-    }
-  ),
-});
-      });
-    }, scrollAwayRef);
-
-    return () => ctx.revert();
-  }, []);
 
 
   
@@ -1189,11 +668,28 @@ ScrollTrigger.create({
     
     {/* TOP HALF */}
     <div className="flex-1 flex flex-col justify-start items-center pt-[8vh]">
-      <WebGLGalleryApp />
+      {/* <WebGLGalleryApp /> */}
   
       <div className="mt-8 flex flex-wrap justify-center gap-12 text-[0.75rem] uppercase tracking-wider text-[#555] max-w-[480px]">
         <p className="font-neuehaas45">
-      
+      Main Heading
+
+Orthodontic treatment is more than just straightening teeth — it’s about setting the foundation for long-term health, confidence, and facial harmony.
+
+⸻
+
+Body Copy
+
+While many orthodontists offer Invisalign or braces, the difference lies in how they approach treatment — what they’re aiming to achieve, and how precisely they execute it.
+
+Advances in modern orthodontics now allow us to do far more than align teeth. We can optimize jaw positioning, enhance facial balance, and design results that feel both natural and transformative.
+
+We understand that cost matters — but choosing an orthodontist is ultimately about trust. Who do you believe will deliver the best result? Who sees the full picture, not just the teeth?
+
+A slightly lower fee might save money in the short term, but true value comes from results that last a lifetime.
+
+
+
         </p>
 
       </div>
@@ -1237,98 +733,75 @@ ScrollTrigger.create({
     </div>
 
     <p className="max-w-[520px] text-[clamp(1rem,1.6vw,1.4rem)] font-canelathin leading-[1]">
-While any orthodontist can move teeth into place, we focus on how alignment integrates with facial harmony — creating results that feel naturally your own.
+⸻
+
+Card Content
+
+Complimentary Consultation
+Initial Consultations
+
+Whether in person or virtual,
+your first consultation is free.
+
+⸻
+Full Evaluation
+
+This initial visit includes an
+in-depth orthodontic evaluation,
+digital radiographs, and
+professional imaging.
+
+⸻
+
+Plan and Prepare
+
+We encourage all decision-makers to attend
+the initial visit so we can discuss the path
+ahead with clarity and transparency —
+ensuring everyone is aligned on expectations,
+preferences, and the ideal time to begin.
+
+⸻
+
+Treatment Roadmap
+
+If treatment isn’t yet needed,
+no-cost observation check-ups will be
+coordinated every 6–12 months until
+treatment is needed.
+
+These are shorter, fun visits where
+you’ll have access to all four of our locations
+to play video games and get to know our team.
+
+
+Payment Plans Available
+We offer payment plans through Klarna and OrthoBanc.
+
+⸻
+
+No Hidden Fees
+Comprehensive treatment plans include a set of retainers and ongoing supervision.
+
+⸻
+
+One Year Post-Treatment Follow-Up
     </p>
   </div>
 </section>
-{/* <section
-  ref={scrollAwayRef}
-  className="relative w-screen pt-[160px] overflow-hidden flex flex-col"
->
-<div className="relative z-10 w-full px-[10vw] max-w-[900px] mb-[15vh]">
-  <div className="w-fit mb-6 px-6 py-4 backdrop-blur-[10px] bg-[rgba(160,253,208,0.85)] border border-white/10">
-    <div className="text-gray-500 uppercase tracking-widest font-neuehaas45 text-[11px]">
-      First Impressions
-    </div>
-  </div>
 
-  <p className="tracking-wide font-neuehaas45 text-[clamp(.75rem,1.1vw,1.1rem)] leading-[1.1] max-w-[700px]">
-    Your first visit is where it all begins. We’ll get to know you, take
-    digital photos and X-rays, and map out your smile goals together. It’s
-    a simple, one-on-one visit that gives us a clear picture of your
-    orthodontic needs.
-  </p>
-</div>
-
-{[
-  { id: 1, name: "Discuss" }, 
-  { id: 2, name: "Digital Records", video: "/videos/cbctscan.mp4" }, 
-  { id: 3, name: "Personalized Plan", img: "/images/flower.jpeg" }, 
-].map((work) => (
- <div
-  key={work.id}
-  className="relative work-item h-[90svh] w-full flex items-center justify-center"
->
-  <div
-    className="work-item-img relative w-[75vw] h-[75vh] overflow-hidden"
-    style={{
-      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
-      willChange: "clip-path",
-    }}
-  >
-    {work.id === 1 ? (
-
-      <ShaderBackground className="w-full h-full" />
-    ) : work.id === 2 ? (
-
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline 
-        className="w-full h-full object-cover"
-        poster={work.img || "/images/background_min.png"} 
-      >
-        <source src={work.video || "/videos/cbctscan.mp4"} type="video/mp4" />
-   
-        <img src="/images/background_min.png" alt={work.name} className="w-full h-full object-cover" />
-      </video>
-    ) : (
-   
-      <img
-        src={work.img}
-        alt={work.name}
-        className="w-full h-full object-cover"
-      />
-    )}
-  </div>
-
-
-  <div className="work-item-name absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full z-[1]">
-    <h1
-      className="text-center text-white font-neuehaas35 leading-[1]"
-      style={{
-        fontSize: "5rem",
-      }}
-    >
-      {work.name}
-    </h1>
-  </div>
-</div>
-  ))}
-</section> */}
   <div className="bg-[#E2DD70] min-h-screen relative text-[#f6f1df] overflow-hidden flex flex-col justify-start">
 
   <div className="bg-[#E2DD70] relative z-10 mt-[15vh] pl-[8vw]">
 
 
-    {/* Gradient */}
+
     <div className="mt-[-2vh] w-[60vw] h-[55vh] bg-gradient-to-br from-[#ffb98d] via-[#f9c0a0] to-[#e5cec7] flex items-end p-10">
      
     </div>
   </div>
 
-<section className="relative h-screen flex items-center justify-center z-[10]">
+{/* <section className="relative h-screen flex items-center justify-center z-[10]">
   <svg
     ref={starRef}
     xmlns="http://www.w3.org/2000/svg"
@@ -1377,71 +850,12 @@ While any orthodontist can move teeth into place, we focus on how alignment inte
       </tspan>
     </text>
   </svg>
-</section>
-
-  {/* CURVED PATH SECTION */}
-  <div className="overflow-hidden" style={{ height: "400vh" }}>
-    <section
-      ref={sectionRef}
-      className="w-screen h-screen overflow-hidden flex items-center px-10"
-    >
-      <div ref={scrollContainerRef}>
-        <svg
-          width="3370"
-          height="671"
-          viewBox="0 0 3370 671"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            ref={drawPathRef}
-            d="M0.998047 1C0.998047 1 849.498 764.605 786.498 659.553C723.498 554.5 1725.51 370.052 1660.51 419.052C1595.5 468.052 2515.02 616.409 2491.26 660.981C2467.5 705.553 3369 419.052 3369 419.052"
-            stroke="#EBFD15"
-            strokeWidth="3"
-          />
-        </svg>
-      </div>
-    </section>
-  </div>
+</section> */}
 
 
-  <section className="relative flex items-center justify-center">
-    <div className="w-[36vw] h-[90vh] bg-[#FF8111] rounded-t-[600px] flex flex-col items-center justify-center px-8 pt-24 pb-20 z-10">
-      <p className="font-neueroman text-[18px] uppercase leading-snug text-black">
-        Your first visit is where it all begins. We’ll get to know you, take
-        digital photos and X-rays, and map out your smile goals together. It’s
-        a simple, one-on-one visit that gives us a clear picture of your
-        orthodontic needs.
-      </p>
-    </div>
 
-    <svg
-      width="90vw"
-      height="170vh"
-      viewBox="-100 0 1100 1800"
-      xmlns="http://www.w3.org/2000/svg"
-      ref={svgRef}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
-    >
-      <defs>
-        <path
-          id="text-arc-path"
-          d="M0,820 A450,450 0 0 1 900,820 L900,1440 L0,1440 Z"
-          fill="none"
-        />
-      </defs>
 
-      <text
-        className="text-[12vw] tracking-wide font-neueroman fill-[#FEB448] font-sinistre"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        <textPath ref={textPathRef} href="#text-arc-path" startOffset="4%">
-          GETTING STARTED
-        </textPath>
-      </text>
-    </svg>
-  </section>
+
 
 
   <section className="relative w-full h-screen font-neuehaas45">
@@ -1460,7 +874,7 @@ While any orthodontist can move teeth into place, we focus on how alignment inte
     </svg>
   </section>
 </div>
-        {/* <ScrollAnimation /> */}
+
 
         <div className="relative z-0 h-screen w-full">
           <div ref={cardRef} className="relative">
@@ -1482,9 +896,9 @@ While any orthodontist can move teeth into place, we focus on how alignment inte
                 }}
                 className="h-[90vh] max-w-7xl p-10"
               >
-                {/* <div className="absolute w-[400px] h-[400px] bg-purple-500 opacity-20 blur-[140px] rounded-full top-1/3 left-[-140px] pointer-events-none mix-blend-screen"></div>
+                <div className="absolute w-[400px] h-[400px] bg-purple-500 opacity-20 blur-[140px] rounded-full top-1/3 left-[-140px] pointer-events-none mix-blend-screen"></div>
             <div className="absolute w-[400px] h-[400px] bg-orange-500 opacity-20 blur-[140px] rounded-full top-[40%] left-[-100px] pointer-events-none mix-blend-screen"></div>
-            <div className="absolute w-[400px] h-[400px] bg-sky-300 opacity-30 blur-[140px] rounded-full top-1/4 right-[-120px] pointer-events-none"></div> */}
+            <div className="absolute w-[400px] h-[400px] bg-sky-300 opacity-30 blur-[140px] rounded-full top-1/4 right-[-120px] pointer-events-none"></div>
 
                 <div className="grid grid-cols-3 gap-4 h-full">
                   <div className="flex flex-col items-center justify-center h-full">
@@ -1636,169 +1050,7 @@ While any orthodontist can move teeth into place, we focus on how alignment inte
                     <div className="w-full bg-gray-200 rounded-full h-[6px] relative mb-1">
                       <div className="bg-[#ffb3d6] h-full rounded-full w-[65%]"></div>
                     </div>
-                    {/* <div
-                ref={processingRef}
-                id="processing"
-                className={`absolute inset-0 flex flex-col justify-center items-center ${
-                  isComplete ? "complete" : "uncomplete"
-                }`}
-              >
-                <div className="text-[14px] font-neuehaas45 mx-auto text-center">
-                  <h1 className="text-[20px]">Processing</h1>
-                  <h2 className="text-[14px]">
-                    Please wait while we process your request
-                  </h2>
-                </div>
-                <div className="relative mx-auto my-[30px]">
-                  <div class="gears">
-                    <div class="gear-wrapper gear-wrapper-1">
-                      <svg
-                        version="1.1"
-                        className="gear gear-1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlnsXlink="http://www.w3.org/1999/xlink"
-                        x="0px"
-                        y="0px"
-                        viewBox="0 0 512 512"
-                        style={{ enableBackground: "new 0 0 512 512" }}
-                        xmlSpace="preserve"
-                      >
-                        <path
-                          class="st0"
-                          d="M507.6,232.1c0,0-9.3-3.5-36.2-6c-32.9-3-42.8-15.4-53.7-30.7h-0.2c-1.4-3.6-2.8-7.2-4.4-10.8l0.1-0.1
-		c-3.1-18.6-4.8-34.3,16.3-59.7C446.7,104,450.8,95,450.8,95c-4-10.3-13.8-20-13.8-20s-9.7-9.7-20-13.8c0,0-9.1,4.1-29.8,21.4
-		c-25.4,21.1-41.1,19.4-59.7,16.3l-0.1,0.1c-3.5-1.6-7.1-3.1-10.8-4.4v-0.2c-15.3-10.9-27.7-20.9-30.7-53.7c-2.5-26.9-6-36.2-6-36.2
-		C269.8,0,256,0,256,0s-13.8,0-23.9,4.4c0,0-3.5,9.3-6,36.2c-3,32.9-15.4,42.8-30.7,53.7v0.2c-3.6,1.4-7.3,2.8-10.8,4.4l-0.1-0.1
-		c-18.6,3.1-34.3,4.8-59.7-16.3C104,65.3,95,61.2,95,61.2C84.7,65.3,75,75,75,75s-9.7,9.7-13.8,20c0,0,4.1,9.1,21.4,29.8
-		c21.1,25.4,19.4,41.1,16.3,59.7l0.1,0.1c-1.6,3.5-3.1,7.1-4.4,10.8h-0.2c-10.9,15.4-20.9,27.7-53.7,30.7c-26.9,2.5-36.2,6-36.2,6
-		C0,242.3,0,256,0,256s0,13.8,4.4,23.9c0,0,9.3,3.5,36.2,6c32.9,3,42.8,15.4,53.7,30.7h0.2c1.4,3.7,2.8,7.3,4.4,10.8l-0.1,0.1
-		c3.1,18.6,4.8,34.3-16.3,59.7C65.3,408,61.2,417,61.2,417c4.1,10.3,13.8,20,13.8,20s9.7,9.7,20,13.8c0,0,9-4.1,29.8-21.4
-		c25.4-21.1,41.1-19.4,59.7-16.3l0.1-0.1c3.5,1.6,7.1,3.1,10.8,4.4v0.2c15.3,10.9,27.7,20.9,30.7,53.7c2.5,26.9,6,36.2,6,36.2
-		C242.3,512,256,512,256,512s13.8,0,23.9-4.4c0,0,3.5-9.3,6-36.2c3-32.9,15.4-42.8,30.7-53.7v-0.2c3.7-1.4,7.3-2.8,10.8-4.4l0.1,0.1
-		c18.6-3.1,34.3-4.8,59.7,16.3c20.8,17.3,29.8,21.4,29.8,21.4c10.3-4.1,20-13.8,20-13.8s9.7-9.7,13.8-20c0,0-4.1-9.1-21.4-29.8
-		c-21.1-25.4-19.4-41.1-16.3-59.7l-0.1-0.1c1.6-3.5,3.1-7.1,4.4-10.8h0.2c10.9-15.3,20.9-27.7,53.7-30.7c26.9-2.5,36.2-6,36.2-6
-		C512,269.8,512,256,512,256S512,242.2,507.6,232.1z M256,375.7c-66.1,0-119.7-53.6-119.7-119.7S189.9,136.3,256,136.3
-		c66.1,0,119.7,53.6,119.7,119.7S322.1,375.7,256,375.7z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="gear-wrapper gear-wrapper-2">
-                      <svg
-                        version="1.1"
-                        className="gear gear-2"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlnsXlink="http://www.w3.org/1999/xlink"
-                        x="0px"
-                        y="0px"
-                        viewBox="0 0 512 512"
-                        style={{ enableBackground: "new 0 0 512 512" }}
-                        xmlSpace="preserve"
-                      >
-                        <path
-                          class="st0"
-                          d="M507.6,232.1c0,0-9.3-3.5-36.2-6c-32.9-3-42.8-15.4-53.7-30.7h-0.2c-1.4-3.6-2.8-7.2-4.4-10.8l0.1-0.1
-		c-3.1-18.6-4.8-34.3,16.3-59.7C446.7,104,450.8,95,450.8,95c-4-10.3-13.8-20-13.8-20s-9.7-9.7-20-13.8c0,0-9.1,4.1-29.8,21.4
-		c-25.4,21.1-41.1,19.4-59.7,16.3l-0.1,0.1c-3.5-1.6-7.1-3.1-10.8-4.4v-0.2c-15.3-10.9-27.7-20.9-30.7-53.7c-2.5-26.9-6-36.2-6-36.2
-		C269.8,0,256,0,256,0s-13.8,0-23.9,4.4c0,0-3.5,9.3-6,36.2c-3,32.9-15.4,42.8-30.7,53.7v0.2c-3.6,1.4-7.3,2.8-10.8,4.4l-0.1-0.1
-		c-18.6,3.1-34.3,4.8-59.7-16.3C104,65.3,95,61.2,95,61.2C84.7,65.3,75,75,75,75s-9.7,9.7-13.8,20c0,0,4.1,9.1,21.4,29.8
-		c21.1,25.4,19.4,41.1,16.3,59.7l0.1,0.1c-1.6,3.5-3.1,7.1-4.4,10.8h-0.2c-10.9,15.4-20.9,27.7-53.7,30.7c-26.9,2.5-36.2,6-36.2,6
-		C0,242.3,0,256,0,256s0,13.8,4.4,23.9c0,0,9.3,3.5,36.2,6c32.9,3,42.8,15.4,53.7,30.7h0.2c1.4,3.7,2.8,7.3,4.4,10.8l-0.1,0.1
-		c3.1,18.6,4.8,34.3-16.3,59.7C65.3,408,61.2,417,61.2,417c4.1,10.3,13.8,20,13.8,20s9.7,9.7,20,13.8c0,0,9-4.1,29.8-21.4
-		c25.4-21.1,41.1-19.4,59.7-16.3l0.1-0.1c3.5,1.6,7.1,3.1,10.8,4.4v0.2c15.3,10.9,27.7,20.9,30.7,53.7c2.5,26.9,6,36.2,6,36.2
-		C242.3,512,256,512,256,512s13.8,0,23.9-4.4c0,0,3.5-9.3,6-36.2c3-32.9,15.4-42.8,30.7-53.7v-0.2c3.7-1.4,7.3-2.8,10.8-4.4l0.1,0.1
-		c18.6-3.1,34.3-4.8,59.7,16.3c20.8,17.3,29.8,21.4,29.8,21.4c10.3-4.1,20-13.8,20-13.8s9.7-9.7,13.8-20c0,0-4.1-9.1-21.4-29.8
-		c-21.1-25.4-19.4-41.1-16.3-59.7l-0.1-0.1c1.6-3.5,3.1-7.1,4.4-10.8h0.2c10.9-15.3,20.9-27.7,53.7-30.7c26.9-2.5,36.2-6,36.2-6
-		C512,269.8,512,256,512,256S512,242.2,507.6,232.1z M256,375.7c-66.1,0-119.7-53.6-119.7-119.7S189.9,136.3,256,136.3
-		c66.1,0,119.7,53.6,119.7,119.7S322.1,375.7,256,375.7z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="gear-wrapper gear-wrapper-3">
-                      <svg
-                        version="1.1"
-                        className="gear gear-3"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlnsXlink="http://www.w3.org/1999/xlink"
-                        x="0px"
-                        y="0px"
-                        viewBox="0 0 512 512"
-                        style={{ enableBackground: "new 0 0 512 512" }}
-                        xmlSpace="preserve"
-                      >
-                        <path
-                          class="st0"
-                          d="M507.6,232.1c0,0-9.3-3.5-36.2-6c-32.9-3-42.8-15.4-53.7-30.7h-0.2c-1.4-3.6-2.8-7.2-4.4-10.8l0.1-0.1
-		c-3.1-18.6-4.8-34.3,16.3-59.7C446.7,104,450.8,95,450.8,95c-4-10.3-13.8-20-13.8-20s-9.7-9.7-20-13.8c0,0-9.1,4.1-29.8,21.4
-		c-25.4,21.1-41.1,19.4-59.7,16.3l-0.1,0.1c-3.5-1.6-7.1-3.1-10.8-4.4v-0.2c-15.3-10.9-27.7-20.9-30.7-53.7c-2.5-26.9-6-36.2-6-36.2
-		C269.8,0,256,0,256,0s-13.8,0-23.9,4.4c0,0-3.5,9.3-6,36.2c-3,32.9-15.4,42.8-30.7,53.7v0.2c-3.6,1.4-7.3,2.8-10.8,4.4l-0.1-0.1
-		c-18.6,3.1-34.3,4.8-59.7-16.3C104,65.3,95,61.2,95,61.2C84.7,65.3,75,75,75,75s-9.7,9.7-13.8,20c0,0,4.1,9.1,21.4,29.8
-		c21.1,25.4,19.4,41.1,16.3,59.7l0.1,0.1c-1.6,3.5-3.1,7.1-4.4,10.8h-0.2c-10.9,15.4-20.9,27.7-53.7,30.7c-26.9,2.5-36.2,6-36.2,6
-		C0,242.3,0,256,0,256s0,13.8,4.4,23.9c0,0,9.3,3.5,36.2,6c32.9,3,42.8,15.4,53.7,30.7h0.2c1.4,3.7,2.8,7.3,4.4,10.8l-0.1,0.1
-		c3.1,18.6,4.8,34.3-16.3,59.7C65.3,408,61.2,417,61.2,417c4.1,10.3,13.8,20,13.8,20s9.7,9.7,20,13.8c0,0,9-4.1,29.8-21.4
-		c25.4-21.1,41.1-19.4,59.7-16.3l0.1-0.1c3.5,1.6,7.1,3.1,10.8,4.4v0.2c15.3,10.9,27.7,20.9,30.7,53.7c2.5,26.9,6,36.2,6,36.2
-		C242.3,512,256,512,256,512s13.8,0,23.9-4.4c0,0,3.5-9.3,6-36.2c3-32.9,15.4-42.8,30.7-53.7v-0.2c3.7-1.4,7.3-2.8,10.8-4.4l0.1,0.1
-		c18.6-3.1,34.3-4.8,59.7,16.3c20.8,17.3,29.8,21.4,29.8,21.4c10.3-4.1,20-13.8,20-13.8s9.7-9.7,13.8-20c0,0-4.1-9.1-21.4-29.8
-		c-21.1-25.4-19.4-41.1-16.3-59.7l-0.1-0.1c1.6-3.5,3.1-7.1,4.4-10.8h0.2c10.9-15.3,20.9-27.7,53.7-30.7c26.9-2.5,36.2-6,36.2-6
-		C512,269.8,512,256,512,256S512,242.2,507.6,232.1z M256,375.7c-66.1,0-119.7-53.6-119.7-119.7S189.9,136.3,256,136.3
-		c66.1,0,119.7,53.6,119.7,119.7S322.1,375.7,256,375.7z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="gear-wrapper gear-wrapper-4">
-                      <svg
-                        version="1.1"
-                        className="gear gear-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlnsXlink="http://www.w3.org/1999/xlink"
-                        x="0px"
-                        y="0px"
-                        viewBox="0 0 512 512"
-                        enableBackground="new 0 0 512 512"
-                        xmlSpace="preserve"
-                      >
-                        <path
-                          class="st0"
-                          d="M507.6,232.1c0,0-9.3-3.5-36.2-6c-32.9-3-42.8-15.4-53.7-30.7h-0.2c-1.4-3.6-2.8-7.2-4.4-10.8l0.1-0.1
-		c-3.1-18.6-4.8-34.3,16.3-59.7C446.7,104,450.8,95,450.8,95c-4-10.3-13.8-20-13.8-20s-9.7-9.7-20-13.8c0,0-9.1,4.1-29.8,21.4
-		c-25.4,21.1-41.1,19.4-59.7,16.3l-0.1,0.1c-3.5-1.6-7.1-3.1-10.8-4.4v-0.2c-15.3-10.9-27.7-20.9-30.7-53.7c-2.5-26.9-6-36.2-6-36.2
-		C269.8,0,256,0,256,0s-13.8,0-23.9,4.4c0,0-3.5,9.3-6,36.2c-3,32.9-15.4,42.8-30.7,53.7v0.2c-3.6,1.4-7.3,2.8-10.8,4.4l-0.1-0.1
-		c-18.6,3.1-34.3,4.8-59.7-16.3C104,65.3,95,61.2,95,61.2C84.7,65.3,75,75,75,75s-9.7,9.7-13.8,20c0,0,4.1,9.1,21.4,29.8
-		c21.1,25.4,19.4,41.1,16.3,59.7l0.1,0.1c-1.6,3.5-3.1,7.1-4.4,10.8h-0.2c-10.9,15.4-20.9,27.7-53.7,30.7c-26.9,2.5-36.2,6-36.2,6
-		C0,242.3,0,256,0,256s0,13.8,4.4,23.9c0,0,9.3,3.5,36.2,6c32.9,3,42.8,15.4,53.7,30.7h0.2c1.4,3.7,2.8,7.3,4.4,10.8l-0.1,0.1
-		c3.1,18.6,4.8,34.3-16.3,59.7C65.3,408,61.2,417,61.2,417c4.1,10.3,13.8,20,13.8,20s9.7,9.7,20,13.8c0,0,9-4.1,29.8-21.4
-		c25.4-21.1,41.1-19.4,59.7-16.3l0.1-0.1c3.5,1.6,7.1,3.1,10.8,4.4v0.2c15.3,10.9,27.7,20.9,30.7,53.7c2.5,26.9,6,36.2,6,36.2
-		C242.3,512,256,512,256,512s13.8,0,23.9-4.4c0,0,3.5-9.3,6-36.2c3-32.9,15.4-42.8,30.7-53.7v-0.2c3.7-1.4,7.3-2.8,10.8-4.4l0.1,0.1
-		c18.6-3.1,34.3-4.8,59.7,16.3c20.8,17.3,29.8,21.4,29.8,21.4c10.3-4.1,20-13.8,20-13.8s9.7-9.7,13.8-20c0,0-4.1-9.1-21.4-29.8
-		c-21.1-25.4-19.4-41.1-16.3-59.7l-0.1-0.1c1.6-3.5,3.1-7.1,4.4-10.8h0.2c10.9-15.3,20.9-27.7,53.7-30.7c26.9-2.5,36.2-6,36.2-6
-		C512,269.8,512,256,512,256S512,242.2,507.6,232.1z M256,375.7c-66.1,0-119.7-53.6-119.7-119.7S189.9,136.3,256,136.3
-		c66.1,0,119.7,53.6,119.7,119.7S322.1,375.7,256,375.7z"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="loading-bar">
-                    <span style={{ width: `${progress}%` }}></span>
-                  </div>
-                  <svg
-                    className="checkmark checkmark-success"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 50 50"
-                  >
-                    <circle
-                      className="checkmark-circle"
-                      cx="25"
-                      cy="25"
-                      r="25"
-                      fill="none"
-                    />
-                    <path
-                      className="checkmark-check"
-                      fill="none"
-                      d="M14.1 27.2l7.1 7.2 16.7-16.8"
-                    />
-                  </svg>
-                </div>
-              </div> */}
+            
                     <span className="text-[10px] text-[#7f187f] font-khteka uppercase tracking-wider">
                       Prequalifying with Klarna...
                     </span>
@@ -1868,197 +1120,7 @@ While any orthodontist can move teeth into place, we focus on how alignment inte
           </div>
         </div>
     
-        <section className="relative">
-          <div className="absolute inset-0 z-0 pointer-events-none flex justify-center items-center overflow-hidden px-5">
-            <svg
-              ref={svgPathRef}
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 1484 3804"
-              preserveAspectRatio="xMidYMid meet"
-              className="w-full h-auto"
-            >
-              <defs>
-                <clipPath id="svg-clip-path">
-                  <rect width="1484" height="3804" x="0" y="0" />
-                </clipPath>
-              </defs>
 
-              <g clipPath="url(#svg-clip-path)">
-                <g
-                  transform="matrix(1,0,0,1,742,1902)"
-                  opacity="1"
-                  style={{ display: "block" }}
-                >
-                  <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                    <path
-                      id="text-follow-path"
-                      ref={pathRef}
-                      strokeLinecap="butt"
-                      strokeLinejoin="miter"
-                      fillOpacity="0"
-                      strokeMiterlimit="4"
-                      stroke="rgb(0,0,19)"
-                      strokeOpacity="1"
-                      strokeWidth="1"
-                      d="M-110,-1890 C-110,-1890 -110,-1780 -110,-1780 C-110,-1780 -630,-1780 -630,-1780 C-685.22900390625,-1780 -730,-1735.22900390625 -730,-1680 C-730,-1680 -730,-1310 -730,-1310 C-730,-1254.77099609375 -685.22900390625,-1210 -630,-1210 C-630,-1210 -10,-1210 -10,-1210 C45.229000091552734,-1210 90,-1165.22900390625 90,-1110 C90,-1110 90,-1050 90,-1050 C90,-1050 630,-1050 630,-1050 C685.22802734375,-1050 730,-1005.22900390625 730,-950 C730,-950 730,240 730,240 C730,295.22900390625 685.22802734375,340 630,340 C630,340 -270,340 -270,340 C-270,340 -270,1000 -270,1000 C-270,1000 390,1000 390,1000 C445.22900390625,1000 490,1044.77099609375 490,1100 C490,1100 490,1630 490,1630 C490,1685.22900390625 445.22900390625,1730 390,1730 C390,1730 -110,1730 -110,1730 C-110,1730 -110,1890 -110,1890"
-                    />
-                    <image
-                      href="/images/outlineshape.png"
-                      x="-100"
-                      y="-1940"
-                      width="800"
-                      height="800"
-                    />
-                    <text
-                      x="50"
-                      y="-1720"
-                      fill="black"
-                      font-size="46"
-                      font-family="NeueHaasRoman, sans-serif"
-                    >
-                      <tspan x="20" dy="1.4em">
-                        Initial consultations
-                      </tspan>
-                      <tspan x="20" dy="4.5em">
-                        Whether in person or virtual,
-                      </tspan>
-                      <tspan x="20" dy="1.2em">
-                        your first consultation is free.
-                      </tspan>
-                    </text>
-
-                    <image
-                      href="/images/chatbubble.svg"
-                      x="-500"
-                      y="-940"
-                      width="800"
-                      height="800"
-                    />
-                    <text
-                      x="-300"
-                      y="-620"
-                      fill="white"
-                      font-size="40"
-                      font-family="NeueHaasRoman, sans-serif"
-                    >
-                      <tspan x="-300" dy="-5.2em">
-                        Full Evaluation
-                      </tspan>
-                      <tspan x="-400" dy="1.4em">
-                        This initial visit includes an
-                      </tspan>
-                      <tspan x="-400" dy="1.4em">
-                        in-depth orthodontic evaluation
-                      </tspan>
-                      <tspan x="-250" dy="5.4em">
-                        digital radiographs and
-                      </tspan>
-                      <tspan x="-250" dy="1.2em">
-                        professional imaging.
-                      </tspan>
-                    </text>
-
-                    <image
-                      href="/images/outlineshape2.png"
-                      x="-100"
-                      y="240"
-                      width="800"
-                      height="800"
-                    />
-                    <text
-                      x="-100"
-                      y="520"
-                      fill="black"
-                      font-size="30"
-                      font-family="NeueHaasRoman, sans-serif"
-                    >
-                      <tspan x="100" dy="1.4em">
-                        Plan and Prepare
-                      </tspan>
-                      <tspan x="-60" dy="1.4em">
-                        We encourage all decision-makers to attend
-                      </tspan>
-                      <tspan x="-40" dy="1.2em">
-                        the initial visit so we can discuss the path
-                      </tspan>
-                      <tspan x="-40" dy="1.2em">
-                        ahead with clarity and transparency —
-                      </tspan>
-                      <tspan x="-40" dy="1.2em">
-                        ensuring everyone is aligned on expectations,
-                      </tspan>
-                      <tspan x="-40" dy="1.2em">
-                        preferences, and the ideal time to begin.
-                      </tspan>
-                    </text>
-                    <image
-                      href="/images/outlineshape3.png"
-                      x="-400"
-                      y="940"
-                      width="800"
-                      height="800"
-                    />
-                    <text
-                      x="-300"
-                      y="1050"
-                      fill="white"
-                      font-size="30"
-                      font-family="NeueHaasRoman, sans-serif"
-                    >
-                      <tspan x="-300" dy="3.4em">
-                        Treatment Roadmap
-                      </tspan>
-                      <tspan x="-360" dy="1.4em">
-                        {" "}
-                        If treatment isn’t yet needed,
-                      </tspan>
-                      <tspan x="-360" dy="1.2em">
-                        no cost observation check-ups will be
-                      </tspan>
-                      <tspan x="-360" dy="1.4em">
-                        coordinated every 6-12 months until
-                      </tspan>
-                      <tspan x="-360" dy="1.5em">
-                        {" "}
-                        treatment is needed. These are
-                      </tspan>
-                      <tspan x="-360" dy="3.6em">
-                        shorter and fun visits where
-                      </tspan>
-                      <tspan x="-360" dy="1.2em">
-                        where you'll have access to
-                      </tspan>
-                      <tspan x="-360" dy="1.2em">
-                        to all four of our locations
-                      </tspan>
-                      <tspan x="-360" dy="1.3em">
-                        to play video games and
-                      </tspan>
-                      <tspan x="-340" dy="1.3em">
-                        get to know our team.
-                      </tspan>
-                    </text>
-                  </g>
-                </g>
-
-                <g
-                  ref={dotRef}
-                  transform="matrix(.7,0,0,.7,132.8538055419922,692)"
-                  opacity="1"
-                  style={{ display: "block" }}
-                >
-                  <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                    <path
-                      fill="rgb(0,0,254)"
-                      fillOpacity="1"
-                      d="M0,-12 C6.622799873352051,-12 12,-6.622799873352051 12,0 C12,6.622799873352051 6.622799873352051,12 0,12 C-6.622799873352051,12 -12,6.622799873352051 -12,0 C-12,-6.622799873352051 -6.622799873352051,-12 0,-12z"
-                    />
-                  </g>
-                </g>
-              </g>
-            </svg>
-          </div>
-        </section>
       </div>
 
       {/* <div ref={sectionRef} className="relative h-[200vh] bg-[#F2F2F4]">
@@ -2096,7 +1158,7 @@ const SkyShader = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas size explicitly
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -2111,7 +1173,7 @@ const SkyShader = () => {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    // Vertex shader source
+
     const vertexShaderSource = `
       attribute vec2 position;
       void main() {
@@ -2119,7 +1181,6 @@ const SkyShader = () => {
       }
     `;
 
-    // Full sky fragment shader
     const fragmentShaderSource = `
       precision mediump float;
 
@@ -2263,7 +1324,6 @@ const SkyShader = () => {
       }
     `;
 
-    // Compile function
     const compileShader = (source, type) => {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, source);
@@ -2304,18 +1364,15 @@ const SkyShader = () => {
     gl.enableVertexAttribArray(positionLoc);
     gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
 
-    // Uniforms
     const resolutionLoc = gl.getUniformLocation(program, 'iResolution');
     const timeLoc = gl.getUniformLocation(program, 'iTime');
 
-    // Resize listener
     const handleResize = () => {
       resizeCanvas();
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     };
     window.addEventListener('resize', handleResize);
 
-    // Render loop
     let startTime = Date.now();
     const render = (time) => {
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -2697,6 +1754,86 @@ const preloaderImages = [
   // "https://images.unsplash.com/photo-1658498042419-be460a938f93?q=80&w=2187&auto=format&fit=crop"
 ];
 function Loader() {
+
+
+    const scrollAwayRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const items = gsap.utils.toArray(".work-item");
+
+      items.forEach((item) => {
+        const img = item.querySelector(".work-item-img");
+        const nameH1 = item.querySelector(".work-item-name h1");
+
+
+        const split = SplitText.create(nameH1, { type: "chars", mask: "chars" });
+        gsap.set(split.chars, { y: "125%" });
+
+
+        split.chars.forEach((char, index) => {
+          ScrollTrigger.create({
+            trigger: item,
+            start: `top+=${index * 25 - 250} top`,
+            end: `top+=${index * 25 - 100} top`,
+            scrub: 1,
+            animation: gsap.fromTo(
+              char,
+              { y: "125%" },
+              { y: "0%", ease: "none" }
+            ),
+          });
+        });
+
+
+ScrollTrigger.create({
+  trigger: item,
+  start: "top+=120 bottom",
+  end: "top top",
+  scrub: 0.8,
+  animation: gsap.fromTo(
+    img,
+    {
+      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
+      rotateX: 15,
+      scale: 0.9,
+      transformOrigin: "center bottom",
+    },
+    {
+      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      rotateX: 0,
+      scale: 1,
+      ease: "power2.out",
+    }
+  ),
+});
+
+
+ScrollTrigger.create({
+  trigger: item,
+  start: "bottom+=120 bottom", 
+  end: "bottom top",
+  scrub: 0.8,
+  animation: gsap.fromTo(
+    img,
+    {
+      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      rotateX: 0,
+      scale: 1,
+    },
+    {
+      clipPath: "polygon(0% 0%, 100% 0%, 75% 60%, 25% 75%)",
+      rotateX: -12,
+      scale: 0.95,
+      ease: "power2.inOut",
+    }
+  ),
+});
+      });
+    }, scrollAwayRef);
+
+    return () => ctx.revert();
+  }, []);
   const preloaderRef = useRef(null);
   const textContainerRef = useRef(null);
   const cosmicRef = useRef(null);
@@ -2712,27 +1849,26 @@ function Loader() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
- const images = imagesContainerRef.current.querySelectorAll(".preloader__image");
+      const images = imagesContainerRef.current.querySelectorAll(".striped-preloader__image");
 
       if (!images || images.length === 0) return;
 
-gsap.set(images, {
-  clearProps: "transform",
-  y: "100%",
-  opacity: 0
-});
+      gsap.set(images, {
+        clearProps: "transform",
+        y: "100%",
+        opacity: 0
+      });
 
-
-gsap.set(images[0], {
-  y: "0%",
-  opacity: 1
-});
+      gsap.set(images[0], {
+        y: "0%",
+        opacity: 1
+      });
+      
       gsap.set([...images].slice(1), {
         y: "100%",
         opacity: 0,
         zIndex: 1
       });
-
 
       tl.fromTo(
         textContainerRef.current,
@@ -2740,29 +1876,24 @@ gsap.set(images[0], {
         { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
       );
 
+      for (let i = 1; i < images.length; i++) {
+        const img = images[i];
 
-
-for (let i = 1; i < images.length; i++) {
-  const img = images[i];
-
-  tl
-    .to({}, { duration: i === 1 ? 0.7 : 0.4 })
-
-
-    .fromTo(
-      img,
-      { y: "100%", opacity: 0 },
-      {
-        y: "0%",
-        opacity: 1,
-        duration: 1.4,
-        ease: "power4.out",
-        immediateRender: false
+        tl
+          .to({}, { duration: i === 1 ? 0.7 : 0.4 })
+          .fromTo(
+            img,
+            { y: "100%", opacity: 0 },
+            {
+              y: "0%",
+              opacity: 1,
+              duration: 1.4,
+              ease: "power4.out",
+              immediateRender: false
+            }
+          )
+          .set(img, { clearProps: "transform" });
       }
-    )
-
-    .set(img, { clearProps: "transform" });
-}
 
       const windowWidth = window.innerWidth;
       const moveDistance = windowWidth / 3;
@@ -2796,16 +1927,18 @@ for (let i = 1; i < images.length; i++) {
         duration: 1,
         ease: "power3.inOut",
         onComplete: () => {
-          if (preloaderRef.current) {
-            preloaderRef.current.style.display = "none";
-          }
+          preloaderRef.current.style.display = "none";
+
           animateGridAndHero();
+
+
+
+          ScrollTrigger.refresh();
         }
       });
     });
 
     function animateGridAndHero() {
-
       const validGridColumns = gridColumnsRef.current.filter(col => col !== null);
       
       gsap.to(validGridColumns, {
@@ -2850,6 +1983,21 @@ for (let i = 1; i < images.length; i++) {
 
     return () => ctx.revert();
   }, []);
+useEffect(() => {
+  ScrollTrigger.create({
+    trigger: ".content-wrapper",
+    start: "top bottom",
+    end: "top top",
+    scrub: true,
+    onUpdate: (self) => {
+      document.documentElement.style.setProperty(
+        "--hero-darken",
+        (self.progress * 0.5).toFixed(3)
+      );
+    }
+  });
+}, []);
+
 
   return (
     <>
@@ -2874,7 +2022,7 @@ for (let i = 1; i < images.length; i++) {
         body { background: var(--bg); color: var(--text); font-family: 'General Sans', sans-serif; overflow-x: hidden; }
 
         /* Responsive Grid System */
-        .grid-container {
+        .striped-grid-container {
           position: fixed;
           inset: 0;
           padding: 0 var(--spacing-md);
@@ -2885,33 +2033,33 @@ for (let i = 1; i < images.length; i++) {
         }
 
         /* Mobile: 3 columns */
-        .grid-container {
+        .striped-grid-container {
           grid-template-columns: repeat(3, 1fr);
         }
 
         /* On mobile, only show first 3 columns */
-        .grid-container .grid-column:nth-child(n+4) {
+        .striped-grid-container .striped-grid-column:nth-child(n+4) {
           display: none;
         }
 
         @media (min-width: 768px) {
-          .grid-container {
+          .striped-grid-container {
             grid-template-columns: repeat(5, 1fr);
             padding: 0 var(--spacing-lg);
           }
           
           /* On desktop, show all columns */
-          .grid-container .grid-column:nth-child(n+4) {
+          .striped-grid-container .striped-grid-column:nth-child(n+4) {
             display: block;
           }
         }
 
-        .grid-column {
+        .striped-grid-column {
           background: var(--grid);
           height: 0;
         }
 
-        .preloader {
+        .striped-preloader {
           position: fixed;
           inset: 0;
           background: var(--bg);
@@ -2921,7 +2069,8 @@ for (let i = 1; i < images.length; i++) {
           align-items: center;
           z-index: 9999;
         }
-        .preloader__text-container {
+
+        .striped-preloader__text-container {
           position: absolute;
           display: flex;
           gap: 0.5rem;
@@ -2932,12 +2081,12 @@ for (let i = 1; i < images.length; i++) {
         }
         
         @media (min-width: 768px) {
-          .preloader__text-container {
+          .striped-preloader__text-container {
             font-size: 2rem;
           }
         }
         
-        .preloader__content {
+        .striped-preloader__content {
           width: 90%;
           max-width: 450px;
           height: 200px;
@@ -2946,13 +2095,13 @@ for (let i = 1; i < images.length; i++) {
         }
         
         @media (min-width: 768px) {
-          .preloader__content {
+          .striped-preloader__content {
             width: 450px;
             height: 280px;
           }
         }
         
-        .preloader__image {
+        .striped-preloader__image {
           position: absolute;
           inset: 0;
           width: 100%;
@@ -2960,14 +2109,15 @@ for (let i = 1; i < images.length; i++) {
           object-fit: cover;
           transform-origin: center;
         }
-        .preloader__overlay {
+
+        .striped-preloader__overlay {
           position: absolute;
           inset: 0;
           background: rgba(44,62,80,0.2);
           z-index: 2;
         }
 
-        .header {
+        .striped-header {
           padding: var(--spacing-md);
           position: fixed;
           top: 0;
@@ -2977,12 +2127,12 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .header {
+          .striped-header {
             padding: var(--spacing-md) var(--spacing-lg);
           }
         }
 
-        .header__container {
+        .striped-header__container {
           display: grid;
           grid-template-columns: repeat(6, 1fr);
           gap: 1rem;
@@ -2990,12 +2140,12 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .header__container {
+          .striped-header__container {
             grid-template-columns: repeat(12, 1fr);
           }
         }
 
-        .header__logo {
+        .striped-header__logo {
           grid-column: 1 / span 2;
           font-weight: 600;
           font-size: 1.2rem;
@@ -3003,17 +2153,17 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .header__logo {
+          .striped-header__logo {
             font-size: 1.4rem;
           }
         }
 
-        .header__contact {
+        .striped-header__contact {
           display: none;
         }
 
         @media (min-width: 768px) {
-          .header__contact {
+          .striped-header__contact {
             display: block;
             grid-column: 4 / span 6;
             font-size: 0.75rem;
@@ -3022,7 +2172,7 @@ for (let i = 1; i < images.length; i++) {
           }
         }
 
-        .header__nav {
+        .striped-header__nav {
           grid-column: 5 / span 2;
           display: flex;
           justify-content: flex-end;
@@ -3031,14 +2181,14 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .header__nav {
+          .striped-header__nav {
             grid-column: 10 / span 3;
             gap: var(--spacing-lg);
           }
         }
 
         /* 12-grid system - responsive */
-        .container {
+        .striped-container {
           width: 100%;
           max-width: 100%;
           margin: 0 auto;
@@ -3049,20 +2199,40 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .container {
+          .striped-container {
             grid-template-columns: repeat(12, 1fr);
             padding: 0 var(--spacing-lg);
           }
         }
 
-        .hero {
-          height: 100vh;
-          width: 100%;
-          position: relative;
-          overflow: hidden;
+        .striped-hero {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  width: 100%;
+  z-index: 0;
+  overflow: hidden;
         }
+  .content-wrapper {
+  margin-top: 100vh;
+}
+.striped-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, var(--hero-darken, 0));
+  pointer-events: none;
+  transition: opacity 0.1s linear;
+}
+/* scrolling content */
+.content {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+      background: #DDE5DE;
+}
 
-        .hero__content {
+        .striped-hero__content {
           grid-column: 1 / -1;
           display: flex;
           flex-direction: column;
@@ -3071,44 +2241,43 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .hero__content {
+          .striped-hero__content {
             grid-column: 1 / span 6;
             padding-right: var(--spacing-xl);
             padding: 0;
           }
         }
 
-        .hero__project {
+        .striped-hero__project {
           font-size: 10px;
           color: var(--color-text-secondary);
           margin-bottom: var(--spacing-md);
           transform: translateY(20px);
           opacity: 0;
-           color: var(--color-text-muted);
+          color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: var(--letter-spacing-wide);
         }
 
-        .hero__title {
+        .striped-hero__title {
           font-size: clamp(2.5rem, 6vw, 9rem);
           line-height: 0.9;
           margin-bottom: var(--spacing-md);
-          // letter-spacing: 0.05em;
         }
 
         @media (min-width: 768px) {
-          .hero__title {
+          .striped-hero__title {
             margin-bottom: var(--spacing-lg);
           }
         }
 
-        .hero__title-line {
+        .striped-hero__title-line {
           display: block;
           transform: translateY(100%);
           opacity: 0;
         }
 
-        .hero__description {
+        .striped-hero__description {
           font-size: 1rem;
           line-height: 1.6;
           color: var(--color-text-secondary);
@@ -3119,14 +2288,14 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .hero__description {
+          .striped-hero__description {
             font-size: 1.1rem;
             max-width: 460px;
             margin-bottom: var(--spacing-xl);
           }
         }
 
-        .hero__meta {
+        .striped-hero__meta {
           font-size: 0.75rem;
           color: var(--color-text-muted);
           text-transform: uppercase;
@@ -3139,13 +2308,13 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .hero__meta {
+          .striped-hero__meta {
             display: flex;
             justify-content: space-between;
           }
         }
 
-        .hero__image-container {
+        .striped-hero__image-container {
           grid-column: 1 / -1;
           height: 50vh;
           display: flex;
@@ -3157,29 +2326,28 @@ for (let i = 1; i < images.length; i++) {
         }
 
         @media (min-width: 768px) {
-          .hero__image-container {
+          .striped-hero__image-container {
             grid-column: 7 / span 6;
             height: 100vh;
           }
         }
 
-.hero__image {
-  width: 100%;
-  height: auto;
-  max-height: 90vh;
-  object-fit: contain;
-  transform: scale(1.1);
-  transform-origin: center;
-  will-change: transform;
-}
+        .striped-hero__image {
+          width: 100%;
+          height: auto;
+          max-height: 90vh;
+          object-fit: contain;
+          transform: scale(1.1);
+          transform-origin: center;
+          will-change: transform;
+        }
       `}</style>
 
-      <div className="grid-container">
-        {/* Always render 5 columns, but CSS will hide/show based on screen size */}
+      <div className="striped-grid-container">
         {Array.from({ length: 5 }, (_, i) => (
           <div 
             key={i} 
-            className="grid-column" 
+            className="striped-grid-column" 
             ref={el => {
               if (el && !gridColumnsRef.current[i]) {
                 gridColumnsRef.current[i] = el;
@@ -3190,51 +2358,237 @@ for (let i = 1; i < images.length; i++) {
       </div>
 
       {/* Preloader */}
-      <div className="preloader" ref={preloaderRef}>
-        <div className="font-neuehaas45 preloader__text-container" ref={textContainerRef}>
+      <div className="striped-preloader" ref={preloaderRef}>
+        <div className="font-neuehaas45 striped-preloader__text-container" ref={textContainerRef}>
           <div ref={cosmicRef}>Your</div>
           <div ref={reflectionsRef}>Care</div>
         </div>
-        <div className="preloader__content" ref={imagesContainerRef}>
-          <div className="preloader__overlay" />
+        <div className="striped-preloader__content" ref={imagesContainerRef}>
+          <div className="striped-preloader__overlay" />
           {preloaderImages.map((src, i) => (
-            <img key={i} src={src} alt="Space" className="preloader__image" />
+            <img key={i} src={src} alt="Space" className="striped-preloader__image" />
           ))}
         </div>
       </div>
 
-      <section className="hero">
-        <div className="container">
-          <div className="hero__content">
-            <div className="hero__project font-neuehaas45" ref={heroProjectRef}>Our Expertise</div>
-            <h1 className="hero__title">
-              <span className="hero__title-line font-canelathin" ref={el => titleLinesRef.current[0] = el}>Our</span>
-              <span className="hero__title-line font-canelathin" ref={el => titleLinesRef.current[1] = el}>Expertise</span>
-            </h1>
-            <p className="font-canelathin hero__description" ref={heroDescRef}>
-              While any orthodontist can move teeth into place, we focus on how alignment integrates with facial harmony — creating results that feel naturally your own.
-            </p>
-            <div className="hero__meta font-neuehaas45 text-[12px]" ref={heroMetaRef}>
-<div>
-  <p  className="font-neuehaas45 text-[10px]">Craft</p>
-  <p className="font-neuehaas45 text-[12px]">Detail-Driven Care</p>
-</div>
-<div>
-  <p className="font-neuehaas45 text-[10px]">Perspective</p>
-  <p className="font-neuehaas45 text-[12px]">Form Meets Function</p>
-</div>
+
+        <section className="striped-hero">
+          <div className="striped-container">
+            <div className="striped-hero__content">
+              <div className="striped-hero__project font-neuehaas45" ref={heroProjectRef}>Our Expertise</div>
+              <h1 className="striped-hero__title">
+                {/* <span className="striped-hero__title-line font-canelathin" ref={el => titleLinesRef.current[0] = el}>Our</span>
+                <span className="striped-hero__title-line font-canelathin" ref={el => titleLinesRef.current[1] = el}>Expertise</span> */}
+              </h1>
+              <p className="font-canelathin striped-hero__description" ref={heroDescRef}>
+                While any orthodontist can move teeth into place, we focus on how alignment integrates with facial harmony — creating results that feel naturally your own.
+              </p>
+              <div className="striped-hero__meta font-neuehaas45 text-[12px]" ref={heroMetaRef}>
+                <div>
+                  <p className="font-neuehaas45 text-[10px]">Craft</p>
+                  <p className="font-neuehaas45 text-[12px]">Detail-Driven Care</p>
+                </div>
+                <div>
+                  <p className="font-neuehaas45 text-[10px]">Perspective</p>
+                  <p className="font-neuehaas45 text-[12px]">Form Meets Function</p>
+                </div>
+              </div>
+            </div>
+            <div className="striped-hero__image-container">
+              <img
+                src="/images/aurela-redenica-VuN-RYI4XU4-unsplash_2400x3600.jpg"
+                alt="Astronaut"
+                className="striped-hero__image"
+                ref={heroImageRef}
+              />
             </div>
           </div>
-          <div className="hero__image-container">
-            <img
-              src="/images/aurela-redenica-VuN-RYI4XU4-unsplash_2400x3600.jpg"
-              alt="Astronaut"
-              className="hero__image"
-              ref={heroImageRef}
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+
+   <div className="content-wrapper">
+    <section className="content">
+
+<section
+  ref={scrollAwayRef}
+  className="relative w-screen pt-[60px] overflow-hidden flex flex-col"
+>
+{/* <div className="relative z-10 w-full px-[10vw] max-w-[900px] mb-[15vh]">
+  <div className="w-fit mb-6 px-6 py-4 backdrop-blur-[10px] bg-[rgba(160,253,208,0.85)] border border-white/10">
+    <div className="text-gray-500 uppercase tracking-widest font-neuehaas45 text-[11px]">
+      First Impressions
+    </div>
+        <div className="text-gray-500 font-neuehaas45 text-[12px]">
+            Your first visit is where it all begins. We’ll get to know you, take
+        digital photos and X-rays, and map out your smile goals together. It’s
+        a simple, one-on-one visit that gives us a clear picture of your
+        orthodontic needs.
+    </div>
+
+  </div>
+
+
+</div> */}
+<section className="relative h-screen flex items-center justify-center">
+  {/* OUTER ARCH */}
+  <div
+  
+    className="
+      relative
+      w-[36vw]
+      h-[90vh]
+      rounded-t-[600px]
+      border border-[#F6F5ED]
+      flex items-center justify-center
+      z-10
+    "
+  >
+
+    <div
+      className="
+        absolute
+        inset-[5%]    
+        rounded-t-[540px]  
+        overflow-hidden
+      "
+    >
+      <Canvas camera={{ position: [0, -10, 10], fov: 75 }}>
+        <StatsGl />
+        <Sky />
+        <ambientLight intensity={Math.PI / 1.5} />
+        <spotLight position={[0, 40, 0]} decay={0} distance={45} penumbra={1} intensity={100} />
+        <spotLight position={[-20, 0, 10]} color="purple" angle={0.15} decay={0} penumbra={-1} intensity={30} />
+        <spotLight position={[20, -10, 10]} color="red" angle={0.2} decay={0} penumbra={-1} intensity={20} />
+        <CameraControls />
+      </Canvas>
+    </div>
+
+
+<div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+  <div
+    className="
+      w-full
+      leading-none
+      max-w-[360px]
+
+    "
+  >
+    <h2 className="text-[11px] uppercase tracking-wider font-neuehaas45 mb-3">
+      First Impressions
+    </h2>
+
+    <p className="text-[14px] opacity-80 font-neuehaas45 leading-[1.3]">
+      Your first visit is where it all begins. We’ll get to know you, take
+      digital photos and X-rays, and map out your smile goals together.
+      It’s a simple, one-on-one visit that gives us a clear picture of
+      your orthodontic needs.
+    </p>
+  </div>
+</div>
+  </div>
+</section>
+{[
+  { id: 1, name: "Discuss" }, 
+  { id: 2, name: "Digital Records", video: "/videos/cbctscan.mp4" }, 
+  { id: 3, name: "Personalized Plan", img: "/images/flower.jpeg" }, 
+].map((work) => (
+ <div
+  key={work.id}
+  className="relative work-item h-[90svh] w-full flex items-center justify-center"
+>
+  <div
+    className="work-item-img relative w-[60vw] h-[60vh] overflow-hidden"
+    style={{
+      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
+      willChange: "clip-path",
+    }}
+  >
+    {work.id === 1 ? (
+
+      <ShaderBackground className="w-full h-full" />
+    ) : work.id === 2 ? (
+
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline 
+        className="w-full h-full object-cover"
+        poster={work.img || "/images/background_min.png"} 
+      >
+        <source src={work.video || "/videos/cbctscan.mp4"} type="video/mp4" />
+   
+        <img src="/images/background_min.png" alt={work.name} className="w-full h-full object-cover" />
+      </video>
+    ) : (
+   
+      <img
+        src={work.img}
+        alt={work.name}
+        className="w-full h-full object-cover"
+      />
+    )}
+  </div>
+
+
+  <div className="work-item-name absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full z-[1]">
+    <h1
+      className="text-center text-white font-neuehaas35 leading-[1]"
+      style={{
+        fontSize: "5rem",
+      }}
+    >
+      {work.name}
+    </h1>
+  </div>
+</div>
+  ))}
+</section>
+    </section>
+  </div>
+
     </>
   );
+}
+function Sky() {
+  const ref = useRef()
+  const cloud0 = useRef()
+  const { color, x, y, z, range, ...config } = useControls({
+    seed: { value: 1, min: 1, max: 100, step: 1 },
+    segments: { value: 20, min: 1, max: 80, step: 1 },
+    volume: { value: 6, min: 0, max: 100, step: 0.1 },
+    opacity: { value: 0.8, min: 0, max: 1, step: 0.01 },
+    fade: { value: 10, min: 0, max: 400, step: 1 },
+    growth: { value: 4, min: 0, max: 20, step: 1 },
+    speed: { value: 0.1, min: 0, max: 1, step: 0.01 },
+    x: { value: 6, min: 0, max: 100, step: 1 },
+    y: { value: 1, min: 0, max: 100, step: 1 },
+    z: { value: 1, min: 0, max: 100, step: 1 },
+    color: "white",
+  })
+  useFrame((state, delta) => {
+const t = state.clock.elapsedTime
+
+ref.current.rotation.y = Math.cos(t * 0.1) * 0.08
+ref.current.rotation.x = Math.sin(t * 0.1) * 0.04
+cloud0.current.rotation.y -= delta * 0.1
+  })
+  return (
+    <>
+      <SkyImpl />
+      <group ref={ref}>
+        <Clouds   ref={cloud0}
+  {...config}
+  bounds={[x, y, z]}
+  position={[0, -6, -4]}   
+  color={color}>
+          <Cloud ref={cloud0} {...config} bounds={[x, y, z]} color={color} />
+          {/* <Cloud {...config} bounds={[x, y, z]} color="#eed0d0" seed={2} position={[15, 0, 0]} /> */}
+          {/* <Cloud {...config} bounds={[x, y, z]} color="#d0e0d0" seed={3} position={[-15, 0, 0]} /> */}
+          {/* <Cloud {...config} bounds={[x, y, z]} color="#a0b0d0" seed={4} position={[0, 0, -12]} /> */}
+          {/* <Cloud {...config} bounds={[x, y, z]} color="#c0c0dd" seed={5} position={[0, 0, 12]} /> */}
+          <Cloud concentrate="outside" growth={100} color="#ffccdd" opacity={1.25} seed={0.3} bounds={200} volume={200} />
+        </Clouds>
+      </group>
+    </>
+  )
 }

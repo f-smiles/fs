@@ -26,9 +26,10 @@ import {
   LinearMipmapLinearFilter,
   RGBFormat,
 } from "three";
-import {
+import  GridContainer, {
   MemberCard,
   items,
+
 } from "../mouse-gooey-effect-5/components/GridContainer";
 
 if (typeof window !== "undefined") {
@@ -952,12 +953,12 @@ export default function OurTeam() {
                 ref={newSectionRef}
                 className="absolute top-0 w-full h-full left-full"
               >
-                {/* <div className="absolute inset-0 z-1">
+                <div className="absolute inset-0 z-1">
 
    <GridContainer />
 
 
-                </div> */}
+                </div>
                 <div
                   onMouseEnter={() => setIsFocused(true)}
                   onMouseLeave={() => setIsFocused(false)}
@@ -966,78 +967,42 @@ export default function OurTeam() {
                   {/* Col 1 */}
                   <div className="overflow-hidden">
                     <div
-                      ref={col1Ref}
+                      ref={col2Ref}
                       className="flex flex-col will-change-transform"
+                      style={{ transform: "translateY(-66.66vh)" }}
                     >
-                      {/* Adriana */}
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-0 border-r border-b border-[#E4E7FF] border-l h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[0] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
+                      <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+ 
 
-                      {/*  Alyssa */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-r border-b border-[#E4E7FF] h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[1] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
+                        <div className="mt-[48px]">
+                          <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
+                            The systems, the flow, the details — all dialed in
+                            so your visits stay smooth start to finish.
+                          </p>
+                        </div>
                       </div>
-
-                      {/* Elizabeth */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[2] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
+                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
                       </div>
-
-                      {/* Lexi */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[3] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
+                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                        <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
+                          <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                            Our members have received the designation of
+                            Specialized Orthodontic Assistant. This is a
+                            voluntary certification program started by the
+                            American Association of Orthodontists to recognize
+                            those in the profession for their knowledge and
+                            experience.
+                          </p>
+                        </a>
                       </div>
-
-                      {/*  Nicolle */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[4] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
+                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                          Entrust your smile's transformation to our handpicked
+                          team of orthodontic specialists.
+                        </p>
                       </div>
+         
                     </div>
                   </div>
                   {/* Col 2  */}
@@ -1047,12 +1012,7 @@ export default function OurTeam() {
                       className="flex flex-col will-change-transform"
                       style={{ transform: "translateY(-66.66vh)" }}
                     >
-                      <div className="relative bg-[#F9F7F0] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
-                        <div className="absolute top-0 left-0 right-0 h-[36px] bg-[#F7FF9E] rounded-t-[12px] flex items-center px-4 border-b border-[#E4E7FF]">
-                          <span className="font-neuehaas45 text-[12px] tracking-wide uppercase text-[#2F2F2F]">
-                            ,.,.,
-                          </span>
-                        </div>
+                      <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
 
                         <div className="mt-[48px]">
                           <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
@@ -1122,12 +1082,8 @@ export default function OurTeam() {
                           systems and protocols streamlining our processes.
                         </p>
                       </div>
-                      <div className="relative bg-[#F9F7F0] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
-                        <div className="absolute top-0 left-0 right-0 h-[36px] bg-[#F7FF9E] rounded-t-[12px] flex items-center px-4 border-b border-[#E4E7FF]">
-                          <span className="font-neuehaas45 text-[12px] tracking-wide uppercase">
-                            Fun Fact
-                          </span>
-                        </div>
+                      <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
+
 
                         <div className="mt-[48px]">
                           <a

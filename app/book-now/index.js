@@ -380,11 +380,11 @@ vec3 cold1 = vec3(0.86, 0.87, 0.94);
 vec3 cold2 = vec3(0.75, 0.76, 0.84);
 vec3 cold3 = vec3(0.66, 0.67, 0.73);
 
-vec3 warm1 = vec3(1.00, 0.68, 0.90); // airy blush
-vec3 warm2 = vec3(0.95, 0.82, 1.00); // lavender-white
+vec3 warm1 = vec3(1.00, 0.55, 0.85); 
+vec3 warm2 = vec3(0.95, 0.72, 1.00); 
 
 // vec3 warm1 = vec3(1.00, 0.55, 0.85); // hot pink
-// vec3 warm2 = vec3(0.95, 0.77, 1.00); // lavender pink
+// vec3 warm2 = vec3(0.95, 0.69, 1.00); // lavender pink
 
     vec3 layer1 = mix(cold1, cold2, S(-0.5, 0.3, (tuv * Rot(radians(-5.))).x));
     layer1 = mix(layer1, cold3, S(-0.1, 0.7, (tuv * Rot(radians(-5.))).x));
@@ -674,10 +674,11 @@ useEffect(() => {
 
   <div className="overflow-hidden pb-[0.1em]">
     <h1
-      className="lowercase text-[32px] lg:text-[34px] font-canelathin text-center leading-[1.2]"
+      className=" text-[32px] lg:text-[34px] font-canelathin text-center leading-[1.2]"
       ref={h1Ref}
     >
-      Website Coming Soon
+website coming soon
+
     </h1>
   </div>
 </div>

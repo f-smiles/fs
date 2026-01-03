@@ -5750,15 +5750,25 @@ a {
 .tile-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
   pointer-events: none;
-  backdrop-filter: blur(0px);
+ backdrop-filter: blur(14px) saturate(105%);
+-webkit-backdrop-filter: blur(14px) saturate(105%);
 
-  background-image: repeating-conic-gradient(
-    rgba(255, 255, 255, 0.15) 0% 25%,
-    transparent 0% 50%
-  );
-  background-size: 80px 60px;
+background-image:
+  radial-gradient(
+    circle at 30% 20%,
+    rgba(255, 255, 255, 0.15),
+    transparent 60%
+  ),
+  linear-gradient(
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.35)
+  ),
+    repeating-conic-gradient(
+      rgba(255, 255, 255, 0.34) 0% 25%,
+      rgba(255, 255, 255, 0.1) 0% 50%
+    );
+background-size: 75px 75px;
   background-position: center;
 }
 
@@ -6318,3 +6328,25 @@ body,
   font-size: 2rem;
   line-height: 1; 
 }
+.gallery__image {
+  opacity: 0;
+}
+.menu-link-button {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+    white-space: nowrap;
+}
+
+
+.menu-link-button .char {
+  display: inline-block;
+  transform-origin: 50% 50% -8px;
+  backface-visibility: hidden;
+}
+.split-textflip {
+  display: inline-flex;
+  white-space: nowrap;
+  width: max-content;
+  transform-origin: left center;
+}
+

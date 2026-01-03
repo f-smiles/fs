@@ -352,9 +352,8 @@ className="
   aria-hidden="true"
 >
   
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
-  <path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" />
-</svg>
+<img   className="w-3 h-3 scale-x-[-1]" src="/images/dotarrow.png" />
+
 
 </motion.div>
 <motion.div
@@ -372,7 +371,7 @@ className="
   `}
 >
     <motion.span
-      className="absolute left-6 tracking-[0.06em] text-black text-[12px] font-neuehaas45 whitespace-nowrap flex"
+      className="absolute left-6 tracking-wider text-black text-[12px] font-neuehaas45 whitespace-nowrap flex"
       initial="show"
       animate={hovered ? "hide" : "show"}
       variants={{
@@ -383,7 +382,7 @@ className="
       {(typeof menuText === "string" ? menuText : "Menu").split("").map((char, i) => (
         <motion.span
           key={i}
-          className="inline-block"
+          className="tracking-wider inline-block"
           variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: 20 } }}
           transition={{ duration: 0.3, ease: [0.16, 0.3, 0.3, 1] }}
         >
@@ -427,7 +426,7 @@ className="
   transition={{ duration: 0.35, ease: [0.16, 0.3, 0.3, 1] }}
   onClick={activate}
 >
-  <div className="relative inline-block text-[11px] font-neuehaas35 leading-none">
+  <div className="relative inline-block text-[11px] tracking-wider font-neuehaas35 leading-none">
     <span className="split-textflip">{link.title}</span>
   </div>
 </motion.button>
@@ -455,10 +454,10 @@ className="
     transition={{ duration: 0.5, ease: [0.16, 0.3, 0.3, 1] }}
     aria-hidden={hovered}
   >
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
+{/* <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
   <path stroke-linecap="round" stroke-linejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
-</svg>
-
+</svg> */}
+<img className="w-3 h-3" src="/images/dotarrow.png" />
   </motion.div>
 </div>
 
