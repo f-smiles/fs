@@ -1,6 +1,6 @@
 'use client'
 import './style.css'
-import React, { forwardRef, use, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import ScrambleTextPlugin from 'gsap/ScrambleTextPlugin'
 import { patients } from './patients'
