@@ -250,10 +250,102 @@ export default function Page() {
                 </div>
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
-                    <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/2.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/2.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
-                    </div>
+               <div className="AppImage MainSectionItem-image image-wrapper">
+
+
+  <div
+    className="AppImage-image --placeholder --lazy --loaded base-image"
+    style={{
+      objectFit: 'cover',
+      backgroundImage: "url('/images/test/2.jpg')",
+      backgroundSize: 'cover',
+      backgroundPosition: 'center center'
+    }}
+  ></div>
+
+
+  <img
+    src="/images/dentalarchage7.png"
+    alt="Facial silhouette"
+    loading="lazy"
+    className="profile-image"
+  />
+
+
+<svg
+  className="overlay-lines"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 100 100"
+  preserveAspectRatio="xMidYMid slice"
+>
+  <line x1="58" y1="38" x2="58" y2="64" stroke="#ffffff80" 
+    strokeWidth="0.5"
+    strokeLinecap="round"
+    stroke-dasharray="2 3"
+    vectorEffect="non-scaling-stroke"/>
+    <line
+  x1="55.5" y1="48"
+  x2="60.5" y2="48"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+    stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<line
+  x1="58"
+  y1="65"
+  x2="74"
+  y2="66"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+  stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<path
+  d="M61 66.5 Q69 68.5 77 67.5"
+  fill="none"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+  stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<circle cx="58" cy="48" r="0.4" fill="#ffffff" />
+<circle
+  cx="58"
+  cy="48"
+  r="1.1"
+  fill="none"
+  stroke="rgba(255,255,255,0.25)"
+  strokeWidth="0.2"
+/>
+
+<circle
+  cx="58"
+  cy="65"
+  r="0.4"
+  fill="#ffffff"
+  vectorEffect="non-scaling-stroke"
+/>
+
+
+
+
+<circle
+  cx="74"
+  cy="66"
+  r="0.4"
+  fill="#ffffff"
+  vectorEffect="non-scaling-stroke"
+/>
+
+
+
+</svg>
+
+</div>
                   </div>
                 </div>
               </div>
@@ -292,7 +384,7 @@ export default function Page() {
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future-Proof</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
-                      <p className="AppParagraph">Timely intervention makes it possible to manage many cases more comfortably with clear aligners. which gently guide growth while also functioning as protective mouth guards during sports or severe dental protrustion. Through proactive, individualized treatment we're able to minimize disruption, improve oral hygiene, reduce enamel damage, and help children avoid the physical and emotional burden of bulky appliances later on.</p>
+                      <p className="AppParagraph">Timely intervention makes it possible to manage many cases more comfortably with clear aligners which gently guide growth while also functioning as protective mouth guards during sports or severe dental protrustion. Through proactive, individualized treatment we're able to minimize disruption, improve oral hygiene, reduce enamel damage, and help children avoid the physical and emotional burden of bulky appliances later on.</p>
                     </div>
                   </div>
                 </div>
@@ -300,7 +392,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/base.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/skycard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -316,7 +408,7 @@ export default function Page() {
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future Frey Smiles</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
-                      <p className="AppParagraph">Once you visit us, we take care of the rest. If no treatment is needed right away, we'll place your child on a customized Growth & Guidance schedule (Frey Smiles Club) —our way of keeping an eye on how things are progressing until treatment is indicated. </p>
+                      <p className="AppParagraph">Once you visit us, we take care of the rest. If no treatment is needed right away, we'll place your child on a customized Growth & Guidance schedule—part of our Frey Smiles Club—our way of keeping an eye on how things are progressing until treatment is indicated. </p>
                     </div>
                   </div>
                 </div>
@@ -324,7 +416,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/base.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/skycard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>

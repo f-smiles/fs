@@ -275,6 +275,7 @@ export default function Page() {
     stroke="#ffffff80" 
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -285,6 +286,7 @@ export default function Page() {
     stroke="#ffffff80" 
     strokeWidth="0.5" 
     strokeLinecap="round" 
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -295,6 +297,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -305,6 +308,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -315,6 +319,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 </svg>
