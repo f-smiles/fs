@@ -227,8 +227,8 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/1.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/1.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/7milestone.png')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/7milestone.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -252,7 +252,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                <div className="AppImage MainSectionItem-image image-wrapper">
 
-
+{/* 
   <div
     className="AppImage-image --placeholder --lazy --loaded base-image"
     style={{
@@ -261,18 +261,18 @@ export default function Page() {
       backgroundSize: 'cover',
       backgroundPosition: 'center center'
     }}
-  ></div>
+  ></div> */}
 
 
   <img
-    src="/images/dentalarchage7.png"
+    src="/images/dentaltest.png"
     alt="Facial silhouette"
     loading="lazy"
     className="profile-image"
   />
 
 
-<svg
+{/* <svg
   className="overlay-lines"
   xmlns="http://www.w3.org/2000/svg"
   viewBox="0 0 100 100"
@@ -343,7 +343,7 @@ export default function Page() {
 
 
 
-</svg>
+</svg> */}
 
 </div>
                   </div>
@@ -357,7 +357,7 @@ export default function Page() {
                 <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
-                  <h3 className="MainSectionItem-contentTitle AppTitle-3">It All Starts with Breath</h3>
+                  <h3 className="MainSectionItem-contentTitle AppTitle-3">The Airway Equation</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
                       <p className="AppParagraph">We also assess the airway and surrounding structures, including the tonsils and adenoids. Enlarged tonsils (tonsillar hypertrophy) and adenoids can restrict airflow, disrupt breathing during sleep, and negatively impact how the jaws and arches grow—often contributing to a condition known as adenoid facies, characterized by long, narrow facial development and mouth breathing.</p>
@@ -391,8 +391,17 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/skycard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/videos/retaintracing.mp4')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                        <video
+  src="/videos/retaintracing.mp4"
+  alt="Video of a landscape"
+  loading="lazy"
+  style={{ objectFit: 'cover' }}
+  loop
+  autoPlay
+  muted
+  playsInline
+/>
                     </div>
                   </div>
                 </div>

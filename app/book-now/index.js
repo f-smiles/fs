@@ -619,8 +619,58 @@ useEffect(() => {
     <>
 
 <div className="flex flex-col lg:flex-row w-full h-screen">
+            <div className="w-1/2 relative h-screen">
+              <Canvas
+                camera={{ position: [0, 0, 1000], fov: 75 }}
+                gl={{ alpha: true }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  zIndex: 0,
+                }}
+              >
+                <Scene />
+              </Canvas>
 
-<section
+              <div className="relative z-10 flex flex-col justify-center h-full items-center">
+                <div className="flex flex-col gap-6 text-sm uppercase">
+                  <p className="text-xs text-[#9856D4] uppercase font-neueroman">
+                    // Contact Us
+                  </p>
+                  <div>
+                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
+                      <ScrambleText text="GENERAL" className="mr-10" />
+                    </p>
+                    <p className="text-[#9856D4] text-[12px] leading-snug font-khteka">
+                      <ScrambleText text="info@freysmiles.com" />
+                      <br />
+                      <ScrambleText text="(610)437-4748" charsType="numbers" />
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
+                      <ScrambleText text="ADDRESS" className="mr-10" />
+                    </p>
+                    <p className="text-[#9856D4] text-[12px] leading-tight font-khteka">
+                      <ScrambleText text="Frey Smiles" charsType="numbers" />
+                      <br />
+                      <ScrambleText
+                        text="1250 S Cedar Crest Blvd"
+                        charsType="numbers"
+                      />
+                      <br />
+                      <ScrambleText text="Allentown PA" charsType="numbers" />
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+{/* <section
   className="relative z-10 w-full lg:w-1/2 h-[50vh] lg:h-full 
              flex flex-col items-center justify-center text-white p-8 overflow-hidden"
 >
@@ -702,15 +752,15 @@ website coming soon
     />
   </div>
 </div>
-</section>
+</section> */}
 
-  <div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center bg-white">
+  {/* <div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center bg-white">
 <iframe src="https://app.acuityscheduling.com/schedule.php?owner=37690830" title="Schedule Appointment" width="100%" height="800" frameBorder="0" allow="payment"></iframe>
-  </div>
+  </div> */}
 
 </div>
-{/* <section  className="relative w-full">
-  <div style={{ 
+<section  className="relative w-full">
+  {/* <div style={{ 
     position: 'fixed', 
     top: 0, 
     left: 0, 
@@ -721,7 +771,7 @@ website coming soon
     <Canvas>
       <RaymarchingShader />
     </Canvas>
-  </div>
+  </div> */}
 
         <div className="relative z-10 ">
           
@@ -729,58 +779,8 @@ website coming soon
  
             className="flex justify-between w-full p-10 lg:p-20"
           >
-            <div className="w-1/2 relative h-screen">
-              <Canvas
-                camera={{ position: [0, 0, 1000], fov: 75 }}
-                gl={{ alpha: true }}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  zIndex: 0,
-                }}
-              >
-                <Scene />
-              </Canvas>
 
-              <div className="relative z-10 flex flex-col justify-center h-full items-center">
-                <div className="flex flex-col gap-6 text-sm uppercase">
-                  <p className="text-xs text-[#9856D4] uppercase font-neueroman">
-                    // Contact Us
-                  </p>
-                  <div>
-                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
-                      <ScrambleText text="GENERAL" className="mr-10" />
-                    </p>
-                    <p className="text-[#9856D4] text-[12px] leading-snug font-khteka">
-                      <ScrambleText text="info@freysmiles.com" />
-                      <br />
-                      <ScrambleText text="(610)437-4748" charsType="numbers" />
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
-                      <ScrambleText text="ADDRESS" className="mr-10" />
-                    </p>
-                    <p className="text-[#9856D4] text-[12px] leading-tight font-khteka">
-                      <ScrambleText text="Frey Smiles" charsType="numbers" />
-                      <br />
-                      <ScrambleText
-                        text="1250 S Cedar Crest Blvd"
-                        charsType="numbers"
-                      />
-                      <br />
-                      <ScrambleText text="Allentown PA" charsType="numbers" />
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="acuity-font flex items-center justify-center w-1/2">
+            {/* <div className="acuity-font flex items-center justify-center w-1/2">
             <iframe src="https://app.acuityscheduling.com/schedule.php?owner=37685601&ref=embedded_csp" title="Schedule Appointment" width="100%" height="800" frameBorder="0" allow="payment"></iframe>
             
               <iframe
@@ -788,10 +788,10 @@ website coming soon
                 title="Schedule Appointment"
                 className="w-full max-w-[820px] min-h-[90vh] "
               />
-            </div>
+            </div> */}
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black">
 <svg ref={starRef} width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"> <g clip-path="url(#clip0_116_153)"> <path d="M100 0C103.395 53.7596 146.24 96.6052 200 100C146.24 103.395 103.395 146.24 100 200C96.6052 146.24 53.7596 103.395 0 100C53.7596 96.6052 96.6052 53.7596 100 0Z" fill="url(#paint0_linear_116_153)"/> </g> <defs> <linearGradient id="paint0_linear_116_153" x1="100" y1="0" x2="100" y2="200" gradientUnits="userSpaceOnUse"> <stop stop-color="#DF99F7"/> <stop offset="1" stop-color="#FFDBB0"/> </linearGradient> <clipPath id="clip0_116_153"> <rect width="200" height="200" fill="white"/> </clipPath> </defs> </svg>

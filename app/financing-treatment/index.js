@@ -688,8 +688,10 @@ We understand that cost matters — but choosing an orthodontist is ultimately a
 
 A slightly lower fee might save money in the short term, but true value comes from results that last a lifetime.
 
-
-
+How Coverage Influences Care
+Every system produces the outcomes it is designed to produce.
+In many in-network settings, insurance companies set not only pricing, but also guidelines around when certain treatments are considered “necessary.” In some cases, providers are encouraged to delay or avoid specific interventions unless strict criteria are met. That can meaningfully change the treatment path being recommended.
+So when you compare consultations, it’s often not the same plan with a discount—it’s a different approach shaped by different rules. Our philosophy is to recommend treatment based on timing and outcomes, not insurance thresholds.
         </p>
 
       </div>
