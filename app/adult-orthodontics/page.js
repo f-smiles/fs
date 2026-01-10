@@ -347,7 +347,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/benchmockup.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/testposter.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>

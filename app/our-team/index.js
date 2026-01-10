@@ -488,6 +488,7 @@ export default function OurTeam() {
   const isTouchDevice = "ontouchstart" in window;
 
   useEffect(() => {
+    
     gsap.set(panelRefs.current, { y: "0%" });
 
     const tl = gsap.timeline({
@@ -814,7 +815,7 @@ export default function OurTeam() {
           >
             <div className="max-w-[400px] ml-10 my-10 flex flex-col overflow-hidden">
               <div className="inline-block overflow-hidden">
-                <div className="text-[12px] leading-[1.1] font-neuehaas45 tracking-wider text-black">
+                <div className="text-[11px] leading-[1.1] font-neuehaas35 tracking-wider text-black">
                   {lines.map((line, index) => (
                     <div key={index} className="overflow-hidden">
                       <motion.span
@@ -851,13 +852,13 @@ export default function OurTeam() {
                     <div className="relative h-[1.4em]">
                       <p
                         ref={greggNameRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
+                        className="absolute top-0 left-0 text-[12px] text-[#111] tracking-wider font-neuehaas45"
                       >
                         Dr. Gregg Frey
                       </p>
                       <p
                         ref={danNameRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
+                        className="absolute top-0 left-0 text-[12px] text-[#111] tracking-wider font-neuehaas45"
                       >
                         Dr. Dan Frey
                       </p>
@@ -865,13 +866,13 @@ export default function OurTeam() {
                     <div className="relative mt-1 h-[1.2em]">
                       <p
                         ref={greggTitleRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
+                        className="absolute top-0 left-0 text-[12px] text-[#111] tracking-wider font-neuehaas45"
                       >
                         DDS
                       </p>
                       <p
                         ref={danTitleRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
+                        className="absolute top-0 left-0 text-[12px] text-[#111] tracking-wider font-neuehaas45"
                       >
                         DMD, MSD
                       </p>
@@ -902,7 +903,7 @@ export default function OurTeam() {
           <div ref={scrollRef} className="z-10 relative w-2/5">
             <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
               <div className="flex items-center justify-center h-full gap-8 px-6 max-w-[600px] relative">
-                <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] absolute inset-0 flex justify-center items-center">
+                <p className="leading-[1.3] font-neuehaas45 text-[12px] tracking-wider text-[#111] absolute inset-0 flex justify-center items-center">
                   Dr. Gregg Frey is an orthodontist based in Pennsylvania, who
                   graduated from Temple University School of Dentistry with
                   honors and served in the U.S. Navy Dental Corps before
@@ -926,7 +927,7 @@ export default function OurTeam() {
                 className="relative bg-cover h-screen  rounded-[12px] overflow-hidden"
               >
                 <div className="flex justify-center items-center rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
-                  <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111]">
+                  <p className="leading-[1.3] font-neuehaas45 text-[12px] tracking-wider text-[#111]">
                     Dr. Daniel Frey completed his pre-dental requisites at the
                     University of Pittsburgh, majoring in Biology. Dr. Frey
                     excelled in his studies and was admitted to Temple
@@ -967,9 +968,9 @@ export default function OurTeam() {
                   {/* Col 1 */}
                   <div className="overflow-hidden">
                     <div
-                      ref={col2Ref}
+                      ref={col1Ref}
                       className="flex flex-col will-change-transform"
-                      style={{ transform: "translateY(-66.66vh)" }}
+                 
                     >
                       <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
  

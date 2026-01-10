@@ -2,7 +2,7 @@
 import { Renderer, Program, Mesh, Plane, Uniform } from "wtc-gl";
 import { Vec2, Mat2 } from "wtc-math";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState, useMemo, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import "tw-elements";
 import gsap from "gsap";
@@ -16,10 +16,11 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { SplitText } from 'gsap/SplitText';
 gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger, ScrambleTextPlugin, SplitText);
 
+
 extend({ OrbitControls, EffectComposer });
 
 const ParticleSystem = () => {
-  const particlesCount = 20000;
+  const particlesCount = 27000;
   const mouseRef = useRef({ x: 0, y: 0 });
   const particlesRef = useRef();
 
@@ -80,22 +81,45 @@ const ParticleSystem = () => {
 
       const dist = Math.sqrt(pos[i] ** 2 + pos[i + 1] ** 2 + pos[i + 2] ** 2);
       const radius = 400;
-      if (dist > radius) {
-        const factor = radius / dist;
-        pos[i] *= factor;
-        pos[i + 1] *= factor;
-        pos[i + 2] *= factor;
-      }
+if (dist > radius) {
+  const nx = pos[i] / dist;
+  const ny = pos[i + 1] / dist;
+  const nz = pos[i + 2] / dist;
 
-      const dx = mouseRef.current.x - pos[i];
-      const dy = -mouseRef.current.y - pos[i + 1];
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const repulsion = Math.max(0, 300 - distance) * 0.1;
+  // snap to surface
+  pos[i] = nx * radius;
+  pos[i + 1] = ny * radius;
+  pos[i + 2] = nz * radius;
 
-      if (distance > 0) {
-        pos[i] -= (dx / distance) * repulsion;
-        pos[i + 1] -= (dy / distance) * repulsion;
-      }
+  // reflect velocity inward
+  const dot =
+    velocities[i] * nx +
+    velocities[i + 1] * ny +
+    velocities[i + 2] * nz;
+
+  velocities[i] -= 2 * dot * nx;
+  velocities[i + 1] -= 2 * dot * ny;
+  velocities[i + 2] -= 2 * dot * nz;
+
+  // optional damping
+  velocities[i] *= 0.6;
+  velocities[i + 1] *= 0.6;
+  velocities[i + 2] *= 0.6;
+}
+const dx = mouseRef.current.x - pos[i];
+const dy = -mouseRef.current.y - pos[i + 1];
+const distance = Math.sqrt(dx * dx + dy * dy);
+
+const MOUSE_RADIUS = 120;
+const MOUSE_STRENGTH = 0.04;
+
+if (distance > 0 && distance < MOUSE_RADIUS) {
+  const force =
+    (1 - distance / MOUSE_RADIUS) * MOUSE_STRENGTH;
+
+  velocities[i] -= (dx / distance) * force;
+  velocities[i + 1] -= (dy / distance) * force;
+}
     }
 
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
@@ -202,9 +226,13 @@ const ScrambleText = ({
   }, [scrambleOnLoad, charsType]);
 
   return (
-    <span ref={scrambleRef} className={`scramble-text ${className || ""}`}>
-      {text}
-    </span>
+   <span
+  ref={scrambleRef}
+  className={`scramble-text inline-block ${className || ""}`}
+  style={{ minWidth: `${text.length}ch` }}
+>
+  {text}
+</span>
   );
 };
 
@@ -618,6 +646,16 @@ useEffect(() => {
   return (
     <>
 
+ <div className="absolute inset-0 -z-10">
+    <Canvas
+      orthographic
+      camera={{ zoom: 1, position: [0, 0, 1] }}
+      className="w-full h-full"
+    >
+      <ShaderBackground />
+    </Canvas>
+  </div>
+
 <div className="flex flex-col lg:flex-row w-full h-screen">
             <div className="w-1/2 relative h-screen">
               <Canvas
@@ -637,25 +675,34 @@ useEffect(() => {
 
               <div className="relative z-10 flex flex-col justify-center h-full items-center">
                 <div className="flex flex-col gap-6 text-sm uppercase">
-                  <p className="text-xs text-[#9856D4] uppercase font-neueroman">
+                  <p className="text-[11px] text-white  uppercase font-ibmplex">
                     // Contact Us
                   </p>
                   <div>
-                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
-                      <ScrambleText text="GENERAL" className="mr-10" />
-                    </p>
-                    <p className="text-[#9856D4] text-[12px] leading-snug font-khteka">
+<p className="text-[11px] text-white mb-1 font-ibmplex uppercase">
+  <span className="block">
+    <ScrambleText text="GENERAL" />
+  </span>
+</p>
+                    <p className="text-[11px] text-white leading-[1.6] font-ibmplex">
+                       <span className="block">
                       <ScrambleText text="info@freysmiles.com" />
-                      <br />
-                      <ScrambleText text="(610)437-4748" charsType="numbers" />
+                   </span>
                     </p>
+                   <p className="text-[11px] text-white leading-[1.6] font-ibmplex">
+                     <span className="block">
+                                    <ScrambleText text="(610)437-4748" charsType="numbers" />
+                     </span>
+             
+                           </p>
+              
                   </div>
 
                   <div>
-                    <p className="text-[12px] mb-1 font-neueroman uppercase text-[#9856D4]">
+                    <p className="text-[11px] text-white mb-1 font-ibmplex uppercase">
                       <ScrambleText text="ADDRESS" className="mr-10" />
                     </p>
-                    <p className="text-[#9856D4] text-[12px] leading-tight font-khteka">
+                    <p className="text-[11px] text-white leading-[1.5] font-ibmplex">
                       <ScrambleText text="Frey Smiles" charsType="numbers" />
                       <br />
                       <ScrambleText
@@ -754,10 +801,19 @@ website coming soon
 </div>
 </section> */}
 
-  {/* <div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center bg-white">
-<iframe src="https://app.acuityscheduling.com/schedule.php?owner=37690830" title="Schedule Appointment" width="100%" height="800" frameBorder="0" allow="payment"></iframe>
-  </div> */}
-
+<div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center">
+  <div className="w-full h-full p-[5vh]">
+    <div className="w-full h-full rounded-2xl overflow-hidden">
+      <iframe
+        src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
+        title="Schedule Appointment"
+        className="w-full h-full"
+        frameBorder="0"
+        allow="payment"
+      />
+    </div>
+  </div>
+</div>
 </div>
 <section  className="relative w-full">
   {/* <div style={{ 

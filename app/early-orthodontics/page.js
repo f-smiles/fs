@@ -367,8 +367,8 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/3.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/checkeredheatmap.png')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/checkeredheatmap.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -424,8 +424,8 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/skycard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/Image0001.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/ffscard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/hover.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/hover.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/firstmeeting.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>

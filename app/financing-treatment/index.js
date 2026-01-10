@@ -311,6 +311,7 @@ const resize = () => {
 };
 
 const FinancingTreatment = () => {
+
   // const containerRef = useRef(null);
   // const pathRef = useRef(null);
   // const dottedEllipsesRef = useRef([]);
@@ -1761,6 +1762,7 @@ function Loader() {
     const scrollAwayRef = useRef(null);
 
   useEffect(() => {
+    
     const ctx = gsap.context(() => {
       const items = gsap.utils.toArray(".work-item");
 
