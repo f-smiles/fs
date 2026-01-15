@@ -23,7 +23,6 @@
 
 .award-bg {
   position: relative;
-  /* border: 1px solid salmon; */
   /* padding: 0 0 vw(600) 0; */
 }
 
@@ -34,7 +33,6 @@
 .award-inner-spacer {
   width: 100%;
   height: 0px;
-  /* border: 1px solid cyan; */
 }
 
 .award-card-area {
@@ -65,7 +63,6 @@
   width: 100%;
   padding: 0 40px;
   margin: 56px 0 0 0;
-  /* border: 1px solid magenta; */
 }
 
 .award-title-read-area {
@@ -80,7 +77,6 @@
   /* transform: translate(-50%, -50%); */
   display: block;
   margin: -56px 0 0 0;
-  /* border: 1px dashed chartreuse; */
 }
 
 .award-list-wrapper {
@@ -96,6 +92,7 @@
 .award-list {
   position: relative;
   width: 60vw;
+  gap: 8px;
 }
 
 .award-item {
@@ -104,7 +101,8 @@
 }
 
 .award-item-text-wrapper {
-  margin: 15px 0;
+  /* margin: 15px 0; */
+  padding: 15px 0;
   display: flex;
   align-items: center;
 }
