@@ -48,6 +48,7 @@ import * as THREE from "three";
 import { useControls } from "leva";
 import { MeshStandardMaterial } from "three";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import ScrollList from "./scroll-list.jsx";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
@@ -1391,95 +1392,72 @@ useEffect(() => {
         ]}
       />
       <Background />
-<section
-  ref={sectionOneRef}
-  className="z-10 relative w-full min-h-[110vh] px-6 md:px-12"
->
-  <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
-    
-    <div className="w-full md:w-1/2 min-h-[100vh]"></div>
-    <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
-      <div className="max-w-[1200px] w-full">
-        <div className="font-neuehaas45 leading-[1.2] relative">
-          <TerminalPreloader />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div
-    ref={navBarRef}
-    className="z-10 absolute bottom-0 left-0 w-full pb-2"
-  >
-    <div className="flex items-center justify-center text-[15px] text-white tracking-wider font-neuehaas45 gap-4">
-      <span className={activeDot === "results" ? "opacity-100" : "opacity-30"}>●</span>
-      <span>Our patient results</span>
-      <span className={activeDot === "reviews" ? "opacity-100" : "opacity-30"}>●</span>
-      <span>Read the reviews</span>
-    </div>
-
-<div
-  ref={borderRef}
-  className="z-10 mt-1 mx-auto max-w-[90%] border-b border-white"
->
-  
-</div>
-  </div>
-</section>
-<div className="z-1 overflow-hidden" ref={testimonialsRef}>
-  <Testimonial borderRef={borderRef} />
-</div>
-
-
-
-  <motion.section
-      ref={reviewsRef}
-      className="relative flex flex-wrap items-center justify-center min-h-screen gap-4 p-8 overflow-hidden"
-      variants={containerVariants}
-      initial="initial"
-      whileInView="show"
-      viewport={{ amount: 0.2, once: false }} 
-    >
-      {testimonials.map((t, i) => (
-        <motion.div
-          key={i}
-          drag
-          dragConstraints={reviewsRef}
-          dragElastic={0.05}
-          whileDrag={{ scale: 1.03, transition: { duration: 0.1 } }}
-          dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
-          dragMomentum={false}
-          className="relative bg-[#FEFCFF]/50 backdrop-blur-2xl backdrop-saturate-150
-                     w-[320px] min-h-[450px] flex flex-col justify-start
-                     border border-white cursor-grab active:cursor-grabbing
-                     will-change-transform"
-          style={{ zIndex: i }}
-          variants={makeCardVariants(i)}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ amount: 0.3, once: false }} 
-          whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-        >
-          <div className="relative w-full h-[240px] p-2">
-            <div
-              className="w-full h-full bg-cover bg-center rounded-[8px] overflow-hidden relative"
-              style={{ backgroundImage: `url(${t.image})` }}
-            >
-              <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />
+      <section
+        ref={sectionOneRef}
+        className="z-10 relative w-full min-h-[110vh] px-6 md:px-12"
+      >
+        <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
+          <div className="w-full md:w-1/2 min-h-[100vh]"></div>
+          <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
+            <div className="max-w-[1200px] w-full">
+              <div className="font-neuehaas45 leading-[1.2] relative">
+                <TerminalPreloader />
+              </div>
             </div>
           </div>
+        </div>
+      </section>
+      
+      <ScrollList />
 
-          <div className="flex flex-col gap-2 p-4">
-            <h3 className="text-[16px] leading-tight tracking-wider uppercase font-neuehaas45">
-              {t.name}
-            </h3>
-            <p className="font-neuehaas45 text-[12px] leading-snug tracking-wider">
-              {t.text}
-            </p>
-          </div>
-        </motion.div>
-      ))}
-    </motion.section>
+      <motion.section
+        ref={reviewsRef}
+        className="relative flex flex-wrap items-center justify-center min-h-screen gap-4 p-8 overflow-hidden"
+        variants={containerVariants}
+        initial="initial"
+        whileInView="show"
+        viewport={{ amount: 0.2, once: false }} 
+      >
+        {testimonials.map((t, i) => (
+          <motion.div
+            key={i}
+            drag
+            dragConstraints={reviewsRef}
+            dragElastic={0.05}
+            whileDrag={{ scale: 1.03, transition: { duration: 0.1 } }}
+            dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
+            dragMomentum={false}
+            className="relative bg-[#FEFCFF]/50 backdrop-blur-2xl backdrop-saturate-150
+                      w-[320px] min-h-[450px] flex flex-col justify-start
+                      border border-white cursor-grab active:cursor-grabbing
+                      will-change-transform"
+            style={{ zIndex: i }}
+            variants={makeCardVariants(i)}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ amount: 0.3, once: false }} 
+            whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+          >
+            <div className="relative w-full h-[240px] p-2">
+              <div
+                className="w-full h-full bg-cover bg-center rounded-[8px] overflow-hidden relative"
+                style={{ backgroundImage: `url(${t.image})` }}
+              >
+                <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 p-4">
+              <h3 className="text-[16px] leading-tight tracking-wider uppercase font-neuehaas45">
+                {t.name}
+              </h3>
+              <p className="font-neuehaas45 text-[12px] leading-snug tracking-wider">
+                {t.text}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </motion.section>
       {/* <Contents /> */}
       {/* <section
         ref={patientSectionRef}
