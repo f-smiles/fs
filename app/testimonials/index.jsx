@@ -437,8 +437,8 @@ function Background() {
       }
     `;
 
-    const fragment = `
-     precision highp float;
+const fragment = `
+precision highp float;
 
 uniform vec3 uColor1;   // peach glow
 uniform vec3 uColor2;   // powder lavender blue
@@ -447,7 +447,6 @@ uniform float uTime;
 uniform float uScroll;
 
 varying vec2 vUv;
-
 
 vec4 permute(vec4 x){ 
   return mod(((x*34.0)+1.0)*x,289.0); 
@@ -482,9 +481,6 @@ float cnoise(vec2 P){
   return 2.3*n_xy;
 }
 
-/* -------------------------
-   FBM for soft cloud coat
--------------------------- */
 float fbm(vec2 p){
   float a = 0.0;
   float w = 0.55;
@@ -494,74 +490,153 @@ float fbm(vec2 p){
   return a;
 }
 
+
+// Special pearlescent FBM for the cloud layer
+float pearlCloudFbm(vec2 p, float time) {
+  float a = 0.0;
+  float w = 0.5;
+  float freq = 1.0;
+  
+  // Layer 1: Large, smooth pearlescent waves
+  a += w * cnoise(p * 0.8 + vec2(time * 0.02, 0.0));
+  w *= 0.65;
+  freq *= 1.8;
+  
+  // Layer 2: Medium detail
+  a += w * cnoise(p * freq + vec2(time * 0.03, time * 0.01));
+  w *= 0.6;
+  freq *= 2.2;
+  
+  // Layer 3: Fine pearlescent detail
+  a += w * cnoise(p * freq + vec2(time * 0.05, time * 0.02));
+  
+  return a * 0.5 + 0.5; // Normalize to 0-1
+}
+
+
+vec3 pearlColor(float intensity) {
+
+  vec3 base = vec3(0.985, 0.99, 1.0);
+  
+  vec3 pinkPearl = vec3(1.0, 0.985, 0.995);
+  vec3 bluePearl = vec3(0.98, 0.99, 1.0);
+  
+  float blend = sin(uTime * 0.1) * 0.5 + 0.5;
+  vec3 iridescent = mix(pinkPearl, bluePearl, blend);
+  
+  return mix(base, iridescent, intensity * 0.3);
+}
+
+
+float pearlShimmer(vec2 uv) {
+  vec2 p = uv * 3.0;
+  float n1 = cnoise(p + uTime * 0.04);
+  float n2 = cnoise(p * 1.7 + uTime * 0.03);
+  
+
+  float shimmer = (n1 * 0.5 + 0.5) * 0.6 + 
+                  (n2 * 0.5 + 0.5) * 0.4;
+  
+
+  shimmer = pow(shimmer, 1.8);
+  
+  return shimmer;
+}
+
 void main() {
-
-
   float n = cnoise(vUv + uScroll + sin(uTime * 0.1));
   float t = 0.5 + 0.5 * n;
   t = pow(t, 0.25);
-  t = mix(t, 1.0, 0.1); // gentle bias toward blue
+  t = mix(t, 1.0, 0.1);
 
   vec3 color = mix(uColor1, uColor2, t);
 
-float vign = smoothstep(0.68, 1.10, distance(vUv, vec2(0.5)));
+  float vign = smoothstep(0.68, 1.10, distance(vUv, vec2(0.5)));
+  float cornerMask = smoothstep(0.0, 0.35, distance(vUv, vec2(0.92, 0.06)));
+  vign *= cornerMask;
+  color = mix(color, uColor3, vign * 0.08);
 
-// soften vignette near the bright top-right corner
-float cornerMask = smoothstep(
-  0.0,
-  0.35,
-  distance(vUv, vec2(0.92, 0.06))
-);
-vign *= cornerMask;
+  float valley = smoothstep(0.50, 0.28, t);
+  color = mix(color, uColor3, valley * 0.08);
 
-color = mix(color, uColor3, vign * 0.08);
-
-float valley = smoothstep(0.50, 0.28, t);
-color = mix(color, uColor3, valley * 0.08);
-
-  float clouds = fbm(
-    vUv * 0.9 +
-    vec2(uScroll * 0.2, 0.0) +
-    uTime * 0.015
+  float pearlClouds = pearlCloudFbm(
+    vUv * 0.8 + 
+    vec2(uScroll * 0.15, 0.0) + 
+    vec2(0.0, sin(uTime * 0.02) * 0.1),
+    uTime
   );
+  
+  // Create two cloud layers for depth
+  float cloudLayer1 = pearlCloudFbm(vUv * 0.6 + vec2(uTime * 0.01), uTime * 0.5);
+  float cloudLayer2 = pearlCloudFbm(vUv * 1.2 + vec2(uTime * 0.02), uTime * 0.7);
 
-  float cMask = smoothstep(0.35, 0.85, 0.5 + 0.5 * clouds);
-  vec3 coat = mix(uColor2, vec3(0.975, 0.98, 1.0), 0.72);
-  color = mix(color, coat, cMask * 0.55);
+  float combinedClouds = (cloudLayer1 * 0.6 + cloudLayer2 * 0.4);
+  
 
+  float cloudMask = smoothstep(0.4, 0.85, combinedClouds);
 
-vec2 liftCenter = vec2(0.92, 0.06);
-float r = distance(vUv, liftCenter);
-float localLift = 1.0 - smoothstep(0.30, 0.95, r);
+  float cloudShimmer = pearlShimmer(vUv * 2.0 + vec2(uTime * 0.03));
+  cloudMask *= (1.0 + cloudShimmer * 0.15); // Gentle shimmer enhancement
 
-// soften peak
-localLift = pow(localLift, 1.4);
+  vec3 pearlyCloudColor = pearlColor(combinedClouds);
+  
+  pearlyCloudColor += vec3(0.05, 0.05, 0.06) * cloudShimmer;
 
-// perceptual lift (not fully additive)
-color = mix(
-  color,
-  vec3(0.985, 0.99, 1.0),
-  localLift * 0.16
-);
+  color = mix(color, pearlyCloudColor, cloudMask * 0.45);
 
-float whiteField = fbm(vUv * 0.55 + uTime * 0.01);
-whiteField = smoothstep(0.35, 0.75, 0.5 + 0.5 * whiteField);
+  float cloudGlow = smoothstep(0.3, 0.7, combinedClouds);
+  vec3 cloudHalo = vec3(1.0, 0.995, 0.998);
+  color += cloudHalo * cloudGlow * 0.08;
 
-// suppress when local lift is strong
-whiteField *= (1.0 - localLift * 0.65);
+  float pearlyHighlights = pearlShimmer(vUv * 1.5);
+  pearlyHighlights = smoothstep(0.5, 0.9, pearlyHighlights);
+  
+  vec3 highlightColor = pearlColor(pearlyHighlights);
+  color = mix(color, highlightColor, pearlyHighlights * 0.15 * (t + 0.3));
+  
+  vec2 liftCenter = vec2(0.92, 0.06);
+  float r = distance(vUv, liftCenter);
+  float localLift = 1.0 - smoothstep(0.30, 0.95, r);
+  localLift = pow(localLift, 1.4);
+  
+  // Pearly lift effect
+  vec3 pearlyLift = pearlColor(localLift);
+  color = mix(color, pearlyLift, localLift * 0.25);
+  
+  // White field with pearlescent quality
+  float whiteField = fbm(vUv * 0.55 + uTime * 0.01);
+  whiteField = smoothstep(0.35, 0.75, 0.5 + 0.5 * whiteField);
+  whiteField *= (1.0 - localLift * 0.65);
+  
 
-// gentle luminance lift
-color += whiteField * 0.12 * vec3(1.0);
-
+  color += pearlColor(whiteField) * whiteField * 0.1;
+  
 
   vec2 glowCenter = vec2(0.08, 0.92);
   float glow = 1.0 - smoothstep(0.0, 0.8, distance(vUv, glowCenter));
+  
+  vec3 pearlyGlow = mix(uColor1, pearlColor(glow), 0.6);
+  color += pearlyGlow * glow * 0.07;
+  
+  float peachMask = max(uColor1.r, uColor1.g * 0.9);
+  vec3 peachBoost = color * vec3(1.05, 1.03, 1.0); // Red/Orange channels boosted ~10%
+  color = mix(color, peachBoost, peachMask * 0.4);
+  
 
-  color += uColor1 * glow * 0.07;
+  color = pow(color, vec3(0.96)); // Slight contrast
+  color = clamp(color, 0.0, 1.0);
+  
 
+  float overallSheen = (sin(uTime * 0.05) * 0.5 + 0.5) * 0.03;
+  color += vec3(0.01, 0.01, 0.015) * overallSheen;
+  
   gl_FragColor = vec4(color, 1.0);
 }
-    `;
+`;
+
+
+
+
     
     const program = new Program(gl, {
       vertex,

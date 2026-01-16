@@ -457,7 +457,39 @@ className="
 {/* <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
   <path stroke-linecap="round" stroke-linejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
 </svg> */}
-<img className="w-3 h-3" src="/images/dotarrow.png" />
+<svg
+  viewBox="0 0 840 980"
+  width="12"
+  height="14"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <path
+      id="caret"
+      d="M561.4 0H421.2v138.7h140.2z
+         M421.2 138.7H281v140.2h140.2z
+         M281 278.9H140.8v140.2H281z
+         M281 559.4H140.8v140.2H281z
+         M421.2 699.6H281v140.2h140.2z
+         M561.4 839.8H421.2V980h140.2z
+         M140.8 419.1H.6v140.2h140.2z"
+    />
+  </defs>
+
+
+  <use href="#caret" fill="black" />
+
+<use
+  href="#caret"
+  fill="black"
+  transform="
+    translate(281 490)
+    scale(0.7)
+    translate(-281 -490)
+    translate(380 20)
+  "
+/>
+</svg>
   </motion.div>
 </div>
 

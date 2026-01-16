@@ -392,15 +392,15 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/videos/retaintracing.mp4')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                        <video
-  src="/videos/retaintracing.mp4"
-  alt="Video of a landscape"
+<img
+  src="/images/bluewave.gif"
+  alt="Retain tracing animation"
   loading="lazy"
-  style={{ objectFit: 'cover' }}
-  loop
-  autoPlay
-  muted
-  playsInline
+  style={{
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }}
 />
                     </div>
                   </div>
@@ -413,7 +413,7 @@ export default function Page() {
               <div className="MainSectionItem-innerSticky">
                 <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--grey)', }} />
                 <div className="MainSectionItem-content">
-                  <span className="MainSectionItem-index">04</span>
+                  <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future Frey Smiles</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">

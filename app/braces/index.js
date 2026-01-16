@@ -2499,6 +2499,7 @@ const LandscapeBackground = () => {
       <planeGeometry args={[2, 2]} />
       <landscapeShaderMaterial
         ref={materialRef}
+        
         iMouse={new THREE.Vector4(0, 0, 0, 0)}
         iChannel0={textures.tex0}
         iChannel1={textures.tex1}

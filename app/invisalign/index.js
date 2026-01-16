@@ -1097,29 +1097,33 @@ ScrollTrigger.create({
 };
 
 function PortalJourneyModel(props) {
-  const { scene, nodes } = useGLTF("/models/girl_bust.glb");
+  const { scene, nodes } = useGLTF("/models/dancerpose.glb");
   const groupRef = useRef();
 
-  const material = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0.97, 0.97, 0.99),
-        metalness: 0.0,
-        roughness: 0.06,
-        transmission: 1.0,
-        thickness: 0.85,
-        ior: 1.45,
-        attenuationColor: new THREE.Color(1.0, 0.98, 1.0),
-        attenuationDistance: 3.2,
-        specularIntensity: 0.9,
-        specularColor: new THREE.Color(1, 1, 1),
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.04,
-        transparent: true,
-        envMapIntensity: 1.1,
-      }),
-    []
-  );
+const material = useMemo(
+  () =>
+    new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0.92, 0.93, 0.95),
+
+      metalness: 1.0,
+      roughness: 0.18,
+
+      // Clearcoat gives that silky highlight
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
+
+      // Specular response (important for chrome feel)
+      specularIntensity: 1.0,
+      specularColor: new THREE.Color(1, 1, 1),
+
+      // Subtle depth / realism
+      envMapIntensity: 1.4,
+
+      // Optional but helps smooth shading
+      flatShading: false,
+    }),
+  []
+);
 
 // useFrame((state, delta) => {
   //   if (!groupRef.current) return;
@@ -1131,13 +1135,11 @@ console.log("GLB nodes:", nodes);
 }
 )
   useMemo(() => {
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = false;
-        child.receiveShadow = false;
-        child.material = material;
-      }
-    });
+scene.traverse((child) => {
+  if (child.isMesh) {
+    child.geometry.computeVertexNormals();
+  }
+});
   }, [scene, material]);
 
   return (
@@ -1525,16 +1527,10 @@ useEffect(() => {
   camera={{ position: [0, 0, 3], fov: 45 }}
   onCreated={({ camera }) => (window.myCamera = camera)}
 >
-  <EffectComposer>
-  <Bloom intensity={0.2} luminanceThreshold={0.4} />
-  <ChromaticAberration
-    offset={new THREE.Vector2(0.0015, 0.001)}
-    radialModulation={true}
-    modulationOffset={0.75}
-  />
-</EffectComposer>
+
 <Environment
-  files="/images/studio_small_08_4k.hdr"
+preset="studio"
+  // files="/images/studio_small_08_4k.hdr"
   background={false}
  
 />
@@ -1549,10 +1545,16 @@ useEffect(() => {
   intensity={1}
   color="#d9d4ff"  
 />
+<OrbitControls
+  enablePan={false}
+  enableZoom={false}
+  enableDamping
+  dampingFactor={0.08}
+/>
 <PortalJourneyModel
-  scale={0.25}
+  scale={0.1}
   position={[0, 0, 0]}
-  rotation={[0, -Math.PI / 2.5, 0]} 
+  rotation={[Math.PI / 2, 0, 0]} 
 />
 </Canvas>
 </div>

@@ -1,7 +1,7 @@
 "use client";
 import { EffectComposer, Bloom, Selection, Select, ChromaticAberration } from "@react-three/postprocessing";
 import { gsap } from "gsap";
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useLayoutEffect} from "react";
 import { useFrame, extend, useThree, Canvas } from "@react-three/fiber";
 import FlutedGlassEffect from "../../../utils/glass";
 import { Vector2 } from "three";
@@ -14,8 +14,11 @@ import {
   Center,
   useAnimations
 } from "@react-three/drei";
+import { Physics2DPlugin } from "gsap/Physics2DPlugin";
+import { SplitText } from "gsap/SplitText";
 import * as THREE from "three";
-
+import { Engine, Render, World, Bodies, Runner, Body } from "matter-js";
+gsap.registerPlugin(SplitText, Physics2DPlugin);
 
 const Marquee = () => {
   const text =
@@ -60,8 +63,197 @@ const Marquee = () => {
     </div>
   );
 };
+const LETTERS = [
+  { char: "h", texture: "/images/h.png" },
+  { char: "p", texture: "/images/p.png" },
+  { char: "s", texture: "/images/s.png" },
+  { char: "o", texture: "/images/o.png" },
+
+  { char: "s", texture: "/images/s.png" },
+
+  { char: "o", texture: "/images/o.png" },
+
+];
 
 
+function FallingTitleDemo() {
+  const loadImage = (src) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () =>
+        resolve({
+          src,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+    });
+  
+  const sceneRef = useRef(null);
+  
+  useEffect(() => {
+    let render;
+    let engine;
+    let runner;
+    let isActive = true;
+
+    const run = async () => {
+      if (!isActive) return;
+
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      const containerWidth = viewportWidth / 2;
+      const containerHeight = viewportHeight;
+      
+      const leftOffset = (viewportWidth - containerWidth) ;
+
+      const images = await Promise.all(
+        LETTERS.map((l) => loadImage(l.texture))
+      );
+
+      if (!isActive) return;
+
+      engine = Engine.create();
+      engine.gravity.y = 1.4;
+
+engine.positionIterations = 12;
+engine.velocityIterations = 10;
+engine.constraintIterations = 4;
+
+      render = Render.create({
+        element: sceneRef.current,
+        engine,
+        options: {
+          width: containerWidth, 
+          height: containerHeight,
+          wireframes: false,
+          background: "transparent",
+
+             
+        },
+      });
+
+const wallThickness = 50;
+
+const leftWall = Bodies.rectangle(
+  -wallThickness / 2,
+  containerHeight / 2,
+  wallThickness,
+  containerHeight,
+  { isStatic: true, render: { visible: false } }
+);
+
+const rightWall = Bodies.rectangle(
+  containerWidth + wallThickness / 2,
+  containerHeight / 2,
+  wallThickness,
+  containerHeight,
+  { isStatic: true, render: { visible: false } }
+);
+
+
+const floor = Bodies.rectangle(
+  containerWidth / 2,
+  containerHeight * 0.79 + 45,    
+  containerWidth + 160,         
+  90,                            
+  {
+    isStatic: true,
+    friction: 0.9,
+    restitution: 0.01,                
+    render: { visible: false }
+  }
+);
+      const SCALE = .7;
+const spacing = 20;
+const totalWidth =
+  images.reduce((sum, img) => sum + img.width * SCALE, 0) +
+  spacing * (images.length - 1);
+
+const DROP_X = containerWidth / 2;
+
+const letters = images.map((img) => {
+  const w = img.width * SCALE;
+  const h = img.height * SCALE;
+
+const body = Bodies.rectangle(
+  DROP_X + (Math.random() - 0.5) * 8,
+  -h - 120,
+  w,
+  h,
+  {
+    friction: 0.9,
+    frictionStatic: 1,
+    restitution: 0.05,
+    density: 0.001,
+    render: {
+      sprite: {
+        texture: img.src,
+        xScale: SCALE,
+        yScale: SCALE,
+      },
+    },
+  }
+);
+
+Body.setAngle(body, (Math.random() - 0.5) * 0.25);
+Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.02);
+
+  Body.setAngle(body, (Math.random() - 0.5) * 0.3);
+  Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.04);
+
+  return body;
+});    
+ World.add(engine.world, [leftWall, rightWall, floor]);
+letters.forEach((body, i) => {
+  setTimeout(() => {
+    if (!isActive) return;
+    World.add(engine.world, body);
+  }, i * 140);
+});
+
+
+      Render.run(render);
+      runner = Runner.create();
+      Runner.run(runner, engine);
+      
+      if (sceneRef.current) {
+        sceneRef.current.style.position = 'absolute';
+        sceneRef.current.style.left = `${leftOffset}px`;
+        sceneRef.current.style.width = `${containerWidth}px`;
+        sceneRef.current.style.height = `${containerHeight}px`;
+        sceneRef.current.style.overflow = 'hidden';
+      }
+    };
+
+    run();
+
+    return () => {
+      isActive = false;
+      
+      if (runner) {
+        Runner.stop(runner);
+      }
+      
+      if (render) {
+        Render.stop(render);
+        if (render.canvas && render.canvas.parentNode) {
+          render.canvas.parentNode.removeChild(render.canvas);
+        }
+      }
+      
+      if (engine) {
+        if (engine.world) {
+          World.clear(engine.world, false);
+        }
+        Engine.clear(engine);
+      }
+    };
+  }, []);
+
+  return <div ref={sceneRef} />;
+}
 function DentalModel() {
   const { scene, animations } = useGLTF("/models/art_gallery_test.glb");
   const animatedRef = useRef<THREE.Group>(null);
@@ -142,7 +334,7 @@ const Hero: React.FC = () => {
 
 <section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen px-6 py-20">
 
-<Canvas camera={{ position: [4, 3, 6], fov: 45 }}>
+{/* <Canvas camera={{ position: [4, 3, 6], fov: 45 }}>
   <Environment files="/images/studio_small_03_4k.hdr" />
 
 
@@ -163,8 +355,8 @@ const Hero: React.FC = () => {
   <DentalModel />
 
   <OrbitControls enableZoom={false} enablePan={false} />
-</Canvas>
-
+</Canvas> */}
+<FallingTitleDemo />
 <div className="flex items-center justify-center text-center lg:text-left">
 <div className="text-gsap-contain">
   <h1 className="text-[clamp(24px,3vw,32px)] font-neuehaas35">
