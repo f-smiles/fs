@@ -1,0 +1,141 @@
+:root {
+  --marker-size: 48px;
+}
+
+.mapboxgl-canvas-container.mapboxgl-interactive {
+  cursor: none;
+}
+
+.circle-cursor,
+.cursor-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.circle-cursor--outer {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ff4747;
+  border-radius: 50%;
+  /* opacity: 0.2; */
+  z-index: 99999;
+}
+
+.circle-cursor--inner {
+  width: 5px;
+  height: 5px;
+  top: -3px;
+  left: -3px;
+  border-radius: 50%;
+  background: #ff4747;
+  /* opacity: 1; */
+  z-index: 88888;
+}
+
+.cursor-line--horizontal {
+  width: 200dvw;
+  height: 1px;
+  background-color: #ff4747;
+  /* opacity: 0.2; */
+  transform: translateX(-50%);
+  z-index: 99999;
+}
+
+.cursor-line--vertical {
+  width: 1px;
+  height: 200dvh;
+  background-color: #ff4747;
+  /* opacity: 1; */
+  transform: translateY(-50%);
+  z-index: 88888;
+}
+
+/* Style the marker div as a circle with a background image */
+.marker {
+  /* background-image: url('https://docs.mapbox.com/mapbox-gl-js/assets/coffee-cup-marker.svg'); */
+  /* background-size: contain; */
+  /* background-position-x: 50%; */
+  /* background-repeat: no-repeat; */
+  width: var(--marker-size, 16px);
+  height: var(--marker-size, 16px);
+  background-color: #000;
+  /* background-color: #365874; */
+  border-radius: 50%;
+  /* cursor: pointer; */
+  transition-property: width, height;
+  transition-duration: .1s;
+  transition-timing-function: linear;
+  /* Define Marker Animation */
+  animation: pop-in 0.3s ease-out forwards, wobble 1.5s ease-in-out 0.3s forwards;
+  transform-origin: bottom center;
+}
+
+/* Create a css triangle and add to the bottom of the marker for the marker point */
+.marker::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid #000;
+  display: block;
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.marker:hover::before {
+  border-top: 7px solid #ff4747;
+}
+
+.marker:hover {
+  background-color: #ff4747;
+}
+
+/* Keyframe animation for pop-in */
+@keyframes pop-in {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 0;
+    box-shadow: none;
+  }
+  70% {
+    width: 55px;
+    height: 55px;
+    opacity: 1;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.4);  /* Add a subtle shadow */
+  }
+  85% {
+    width: 48px;
+    height: 48px;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.3);  /* Shrink shadow with wobble */
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.3);  /* Final shadow size */
+  }
+}
+
+/* Keyframe animation for slow wobble after pop-in */
+@keyframes wobble {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(3deg);
+  }
+  50% {
+    transform: rotate(-3deg);
+  }
+  65% {
+    transform: rotate(1deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

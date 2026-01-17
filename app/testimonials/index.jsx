@@ -48,6 +48,7 @@ import * as THREE from "three";
 import { useControls } from "leva";
 import { MeshStandardMaterial } from "three";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import ScrollList from "./scroll-list.jsx";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
@@ -1507,46 +1508,23 @@ useEffect(() => {
         ]}
       />
       <Background />
-<section
-  ref={sectionOneRef}
-  className="z-10 relative w-full min-h-[110vh] px-6 md:px-12"
->
-  <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
-    
-    <div className="w-full md:w-1/2 min-h-[100vh]"></div>
-    <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
-      <div className="max-w-[1200px] w-full">
-        <div className="font-neuehaas45 leading-[1.2] relative">
-          <TerminalPreloader />
+      <section
+        ref={sectionOneRef}
+        className="z-10 relative w-full min-h-[110vh] px-6 md:px-12"
+      >
+        <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
+          <div className="w-full md:w-1/2 min-h-[100vh]"></div>
+          <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
+            <div className="max-w-[1200px] w-full">
+              <div className="font-neuehaas45 leading-[1.2] relative">
+                <TerminalPreloader />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div
-    ref={navBarRef}
-    className="z-10 absolute bottom-0 left-0 w-full pb-2"
-  >
-    <div className="flex items-center justify-center text-[15px] text-white tracking-wider font-neuehaas45 gap-4">
-      <span className={activeDot === "results" ? "opacity-100" : "opacity-30"}>●</span>
-      <span>Our patient results</span>
-      <span className={activeDot === "reviews" ? "opacity-100" : "opacity-30"}>●</span>
-      <span>Read the reviews</span>
-    </div>
-
-<div
-  ref={borderRef}
-  className="z-10 mt-1 mx-auto max-w-[90%] border-b border-white"
->
-  
-</div>
-  </div>
-</section>
-<div className="z-1 overflow-hidden" ref={testimonialsRef}>
-  <Testimonial borderRef={borderRef} />
-</div>
-
-
+      </section>
+      
+      <ScrollList />
 
   <motion.section
       ref={reviewsRef}
@@ -1585,17 +1563,17 @@ useEffect(() => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 p-4">
-            <h3 className="text-[16px] leading-tight tracking-wider uppercase font-neuehaas45">
-              {t.name}
-            </h3>
-            <p className="font-neuehaas45 text-[12px] leading-snug tracking-wider">
-              {t.text}
-            </p>
-          </div>
-        </motion.div>
-      ))}
-    </motion.section>
+            <div className="flex flex-col gap-2 p-4">
+              <h3 className="text-[16px] leading-tight tracking-wider uppercase font-neuehaas45">
+                {t.name}
+              </h3>
+              <p className="font-neuehaas45 text-[12px] leading-snug tracking-wider">
+                {t.text}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </motion.section>
       {/* <Contents /> */}
       {/* <section
         ref={patientSectionRef}

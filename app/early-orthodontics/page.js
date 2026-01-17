@@ -20,7 +20,6 @@ export default function Page() {
     const images = document.querySelectorAll('.MainSectionItem-image')
     const headTitle = document.querySelector('.MainSection-headTitle')
     const navItemTitles = document.querySelectorAll('.MainSection-navItemTitle')
-    const navProgressBar = document.querySelectorAll('.MainSection-navProgressBar')
 
     navItemTitles.forEach((item, i) => {
       gsap.set(item, { translate: "none", rotate: "none", scale: "none", transform: "translate3d(0px, 5rem, 0px)" })
@@ -77,11 +76,6 @@ export default function Page() {
             markers: false,
           },
           defaults: { ease: 'none' },
-        })
-
-        tl.add(() => {
-          tl.addLabel('progress-bar')
-          tl.fromTo(navProgressBar, { xPercent: -85 }, { xPercent: 0, duration: tl.duration(), ease: 'none' }, 0)
         })
         
         // --- Phase 1 ---        
@@ -214,7 +208,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-first MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--blue)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--mint)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">01</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Smart to Start</h3>
@@ -238,7 +232,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--pink)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">02</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Lucky Number 7</h3>
@@ -354,7 +348,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--orange)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">The Airway Equation</h3>
@@ -378,7 +372,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--peach)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">04</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future-Proof</h3>
@@ -411,7 +405,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--grey)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future Frey Smiles</h3>
@@ -435,7 +429,7 @@ export default function Page() {
           <div className="MainSectionItem --bg-terra MainSection-item">
             <div className="--index-last MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--teal)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Early Is Still Now</h3>
@@ -455,35 +449,6 @@ export default function Page() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="MainSection-nav">
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>01</span>
-            <span className="MainSection-navItemTitle">Section One</span>
-          </div>
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>02</span>
-            <span className="MainSection-navItemTitle">Section Two</span>
-          </div>
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>03</span>
-            <span className="MainSection-navItemTitle">Section Three</span>
-          </div>
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>04</span>
-            <span className="MainSection-navItemTitle">Section Four</span>
-          </div>
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>05</span>
-            <span className="MainSection-navItemTitle">Section Five</span>
-          </div>
-          <div className="MainSection-navItem AppSmallText-1">
-            <span>06</span>
-            <span className="MainSection-navItemTitle">Section Six</span>
-          </div>
-          <div className="MainSection-navProgress">
-            <span className="MainSection-navProgressBar"></span>
           </div>
         </div>
       </div>
