@@ -190,7 +190,7 @@ export default function BookNow() {
 
         <div ref={containerOneRef} className="z-10 absolute top-1/2 -translate-y-1/2 pb-[0.1em] overflow-hidden">
           <h1 ref={h1Ref} className="text-[32px] font-canela-italic italic text-center leading-[1.2em] lowercase lg:text-[34px]">Website Coming Soon</h1>
-          <Link href="#acuity-calendar" className="mt-[14px] flex flex-col items-center justify-center text-center font-canela uppercase text-[16px] md:hidden">
+          <Link prefetch={false} href="#acuity-calendar" className="mt-[14px] flex flex-col items-center justify-center text-center font-canela uppercase text-[16px] md:hidden">
             Book Now
             <ChevronDown className="animate-bounce size-5" />
           </Link>
