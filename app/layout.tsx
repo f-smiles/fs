@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
-import "@/public/styles/uploadthing.css";
-import "@/public/styles/index.css";
 import Logo from "@/components/logo";
 import { HolidayMarquee } from "@/components/holiday-banner";
 

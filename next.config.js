@@ -27,15 +27,6 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
-  async redirects() {
-    return [
-      {
-        source: '/:path((?!book-now|icon\\.svg).*)',
-        destination: '/book-now',
-        permanent: true,
-      }
-    ]
-  }
 };
 
 module.exports = nextConfig;

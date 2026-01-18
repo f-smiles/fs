@@ -1,11 +1,13 @@
-// import Link from "next/link";
-import { redirect } from "next/navigation";
+import type { Metadata } from "next"
+import BookNow from "./book-now"
+
+export const metadata: Metadata = {
+  title: "FreySmiles | Book Now",
+}
+export const dynamic = 'force-static'
 
 export default function Home() {
-  redirect('/book-now')
-  // return (
-  //   <div className="p-32">
-  //     <Link href="/book-now">Book Now</Link>
-  //   </div>
-  // )
+  return (
+    <BookNow />
+  )
 }
