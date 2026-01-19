@@ -284,7 +284,6 @@ const menuText = "Menu";
 </div>
 
 
-
           <motion.div
             variants={opacity}
             animate={!isActive ? "open" : "closed"}
@@ -301,6 +300,7 @@ const menuText = "Menu";
       Book
     </motion.div>
   </Link> */}
+          <CartComponent />
 
           <Link href="/">
             <motion.div
