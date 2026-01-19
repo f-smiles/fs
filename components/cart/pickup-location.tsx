@@ -29,7 +29,7 @@ export default function PickupLocation() {
           {locations.map((item) => (
             <div key={item.value} className={cn(
               pickupLocation === item.value ? "border border-primary" : "",
-              "pl-4 pr-8 py-4 rounded-lg transition-all duration-300 ease-linear hover:cursor-pointer"
+              "pl-4 pr-8 py-4 rounded-lg transition-all duration-300 ease-linear text-zinc-900 dark:text-zinc-50  hover:cursor-pointer"
             )}>
               <span className="flex items-center space-x-2">
                 <RadioGroupItem value={item.value} id={item.value} />

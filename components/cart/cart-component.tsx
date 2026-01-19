@@ -29,7 +29,7 @@ export default function CartComponent({ isScrolled }: CartComponentProps) {
       animate={{ scale: 1, opacity: 1 }}
       initial={{ opacity: 0, scale: 0 }}
       exit={{ scale: 0 }}
-      className="absolute flex items-center justify-center w-5 h-5 text-xs rounded-full -top-2 -right-3 bg-primary text-primary-foreground"
+      className="absolute flex items-center justify-center w-5 h-5 text-xs rounded-full -top-2 -right-3 bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
     >
       {cart.length}
     </motion.span>
@@ -40,14 +40,14 @@ export default function CartComponent({ isScrolled }: CartComponentProps) {
     className="transition-colors duration-300"
     animate={{ color: isScrolled ? "#000" : "#fff" }}
   >
-    <ShoppingBagIcon className="w-6 h-6" strokeWidth={1.5} />
+    <ShoppingBagIcon className="w-6 h-6 text-zinc-900 dark:text-zinc-50" strokeWidth={1.5} />
   </motion.div>
 </AnimatePresence>
         </div>
       </SheetTrigger>
 
       <SheetContent
-        className={`w-[400px] sm:w-[640px] md:w-[768px] bg-white flex flex-col transition-all duration-1000 ${
+        className={`w-[400px] sm:w-[640px] md:w-[768px] flex flex-col transition-all duration-1000 ${
           isScrolled ? "text-black" : "text-white"
         }`}
       >

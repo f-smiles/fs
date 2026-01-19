@@ -69,7 +69,7 @@ export default function CartSummary() {
           </TableHeader>
           <TableBody>
             {cart.map((item) => (
-              <TableRow key={(item.id + item.variant.variantID).toString()}>
+              <TableRow key={(item.id + item.variant.variantID).toString()} className="text-zinc-900 dark:text-zinc-50">
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>{formatPrice(item.price)}</TableCell>
                 <TableCell>
