@@ -33,6 +33,10 @@ export async function POST(request: Request) {
   // Handle the event
   if (event) {
     switch (event.type) {
+      // charge.succeeded
+      // payment_intent.succeeded
+      // payment_intent.created
+      // checkout.session.completed
       case 'payment_intent.succeeded':
         const retrieveOrder =  await stripe.paymentIntents.retrieve(
           event.data.object.id,
