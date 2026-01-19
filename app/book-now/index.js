@@ -1,4 +1,5 @@
 "use client";
+import { createPortal } from "react-dom";
 import { Renderer, Program, Mesh, Plane, Uniform } from "wtc-gl";
 import { Vec2, Mat2 } from "wtc-math";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
@@ -14,6 +15,8 @@ import * as THREE from "three";
 import { NormalBlending } from 'three';
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { SplitText } from 'gsap/SplitText';
+import { AnimatePresence } from "framer-motion";
+
 gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger, ScrambleTextPlugin, SplitText);
 
 
@@ -170,7 +173,6 @@ const Scene = () => {
     </>
   );
 };
-
 
 const ScrambleText = ({
   text,
@@ -641,12 +643,48 @@ useEffect(() => {
   return () => split.revert();
 }, []);
 
+const [open, setOpen] = useState(false);
 
+useEffect(() => {
+  if (open) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+}, [open]);
+  const handleClose = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+  };
+
+  const [errors, setErrors] = useState({});
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const form = e.target;
+  const formData = new FormData(form);
+
+  const res = await fetch("/api/apply", {
+    method: "POST",
+    body: formData, 
+  });
+
+  if (res.ok) {
+    alert("Application submitted successfully!");
+    form.reset();
+    setResumeName("");
+  } else {
+    alert("Something went wrong. Please try again.");
+  }
+};
+
+const [resumeName, setResumeName] = useState("");
 
   return (
     <>
 
- <div className="absolute inset-0 -z-10">
+ {/* <div className="absolute inset-0 -z-10">
     <Canvas
       orthographic
       camera={{ zoom: 1, position: [0, 0, 1] }}
@@ -654,11 +692,11 @@ useEffect(() => {
     >
       <ShaderBackground />
     </Canvas>
-  </div>
+  </div> */}
 
 <div className="flex flex-col lg:flex-row w-full h-screen">
-            <div className="w-1/2 relative h-screen">
-              <Canvas
+            {/* <div className="w-1/2 relative h-screen"> */}
+              {/* <Canvas
                 camera={{ position: [0, 0, 1000], fov: 75 }}
                 gl={{ alpha: true }}
                 style={{
@@ -671,9 +709,9 @@ useEffect(() => {
                 }}
               >
                 <Scene />
-              </Canvas>
+              </Canvas> */}
 
-              <div className="relative z-10 flex flex-col justify-center h-full items-center">
+              {/* <div className="relative z-10 flex flex-col justify-center h-full items-center">
                 <div className="flex flex-col gap-6 text-sm uppercase">
                   <p className="text-[11px] text-white  uppercase font-ibmplex">
                     // Contact Us
@@ -714,10 +752,10 @@ useEffect(() => {
                     </p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
 
-{/* <section
+<section
   className="relative z-10 w-full lg:w-1/2 h-[50vh] lg:h-full 
              flex flex-col items-center justify-center text-white p-8 overflow-hidden"
 >
@@ -779,7 +817,439 @@ website coming soon
     </h1>
   </div>
 </div>
+  {/* Button */}
+      <div className="font-neuehaas45 absolute top-[85%] right-16 border border-white rounded-[10px] py-2 px-4 z-10">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+       Join Our Team
+        </button>
+      </div>
+{typeof window !== "undefined" &&
+  createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="overlay"
+          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+transition={{
+  duration: 1,
+  ease: [0.22, 1, 0.36, 1],
+  exit: {
+    opacity: {
+      duration: 1.2, 
+      ease: [0.22, 1, 0.36, 1]
+    },
+    backdropFilter: {
+      duration: 0.4 
+    }
+  }
+}}
+          className="fixed inset-0 z-50 bg-black/80 
+                     flex items-center justify-center
+                     font-neuehaas45 tracking-wide"
+          onClick={handleClose}
+        >
+        <motion.div
+  key="panel"
+  initial={{
+    clipPath: "polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)",
+    scale: 0.9,
+    opacity: 0
+  }}
+  animate={{
+    clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+    scale: 1,
+    opacity: 1
+  }}
+  exit={{
+    clipPath: "polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)",
+    scale: 0.92,
+    opacity: 0
+  }}
+  transition={{
+    duration: 1.2,
+    ease: [0.16, 1, 0.3, 1],
+    
+    clipPath: { 
+      duration: 1.4,
+      ease: [0.34, 1.56, 0.64, 1]
+    },
+    
+    scale: {
+      duration: 0.8,
+      ease: "backOut"
+    },
+    
 
+    opacity: {
+      duration: 1.0
+    }
+  }}
+
+            className="relative w-full h-full 
+                       bg-gradient-to-br
+                       from-[#4E5353]
+                       via-[#505456]
+                       to-[#3E4243]
+                       text-white 
+                       flex items-start justify-center
+                       overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+          {/* Lavender gradient */}
+          {/* <div className="absolute inset-0 pointer-events-none z-[0]
+                        bg-[radial-gradient(circle_at_45%_22%,rgba(140,130,170,0.10),transparent_55%)]" /> */}
+
+     
+          <div className="absolute inset-0 pointer-events-none z-[1]">
+            <CanvasBallsAnimation />
+          </div>
+
+          <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-noise z-[2]" />
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="relative z-[3] w-full"
+          >
+            <button
+              type="button"
+              onClick={handleClose}
+              className="absolute top-8 right-8 text-sm opacity-70 hover:opacity-100 
+                         transition-opacity focus:outline-none focus:ring-2 focus:ring-white/30 
+                         rounded px-2 py-1"
+            >
+              ✕ Close
+            </button>
+            
+            <div className="w-full px-12 md:px-20 pt-14 md:pt-20 mb-8">
+              <motion.h2
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-[28px] font-canelathin mb-10"
+              >
+                Start Your Application{" "}
+                <span className="opacity-50 font-canelathin mx-2">—</span>
+                <span className="text-[14px] tracking-wide opacity-70 align-middle font-neuehaas45 text-[#FEB44A]">
+                  Drop us your info and we'll reach out
+                </span>
+              </motion.h2>
+              
+              <form
+                onSubmit={handleSubmit}
+                className="w-full grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-8"
+              >
+                {/* LEFT COLUMN */}
+                <motion.div 
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="space-y-8"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        Full Name
+                      </label>
+                      <input
+                        name="name"
+                        required
+                        placeholder="Jane Doe"
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.65 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        Best way to reach you
+                      </label>
+                      <input
+                        name="contact"
+                        required
+                        placeholder="Email or phone number"
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      />
+                    </motion.div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        High school graduation year
+                      </label>
+                      <select
+                        name="gradYear"
+                        required
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      >
+                        <option value="">Select year</option>
+                        {Array.from({ length: 40 }, (_, i) => {
+                          const year = 2027 - i;
+                          return (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.75 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        Do you have experience working in dentistry or orthodontics?
+                      </label>
+                      <select
+                        name="experience"
+                        required
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      >
+                        <option value="">Select</option>
+                        <option value="no">No</option>
+                        <option value="yes-dentistry">Yes — Dentistry</option>
+                        <option value="yes-ortho">Yes — Orthodontics</option>
+                        <option value="yes-both">Yes — Both</option>
+                      </select>
+                    </motion.div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.8 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        Position you're interested in
+                      </label>
+                      <select
+                        name="role"
+                        required
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      >
+                        <option value="">Select role</option>
+                        <option value="assistant">Clinical Assistant</option>
+                        <option value="front-desk">Front Desk / Admin</option>
+                        <option value="coordinator">Treatment Coordinator</option>
+                        <option value="sterilization">Sterilization / Lab</option>
+                        <option value="open">Open / Unsure</option>
+                      </select>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.85 }}
+                    >
+                      <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                        How did you hear about us?
+                      </label>
+                      <select
+                        name="source"
+                        required
+                        className="w-full bg-transparent border border-white/20 rounded-lg 
+                                 px-4 py-3 
+                                 text-[12px] leading-relaxed
+                                 text-white/85
+                                 placeholder:text-white/35
+                                 tracking-[0.01em]
+                                 focus:outline-none focus:border-white/60
+                                 transition-colors"
+                      >
+                        <option value="">Select source</option>
+                        <option value="website">Website</option>
+                        <option value="social">Social Media</option>
+                        <option value="friend">Friend / Employee</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </motion.div>
+                  </div>
+
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.9 }}
+                  >
+                    <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                      When would you be available to start?
+                    </label>
+                    <input
+                      name="availability"
+                      required
+                      placeholder="Immediately, in 2 weeks, next month…"
+                      className="text-[12px] leading-relaxed
+                               text-white/85
+                               placeholder:text-white/35 opacity-70  
+                               w-full bg-transparent border border-white/20 rounded-lg 
+                               px-4 py-3 focus:outline-none focus:border-white/60
+                               transition-colors"
+                    />
+                  </motion.div>
+                </motion.div>
+
+                {/* RIGHT COLUMN */}
+                <motion.div 
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.55 }}
+                  className="space-y-8"
+                >
+                  {/* Resume */}
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.95 }}
+                  >
+                    <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                      Resume (PDF preferred)
+                    </label>
+                    <label className="flex items-center justify-center border border-white/30 
+                                      rounded-lg px-6 py-4 cursor-pointer 
+                                      hover:border-white transition-colors">
+                      <input
+                        type="file"
+                        name="resume"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => setResumeName(e.target.files?.[0]?.name)}
+                      />
+                      {resumeName ? (
+                        <span className="text-sm opacity-90">Selected: {resumeName}</span>
+                      ) : (
+                        <span className="text-[12px] leading-relaxed
+                               text-white/85
+                               placeholder:text-white/35 opacity-70">
+                          Click to add resume
+                        </span>
+                      )}
+                    </label>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.0 }}
+                  >
+                    <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                      What interests you about working with our practice?
+                    </label>
+                    <textarea
+                      name="motivation"
+                      maxLength={300}
+                      rows={5}
+                      required
+                      placeholder="max 300 characters"
+                      className="text-[12px] leading-relaxed
+                               text-white/85
+                               placeholder:text-white/35 opacity-70 
+                               w-full bg-transparent border border-white/20 rounded-lg 
+                               px-4 py-3 focus:outline-none focus:border-white/60 
+                               resize-none transition-colors"
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.05 }}
+                  >
+                    <label className="block text-sm opacity-70 mb-2 min-h-[38px] text-[#FEB44A]">
+                      Is there anything else you'd like us to know?
+                    </label>
+                    <textarea
+                      name="notes"
+                      rows={4}
+                      placeholder="Optional"
+                      className="text-[12px] leading-relaxed
+                               text-white/85
+                               placeholder:text-white/35 opacity-70  
+                               w-full bg-transparent border border-white/20 rounded-lg 
+                               px-4 py-3 focus:outline-none focus:border-white/60 
+                               resize-none transition-colors"
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.1 }}
+                    className="pt-2 flex justify-end"
+                  >
+<button
+  type="submit"
+  className="up border text-[13px] uppercase tracking-widest 
+             border border-white/20 rounded-lg px-10 py-5 
+             transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+>
+  Submit
+</button>
+                  </motion.div>
+                </motion.div>
+              </form>
+            </div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>,
+  document.getElementById("modal-root")
+)}
 <div
   className="
      text-[14px] lg:text-[16px]
@@ -799,7 +1269,8 @@ website coming soon
     />
   </div>
 </div>
-</section> */}
+
+</section>
 
 <div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center">
   <div className="w-full h-full p-[5vh]">
@@ -944,4 +1415,146 @@ const SpiralShader = () => {
   }, []);
 
   return <div ref={containerRef} className="w-full h-screen" />;
+};
+
+const CanvasBallsAnimation = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const dpr = window.devicePixelRatio || 1;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    const resize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    };
+
+    resize();
+
+
+    const BALL_COUNT = 38;
+    const R = 2;
+    const maxDistance = 260;
+    const lineWidth = 0.6;
+
+const ballColor = { r: 254, g: 180, b: 74 };
+
+    const speedRange = 0.35;  // slower 
+
+    let balls = [];
+
+    const random = (min, max) => Math.random() * (max - min) + min;
+
+    const createBall = () => ({
+      x: random(0, width),
+      y: random(0, height),
+      vx: random(-speedRange, speedRange),
+      vy: random(-speedRange, speedRange),
+      r: R,
+      alpha: random(0.4, 0.8),
+    });
+
+    const initBalls = () => {
+      balls = [];
+      for (let i = 0; i < BALL_COUNT; i++) {
+        balls.push(createBall());
+      }
+    };
+
+    const distance = (a, b) => {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    };
+
+    const updateBalls = () => {
+      balls.forEach((b) => {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // soft wrap
+        if (b.x < -50) b.x = width + 50;
+        if (b.x > width + 50) b.x = -50;
+        if (b.y < -50) b.y = height + 50;
+        if (b.y > height + 50) b.y = -50;
+      });
+    };
+
+    const drawLines = () => {
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          const b1 = balls[i];
+          const b2 = balls[j];
+
+          const dist = distance(b1, b2);
+          if (dist < maxDistance) {
+            const alpha = (1 - dist / maxDistance) * 0.2; 
+
+            ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            ctx.lineWidth = lineWidth;
+
+            ctx.beginPath();
+            ctx.moveTo(b1.x, b1.y);
+            ctx.lineTo(b2.x, b2.y);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
+    const drawBalls = () => {
+      balls.forEach((b) => {
+        ctx.fillStyle = `rgba(${ballColor.r}, ${ballColor.g}, ${ballColor.b}, ${b.alpha * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      drawLines();
+      drawBalls();
+      updateBalls();
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    initBalls();
+    animate();
+
+    window.addEventListener("resize", resize);
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 z-[1] pointer-events-none"
+      style={{
+        width: "100%",
+        height: "100%",
+      }}
+    />
+  );
 };
