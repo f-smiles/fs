@@ -131,7 +131,7 @@ function DoorModel() {
       const clipStart = 0;
       const clipEnd = clip.duration * 0.68;
   
-      // ⏱ Door starts opening at t = 0.15, finishes at t = 0.4
+      // Door starts opening at t = 0.15, finishes at t = 0.4
       const openStart = 0.15;
       const openEnd = 0.4;
   
@@ -238,7 +238,7 @@ function PortalScene() {
 //     scene.clear();
 
 //     const baseGeo = new THREE.BoxGeometry(1, 1, 1);
-//     const edgeGeo = new THREE.EdgesGeometry(baseGeo); // ✅ no diagonals
+//     const edgeGeo = new THREE.EdgesGeometry(baseGeo); // no diagonals
 //     const baseMat = new THREE.LineBasicMaterial({
 //       color: 0x00ccff,
 //       toneMapped: false,
@@ -328,7 +328,6 @@ const OceanScene = () => {
     scene.add(water);
     waterRef.current = water;
 
-    // --- Sky ---
     const sky = new Sky();
     sky.scale.setScalar(10000);
     scene.add(sky);
@@ -399,9 +398,6 @@ const OceanScene = () => {
 
   return (
     <>
-
-
-  
       <PortalScene active={enteredPortal} intensity={enteredPortal ? 1 : 0} />
 
  <DoorModel />

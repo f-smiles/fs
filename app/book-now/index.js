@@ -818,13 +818,15 @@ website coming soon
   </div>
 </div>
   {/* Button */}
-      <div className="font-neuehaas45 absolute top-[85%] right-16 border border-white rounded-[10px] py-2 px-4 z-10">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-        >
-       Join Our Team
-        </button>
+      <div className="font-neuehaas45 absolute top-[85%] right-16 py-2 px-4 z-10">
+<button
+  type="button"
+  onClick={() => setOpen(true)}
+  className="flex items-center gap-2"
+>
+  <span className="opacity-60 text-sm">→</span>
+  Join Our Team
+</button>
       </div>
 {typeof window !== "undefined" &&
   createPortal(
@@ -895,7 +897,7 @@ transition={{
                        from-[#4E5353]
                        via-[#505456]
                        to-[#3E4243]
-                       text-white 
+                       text-[#EDE5D7]
                        flex items-start justify-center
                        overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -922,7 +924,7 @@ transition={{
               onClick={handleClose}
               className="absolute top-8 right-8 text-sm opacity-70 hover:opacity-100 
                          transition-opacity focus:outline-none focus:ring-2 focus:ring-white/30 
-                         rounded px-2 py-1"
+                         rounded px-2 py-1 text-[#EDE5D7]"
             >
               ✕ Close
             </button>

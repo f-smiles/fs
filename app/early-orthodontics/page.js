@@ -208,7 +208,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-first MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--mint)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--white)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">01</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Smart to Start</h3>
@@ -232,7 +232,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--purple)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">02</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Lucky Number 7</h3>
@@ -348,7 +348,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--orange)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--brown)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">The Airway Equation</h3>
@@ -372,7 +372,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--peach)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">04</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future-Proof</h3>
@@ -405,7 +405,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--grey)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future Frey Smiles</h3>
@@ -429,7 +429,7 @@ export default function Page() {
           <div className="MainSectionItem --bg-terra MainSection-item">
             <div className="--index-last MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--teal)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Early Is Still Now</h3>

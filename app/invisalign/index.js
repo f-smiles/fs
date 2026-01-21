@@ -26,6 +26,7 @@ import React, {
   useRef,
   forwardRef,
   Suspense,
+  useCallback
 } from "react";
 import Link from "next/link";
 // import DotPattern from "../svg/DotPattern";
@@ -1108,18 +1109,14 @@ const material = useMemo(
       metalness: 1.0,
       roughness: 0.18,
 
-      // Clearcoat gives that silky highlight
       clearcoat: 1.0,
       clearcoatRoughness: 0.06,
 
-      // Specular response (important for chrome feel)
       specularIntensity: 1.0,
       specularColor: new THREE.Color(1, 1, 1),
 
-      // Subtle depth / realism
-      envMapIntensity: 1.4,
 
-      // Optional but helps smooth shading
+      envMapIntensity: 1.4,
       flatShading: false,
     }),
   []
@@ -1150,6 +1147,245 @@ scene.traverse((child) => {
     </group>
   );
 }
+
+const CanvasBallsAnimation = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+ const dpr = window.devicePixelRatio || 1;
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+canvas.width = width * dpr;
+canvas.height = height * dpr;
+
+canvas.style.width = `${width}px`;
+canvas.style.height = `${height}px`;
+
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.scale(dpr, dpr);
+
+    const BALL_COUNT = 40;          // more balls = more connections
+    const R = 2;
+    const ballColor = { r: 207, g: 255, b: 4 }; // neon green
+    const alphaChange = 0.03;
+    const lineWidth = 0.8;
+    const maxDistance = 280;        // increased so lines appear more easily
+
+    let balls = [];
+    let mouseInside = false;
+    const mouseBall = {
+      x: width / 2,
+      y: height / 2,
+      vx: 0,
+      vy: 0,
+      r: R * 2, // bigger so you can see the mouse dot
+      type: 'mouse',
+    };
+
+    const random = (min, max) => Math.random() * (max - min) + min;
+    const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    const getRandomSpeed = () => [random(-1.2, 1.2), random(-1.2, 1.2)];
+
+    const createRandomBall = () => ({
+      x: random(0, width),
+      y: random(0, height),
+      vx: random(-1.2, 1.2),
+      vy: random(-1.2, 1.2),
+      r: R,
+      alpha: 1,
+      phase: random(0, 10),
+    });
+
+    const initBalls = () => {
+      balls = [];
+      for (let i = 0; i < BALL_COUNT; i++) {
+        balls.push(createRandomBall());
+      }
+    };
+
+    const drawBalls = () => {
+      balls.forEach((b) => {
+        if (b.type !== 'mouse') {
+          ctx.fillStyle = `rgba(${ballColor.r}, ${ballColor.g}, ${ballColor.b}, ${b.alpha})`;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    };
+
+    const updateBalls = () => {
+      const kept = [];
+
+      balls.forEach((b) => {
+        if (b.type === 'mouse') {
+          kept.push(b);
+          return;
+        }
+
+        b.x += b.vx;
+        b.y += b.vy;
+        b.phase += alphaChange;
+        b.alpha = Math.abs(Math.cos(b.phase));
+
+        // Keep balls that are roughly on screen
+        if (b.x > -150 && b.x < width + 150 && b.y > -150 && b.y < height + 150) {
+          kept.push(b);
+        }
+      });
+
+      balls = kept;
+    };
+
+    const distance = (a, b) => {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.hypot(dx, dy); // faster than sqrt(dx*dx + dy*dy)
+    };
+
+    const drawLines = () => {
+      // Ball-to-ball gray lines
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          const b1 = balls[i];
+          const b2 = balls[j];
+          if (b1.type === 'mouse' || b2.type === 'mouse') continue;
+
+          const dist = distance(b1, b2);
+          if (dist < maxDistance) {
+            const alpha = (1 - dist / maxDistance) * 0.7;
+            ctx.strokeStyle = `rgba(180,180,180,${alpha})`;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(b1.x, b1.y);
+            ctx.lineTo(b2.x, b2.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Mouse connection lines (red)
+      if (mouseInside) {
+        balls.forEach((b) => {
+          if (b.type !== 'mouse') {
+            const dist = distance(mouseBall, b);
+            if (dist < maxDistance * 1.1) {
+              const alpha = (1 - dist / (maxDistance * 1.1)) * 0.9;
+              ctx.strokeStyle = `rgba(255, 80, 80, ${alpha})`;
+              ctx.lineWidth = lineWidth * 1.6;
+              ctx.beginPath();
+              ctx.moveTo(mouseBall.x, mouseBall.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        });
+
+        // Draw mouse dot (bigger + brighter so you can confirm it's moving)
+        ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+        ctx.beginPath();
+        ctx.arc(mouseBall.x, mouseBall.y, mouseBall.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    const maintainBallCount = () => {
+      const regularBalls = balls.filter((b) => b.type !== 'mouse');
+      while (regularBalls.length < BALL_COUNT) {
+        const newBall = createRandomBall();
+        balls.push(newBall);
+        regularBalls.push(newBall); // keep count accurate
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+      drawLines(); // draw lines first so they're behind balls
+      drawBalls();
+      updateBalls();
+      maintainBallCount();
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    // ─── Event Handlers ──────────────────────────────────────
+    const onMouseEnter = () => {
+      mouseInside = true;
+      if (!balls.some((b) => b.type === 'mouse')) {
+        balls.push(mouseBall);
+      }
+    };
+
+    const onMouseLeave = () => {
+      mouseInside = false;
+      balls = balls.filter((b) => b.type !== 'mouse');
+    };
+
+    const onMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseBall.x = e.clientX - rect.left;
+      mouseBall.y = e.clientY - rect.top;
+    };
+
+const onResize = () => {
+  width = window.innerWidth;
+  height = window.innerHeight;
+
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+};
+
+
+    initBalls();
+    animate();
+
+    canvas.addEventListener('mouseenter', onMouseEnter);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+      canvas.removeEventListener('mouseenter', onMouseEnter);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
+      canvas.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: -1,
+        background: '#000',
+        cursor: 'none', // optional - hides default cursor
+      }}
+    />
+  );
+};
+
+
 const Invisalign = () => {
   const headingRef = useRef(null);
 
@@ -1499,8 +1735,88 @@ useEffect(() => {
 
   return (
     <>
-    <Scene />
-    <NeonShaderBackground />
+       <CanvasBallsAnimation />
+
+<section className="mind-mapped">
+
+  <div className="mind-mapped__layout">
+    <div className="flow-zone">
+       <svg
+    viewBox="0 0 96 1332"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="flow-line"
+  >
+    <defs>
+      <filter
+        id="glow-effect"
+        x="-50%"
+        y="-50%"
+        width="200%"
+        height="200%"
+      >
+        <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+        <feFlood
+          floodColor="black"
+          floodOpacity="0.9"
+          result="glowColor"
+        />
+        <feComposite
+          in="glowColor"
+          in2="coloredBlur"
+          operator="in"
+          result="softGlow"
+        />
+        <feMerge>
+          <feMergeNode in="softGlow" />
+          <feMergeNode in="softGlow" />
+        </feMerge>
+      </filter>
+    </defs>
+
+    {/* Static background line */}
+    <path
+      d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
+      stroke="black"
+      strokeOpacity="0.2"
+      strokeWidth="1"
+    />
+
+    {/* Animated glowing line - using motion.path for animation */}
+    <motion.path
+      d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeOpacity="0.4"
+      filter="url(#glow-effect)"
+      strokeDasharray="620, 1332"
+      initial={{ strokeDashoffset: 1952 }}
+      animate={{ strokeDashoffset: 0 }}
+      transition={{
+        repeat: Infinity,
+        duration: 4.5,
+        ease: "linear",
+      }}
+    />
+  </svg>
+    </div>
+
+    <div className="mind-mapped__content">
+                    <p className="font-neuehaas45 tracking-wide text-[15px] leading-[1.2] max-w-[650px] mb-20">
+                  Trusted by <span className="font-canelathin">millions</span>  around the world, Invisalign is a clear,
+                  comfortable, and confident choice for straightening smiles.
+                  We've proudly ranked among the top 1% of certified Invisalign
+                  providers nationwide — every year since 2000.
+                </p>
+    </div>
+  </div>
+
+  <div className="orb orb--right" />
+</section>
+
+    {/* <Scene />
+    <NeonShaderBackground /> */}
 
 
 
@@ -1558,7 +1874,7 @@ preset="studio"
 />
 </Canvas>
 </div>
-
+{/* 
     <div id="text-holder" className="text-container max-w-[500px] px-6">
 
       <div className="text-block block-1">
@@ -1579,11 +1895,11 @@ preset="studio"
         </p>
       </div>
       
-    </div>
+    </div> */}
   </div>
 
 
-  <div id="scroll-zone" className="h-[200vh]"></div>
+  {/* <div id="scroll-zone" className="h-[200vh]"></div> */}
 </div>
   {/* The science of Invisalign is not in the clear aligners, but in overall design and prescription for tooth movement by our doctors based on the full facial evaluation to craft the smile that is perfect for you. Our experienced doctors are top experts and providers in clear aligner treatment. */}
     {/* <h2 className="text-5xl md:text-6xl leading-tight text-[#0f172a]">
@@ -1610,29 +1926,6 @@ preset="studio"
     </div>
   </div>
 </section>
-
-{/* <div style={{ width: "100vw", height: "100vh" }}>
-<Canvas>
-    <ambientLight intensity={0.3} />  
-    <directionalLight position={[5, 5, 5]} intensity={0.5} />  
-
-    <pointLight position={[-2, 2, -1]} intensity={0.8} color="#ffaa00" distance={10} decay={2} />
-    
-{panes.map((pane, i) => (
-  <GlassPanel
-    key={i}
-    position={pane.position}
-    scale={pane.scale}
-    rotation={pane.rotation}
-    title={pane.title}
-    tag={pane.tag}
-    envMapIndex={i}
-  />
-))}
-  </Canvas>
-</div> */}
-      {/* <div className="fixed inset-0 bg-black/10 -z-10"></div> */}
-
 
 
 
@@ -2272,11 +2565,11 @@ export default Invisalign;
 
 const SUNSET_THEME = {
   sphere: [
-    "#ffb347",
-    "#ff9442",
-    "#ff6a1e",
-    "#ff5400",
-    "#ff8b63",
+    "#e6f1f7", 
+    "#d9ecf5",
+    "#cfdff0",
+    "#e4dcf4",
+    "#f0f4fa", 
   ],
   hdr: 'https://www.spacespheremaps.com/wp-content/uploads/HDR_silver_and_gold_nebulae.hdr',
 };
@@ -2366,6 +2659,7 @@ const pointMaterialShader = {
 fragmentShader: `
     varying vec3 vColor;
     varying float vMouseEffect;
+      varying float vDistance;
     uniform float time;
     uniform float uExplode;
 
@@ -2380,19 +2674,28 @@ fragmentShader: `
 
   float core = exp(-r * 55.0);  
 
-        float outer = exp(-r * 5.0);  
+float outer = exp(-r * 6.5);
+outer = pow(outer, 1.2);  
 
-        float sparkle = rand(gl_PointCoord + time * 0.3) * 0.4 + 0.6;
+   float sparkleShift = rand(gl_PointCoord + time * 0.7) * 0.15;
+vec3 sparkleTint = vec3(
+  1.0,
+  0.95 - sparkleShift,
+  1.05
+);
 
-        // Tiny white hotspot in the center
-vec3 whiteHot = vec3(1.1, 1.1, 1.15) * core * 0.1;
+vec3 blueCore = vec3(0.55, 0.72, 1.0);
+vec3 coreGlow = blueCore * pow(core, 0.7) * 0.08;
+vec3 coloredHalo = vColor * sparkleTint * outer * 0.9;
 
-        vec3 coloredHalo = vColor * outer * 1.2 * sparkle;
-
-        vec3 finalColor = coloredHalo + whiteHot;
-
-   float alpha = core * 0.1 + outer * 0.55;
-
+vec3 finalColor = coloredHalo + coreGlow;
+float depthSat = smoothstep(6.0, 2.0, vDistance);
+finalColor = mix(
+  vec3(dot(finalColor, vec3(0.333))),
+  finalColor,
+  depthSat * 0.85
+);
+float alpha = core * 0.05 + outer * 0.18;
         gl_FragColor = vec4(finalColor, alpha);
     }
 `
@@ -2449,7 +2752,11 @@ for (let r = 0; r < 8; r++) {
     ringRand[i3 + 2] = Math.random() * 2 - 1;
 
 
-    const PINK =["#ff008c", "#ff1493", "#ff4fbf", "#ff66cc", "#ff99dd"];
+    const PINK =  [  "#7fb8ff", // true baby blue (anchor)
+  "#8fc4ff", // airy but chromatic
+  "#9fcfff", // soft sky
+  "#6faeff", // deeper glass blue
+  "#84bfff", ];
 
     const t = i / ringCount;
     const idx = Math.floor(t * (PINK.length - 1));
@@ -2471,17 +2778,17 @@ for (let r = 0; r < 8; r++) {
   ringGeo.setAttribute("randomDir",new THREE.BufferAttribute(ringRand, 3));
 
   const material = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { value: 0 },
-      uMouse: { value: new THREE.Vector2() },
-      uExplode: { value: 0 },
-    },
-    vertexShader: vs,
-    fragmentShader: fs,
-    vertexColors: true,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
+  uniforms: {
+    time: { value: 0 },
+    uMouse: { value: new THREE.Vector2() },
+    uExplode: { value: 0 },
+  },
+  vertexShader: vs,
+  fragmentShader: fs,
+  vertexColors: true,
+  transparent: true,
+  depthWrite: false,
+
   });
 
   const ring = new THREE.Points(ringGeo, material);
@@ -2540,10 +2847,10 @@ const sunRef = useRef();
 
       <EffectComposer>
 <Bloom
-  luminanceThreshold={0.25}
-  luminanceSmoothing={0.6}
+  luminanceThreshold={0.28}
+  luminanceSmoothing={0.85}
   intensity={0.25}
-  radius={0.4}
+  radius={0.45}
 />
       </EffectComposer>
     </>
@@ -2633,12 +2940,12 @@ const fragmentShader = `
     return mat2(c, -s, s, c);
   }
 
-  //sin wave of ribbon
+
 float wave(vec2 p, float phase, float freq) {
-    return sin(p.x * freq + phase) * 0.05;   // small amplitude
+    return sin(p.x * freq + phase) * 0.05;  
 }
 
-  // glow falloff
+
   float glowLine(float dist, float thickness, float intensity) {
     return intensity * thickness / (abs(dist) + thickness * 0.5);
   }
@@ -2671,10 +2978,8 @@ float wave(vec2 p, float phase, float freq) {
     return 130.0 * dot(m, g);
   }
 
-  // random values per ribbon instance
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   float rand1(float n) { return fract(sin(n * 91.3458) * 47453.5453); }
-
 
   float ribbonBody(float yDist) { return smoothstep(1.2, 0.0, abs(yDist)); }
 
@@ -2685,37 +2990,38 @@ float wave(vec2 p, float phase, float freq) {
     vec2 uv = worldUV;
     vec2 uv0 = worldUV;
 
-vec3 warmPearl     = vec3(0.90, 0.86, 0.88);
-vec3 softLavender  = vec3(0.86, 0.88, 0.95);
-vec3 glassNeutral = vec3(0.90, 0.88, 0.86);
-
-vec3 pearlGlow     = vec3(0.94, 0.92, 0.90);
-vec3 mistLavender  = vec3(0.88, 0.88, 0.94);
+vec3 coolPearl     = vec3(0.82, 0.86, 0.92); // blue-gray
+vec3 mistBlue      = vec3(0.78, 0.83, 0.90); // foggy blue
+vec3 glassNeutral  = vec3(0.86, 0.87, 0.90); // aluminum gray
+vec3 babyBlueCore = vec3(0.86, 0.92, 0.97); // luminous cyan-blue
+vec3 lavenderMist = vec3(0.80, 0.82, 0.90);
+vec3 pearlGlow     = vec3(0.92, 0.94, 0.96); // cold light
+vec3 mistHighlight = vec3(0.84, 0.88, 0.92);
 
 float t = smoothstep(0.0, 1.0, vUv.x);
 
-// base gradient
-vec3 bg = mix(warmPearl, softLavender, t);
+vec3 bg = mix(coolPearl, mistBlue, t);
 
-// glass highlight
-bg = mix(bg, glassNeutral, t * 0.5);
+bg = mix(bg, glassNeutral, t * 0.25);
 
-// radial pearl glow
+// radial pearl glow - REDUCED SPREAD
 float glowDist = length(uv0);
 float glowAmt = smoothstep(0.9, 0.0, glowDist);
-bg = mix(bg, pearlGlow, glowAmt * 0.4);
-
-// lavender mist
-bg = mix(bg, mistLavender, t * 0.25);
+bg = mix(bg, pearlGlow, glowAmt * 0.25); // Reduced from 0.4
+bg = mix(bg, mistHighlight, t * 0.25);
 
 // fog noise
 float fog = snoise(uv0 * 0.6 + uTime * 0.03) * 0.08;
 bg += fog;
 
-// center glow (softened)
-vec3 softGlowCol = vec3(0.88, 0.86, 0.84);
-float centerGlow = exp(-length(uv0) * 1.6);
-bg += softGlowCol * centerGlow * 0.05;
+// TIGHTER CENTER GLOW to reduce bloom
+float centerGlow = exp(-length(uv0) * 2.0); // Increased from 1.2 to 2.0
+// Diffuse milky density (NOT glow)
+float density = exp(-length(uv0) * 1.4); // softer falloff
+density = pow(density, 1.6);             // flatten peak
+
+vec3 milkBlue = vec3(0.78, 0.86, 0.94);  // desaturated baby blue
+bg = mix(bg, milkBlue, density * 0.25);
 
 vec3 col = bg;
   
@@ -2732,9 +3038,10 @@ vec3 col = bg;
     vec2 uvNoise = uv * rot(uTime * 0.05);
     float waveNoise = snoise(uvNoise * 2.0 + uTime * 0.2) * 0.1;
 
-vec3 ribbonDark    = vec3(0.64, 0.62, 0.76);  // deep lavender core
-vec3 ribbonMid     = vec3(0.78, 0.76, 0.88);  // muted mauve mid
-vec3 ribbonLight   = vec3(0.86, 0.84, 0.90); 
+vec3 ribbonDark      = vec3(0.42, 0.58, 0.74);
+vec3 ribbonMid       = vec3(0.64, 0.78, 0.92);
+vec3 ribbonLight     = vec3(0.78, 0.86, 0.96);
+vec3 ribbonCoreGlow  = vec3(0.52, 0.74, 0.94);
 
     float segLen = 10.0;  // lifetime of ribbon
 
@@ -2766,33 +3073,47 @@ vec3 ribbonLight   = vec3(0.86, 0.84, 0.90);
 
         float distX = (worldUV.x - xCenter) - waveVal;
 
-        // ribbon glow
-float thickness = 0.5;   
-float intensity = 0.13;     
-// base core (keep it tight)
-float core = glowLine(distX, thickness, intensity) * visibility;
+        // ribbon glow - TIGHTER to reduce spread
+        float thickness = 0.4;   // Reduced from 0.5  
+        float intensity = 0.11;  // Reduced from 0.13     
+        
+        // base core (keep it tight)
+float core = smoothstep(thickness, 0.0, abs(distX)) * intensity * visibility;
 
-// secondary soft body (this adds volume without spikes)
-float body = glowLine(distX, thickness * 2.4, intensity * 0.25) * visibility;
+        // secondary soft body (reduced to prevent spread)
+float body = smoothstep(thickness * 2.0, 0.0, abs(distX)) * (intensity * 0.20) * visibility;
 
-// gentle atmospheric haze
-float haze = exp(-abs(distX) * 7.0) * 0.035 * visibility;
+        // gentle atmospheric haze (reduced)
+        float haze = exp(-abs(distX) * 8.0) * 0.025 * visibility; // Tighter
 
-float grad = smoothstep(-0.25, 0.25, distX);
-grad = pow(grad, 1.1);     // soften
-float edge = smoothstep(0.15, 0.75, abs(distX));
+        // inner core glow (more intense but tighter)
+        float innerCore = glowLine(distX, thickness * 0.3, intensity * 0.6) * visibility;
 
-// core color: dark → mid
-vec3 coreTone = mix(ribbonDark, ribbonMid, grad);
+        float grad = smoothstep(-0.25, 0.25, distX);
+        grad = pow(grad, 1.1);     // soften
+        float edge = smoothstep(0.15, 0.75, abs(distX));
 
-// final ribbon color: core → bright edge
-vec3 ribbonColor = mix(coreTone, ribbonLight, edge);
+        // core color: dark → mid with more blue emphasis
+        vec3 coreTone = mix(ribbonDark, ribbonMid, grad * 1.2);
 
-        col += ribbonColor * core * 0.35;
-        col += ribbonColor * haze;
+        // final ribbon color: core → bright edge with blue emphasis
+        vec3 ribbonColor = mix(coreTone, ribbonLight, edge * 0.8);
+
+        // Add the inner core glow with the special glow color
+        col += ribbonCoreGlow * innerCore * 0.2; // Reduced from 0.25
+        col += ribbonColor * core * 0.4;
+        col += ribbonColor * haze * 0.8; // Reduced
+        
+        // Add a subtle blue tint to the entire ribbon area
+        float ribbonArea = max(core, body) * 0.5; // Reduced from 0.7
+        col = mix(col, mix(col, vec3(0.75, 0.88, 0.98), 0.1), ribbonArea); // Reduced
       }
     }
-    col = pow(col, vec3(0.95));
+    
+    
+    // Final tightening of overall brightness
+    col = clamp(col, 0.0, 1.0);
+    col = pow(col, vec3(0.97)); // Slightly less contrast
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -2858,74 +3179,6 @@ function ShaderPlane() {
   );
 }
 
-
-function GlassPanel(props) {
-  const hdri = useLoader(RGBELoader, "/images/industrial_sunset_puresky_4k.hdr")
-  hdri.mapping = THREE.EquirectangularReflectionMapping
-
-  const scene = useThree((state) => state.scene)
-  useEffect(() => {
-    scene.environment = hdri
-    scene.background = hdri
-  }, [hdri])
-
-  const material = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    roughness: 0.4,
-    metalness: 0.0,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.25,
-    ior: 1.3,
-    reflectivity: 0.1,
-    iridescence: 0.3,
-    iridescenceIOR: 1.1,
-    sheen: 0.5,
-    sheenRoughness: 0.5,
-    sheenColor: 0xffffff,
-    specularIntensity: 2.0,
-    specularColor: 0xffffff,
-    thickness: 3.0,
-    transmission: 1.0,
-    attenuationColor: "#ffffff",
-    attenuationDistance: 200,
-    transparent: true,
-    opacity: 1.0,
-  })
-
-  return (
-    <group {...props}>
-
-      <mesh material={material}>
-        <boxGeometry args={[3, 3, 0.3]} />
-      </mesh>
-
-      <Text
-        position={[0, 0.6, 0.16]}
-        fontSize={0.14}
-        color="#0f172a"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={2.6}
-        lineHeight={0.9}
-        textAlign="center"
-        font="/fonts/Neue Haas Grotesk Display Pro 45 Light.ttf"
-      >
-        {props.title}
-      </Text>
-
-      <Text
-        position={[0, 1.2, 0.16]}
-        fontSize={0.14}
-        color="#475569"
-        anchorX="center"
-        anchorY="top"
-        font="/fonts/Neue Haas Grotesk Display Pro 45 Light.ttf"
-      >
-        {props.tag}
-      </Text>
-    </group>
-  )
-} 
 // const BulgeGallery = ({ slides }) => {
 //   const canvasWrapperRef = useRef();
 

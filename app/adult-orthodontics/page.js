@@ -222,7 +222,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--teal)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--pink)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">02</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Accelerated Movement</h3>
@@ -327,7 +327,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Coordinated Care</h3>
@@ -351,7 +351,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">04</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Our Philosophy</h3>

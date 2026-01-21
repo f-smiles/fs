@@ -10,6 +10,7 @@ import {
   useMotionValueEvent,
   useScroll
 } from "framer-motion";
+import Lenis from "@studio-freight/lenis";
 import {
   Canvas,
   useFrame,
@@ -25,7 +26,8 @@ import React, {
   useMemo,
   forwardRef,
   useImperativeHandle,
-  useLayoutEffect
+  useLayoutEffect,
+  useCallback
 } from "react";
 import {
   EffectComposer,
@@ -904,7 +906,495 @@ const specialChars = "⬝";
     </div>
   );
 };
+const testimonials = [
+  {
+    name: "Lainie",
+    image: "../images/testimonials/lainie.png",
+    type: "20 months",
+    project: "Lainie",
 
+  },
+    {
+    name: "James",
+    image: "../images/testimonials/James_Cipolla.jpg",
+    type: "20 months",
+    project: "Sabrinas",
+
+  },
+  {
+    name: "Ron L.",
+    image: "../images/testimonials/Ronlandscape.png",
+    type: "Invisalign",
+    project: "Ron L.",
+
+  },
+  {
+    name: "Elizabeth",
+    image: "../images/testimonials/elizabethlandscape.png",
+    type: "Invisalign, Growth Appliance",
+    project: "Elizabeth",
+
+  },
+  {
+    name: "Kinzie",
+    image: "../images/testimonials/kinzielandscape.png",
+    type: "Braces, 24 months",
+    project: "Kinzie",
+
+  },
+  {
+    name: "Kasprenski",
+    image: "../images/testimonials/kasprenski.png",
+    type: undefined,
+    project: "Kasprenski",
+
+  },
+  {
+    name: "Leanne",
+    image: "../images/testimonials/Leannelandscape.png",
+    type: "12 months",
+    project: "Leanne",
+
+  },
+  {
+    name: "Harold",
+    image: "../images/testimonials/harold.png",
+    type: "Invisalign",
+    project: "Harold",
+
+  },
+  {
+    name: "Abigail",
+    image: "../images/testimonials/Abigailportrait.png",
+    type: undefined,
+    project: "Abigail",
+
+  },
+  {
+    name: "Madi",
+    image: "../images/testimonials/Madi.png",
+    type: "",
+    project: "Madi",
+
+  },
+  {
+    name: "Justin",
+    image: "../images/testimonials/hurlburt.png",
+    type: "Invisalign, 2 years",
+    project: "Justin",
+
+  },
+  {
+    name: "Natalia",
+    image: "../images/testimonials/Natalia.png",
+    type: undefined,
+    project: "Natalia",
+
+  },
+  {
+    name: "Breanna",
+    image: "../images/testimonials/Breanna.png",
+    type: "2 years, Braces",
+    project: "Breanna",
+
+  },
+  {
+    name: "Ibis",
+    image: "../images/testimonials/Ibis_Subero.jpg",
+    type: undefined,
+    project: "Ibis",
+
+  },
+  {
+    name: "Natasha",
+    image: "../images/testimonials/Natasha.png",
+    type: undefined,
+    project: "Natasha",
+
+  },
+  {
+    name: "Alex",
+    image: "../images/testimonials/Alex.png",
+    type: "2 years, Braces",
+    project: "Alex",
+
+  },
+  {
+    name: "Nicolle",
+    image: "../images/testimonials/Nicolle.png",
+    type: "Braces",
+    project: "Nilaya",
+
+  },
+  {
+    name: "Maria A.",
+    image: "../images/testimonials/Maria.png",
+    type: undefined,
+    project: "Maria A.",
+
+  },
+];
+const List = () => {
+  const testimonialsSectionRef = useRef(null);
+  const testimonialsListRef = useRef(null);
+  const testimonialPreviewRef = useRef(null);
+const lastStackedIndex = useRef(null);
+  const testimonialRefs = useRef([]);
+  const nameRefs = useRef([]);
+  const typeRefs = useRef([]);
+  const nameHighlightRefs = useRef([]);
+  const typeHighlightRefs = useRef([]);
+
+  const lastMousePosition = useRef({ x: 0, y: 0 });
+  const activeTestimonial = useRef(null);
+  const zCounter = useRef(1);
+  const ticking = useRef(false);
+  const isHovering = useRef(false);
+  const lastScrollActive = useRef(null);
+  const highlighterColors = ['neon', 'pink', 'green'];
+  const scrollTicking = useRef(false);
+
+  const scrambleText = (idx) => {
+    const scramble = {
+      characters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      speed: 0.8,
+      newChars: 0.3,
+      revealDelay: 0,
+      tweenLength: true,
+    }
+    
+    const testimonialData = testimonials[idx];
+    
+    if (nameRefs.current[idx]) {
+      gsap.to(nameRefs.current[idx], {
+        duration: 1.5,
+        ease: 'power2.out',
+        scrambleText: { text: testimonialData.name, ...scramble },
+      });
+    }
+    
+    if (typeRefs.current[idx] && testimonialData.type) {
+      gsap.to(typeRefs.current[idx], {
+        duration: 1.5,
+        ease: 'power2.out',
+        scrambleText: { text: testimonialData.type, ...scramble },
+      });
+    }
+  };
+
+  const highlightText = (idx, activate = true) => {
+    const colorIndex = idx % highlighterColors.length;
+    const colorClass = highlighterColors[colorIndex];
+    
+    if (nameHighlightRefs.current[idx]) {
+      const nameEl = nameHighlightRefs.current[idx];
+      if (activate) {
+        nameEl.classList.add('active', colorClass);
+      } else {
+        nameEl.classList.remove('active', 'neon', 'pink', 'green');
+      }
+    }
+    
+    if (typeHighlightRefs.current[idx] && testimonials[idx].type) {
+      const typeEl = typeHighlightRefs.current[idx];
+      if (activate) {
+        typeEl.classList.add('active', colorClass);
+      } else {
+        typeEl.classList.remove('active', 'neon', 'pink', 'green');
+      }
+    }
+  };
+const stackImage = (index, source = "scroll") => {
+  const container = testimonialPreviewRef.current;
+  const data = testimonials[index];
+  if (!container || !data?.image) return;
+
+  if (lastStackedIndex.current === index) return;
+
+  const img = document.createElement("img");
+  img.src = data.image;
+
+  img.style.position = "absolute";
+  img.style.inset = "0";
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "cover";
+  img.style.transformOrigin = "center center";
+  img.style.transform = "scale(0)";
+  img.style.zIndex = zCounter.current++;
+  img.style.willChange = "transform";
+
+  container.appendChild(img);
+
+  gsap.to(img, {
+    scale: 1,
+    duration: 0.35,
+    ease: "power2.out",
+  });
+
+
+  const images = container.querySelectorAll("img");
+  if (images.length > 6) images[0].remove();
+
+  lastStackedIndex.current = index;
+};
+const updatePreviewOnScroll = () => {
+  if (!isTestimonialsVisible()) return;
+  if (isHovering.current) return; // prioritize hover
+
+  const sectionTop = testimonialsSectionRef.current.offsetTop;
+  const centerY = window.scrollY + window.innerHeight / 2 - sectionTop;
+
+  let closestIndex = null;
+  let closestDistance = Infinity;
+
+  rowCenters.current.forEach((rowCenter, index) => {
+    if (!rowCenter) return;
+    const distance = Math.abs(rowCenter - centerY);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+
+  if (
+    closestIndex !== null &&
+    closestIndex !== lastScrollActive.current &&
+    closestDistance < 120
+  ) {
+    // highlight swap
+    if (lastScrollActive.current !== null) {
+      highlightText(lastScrollActive.current, false);
+    }
+    highlightText(closestIndex, true);
+
+    //  stack image on scroll index change
+    stackImage(closestIndex, "scroll");
+
+    lastScrollActive.current = closestIndex;
+  }
+};
+  
+  const mouseTicking = useRef(false);
+
+useEffect(() => {
+  const handleMouseMove = (e) => {
+    lastMousePosition.current.x = e.clientX;
+    lastMousePosition.current.y = e.clientY;
+
+    if (!isHovering.current) return;
+
+if (!mouseTicking.current) {
+  requestAnimationFrame(() => {
+    mouseTicking.current = false;
+  });
+  mouseTicking.current = true;
+}
+  };
+
+  window.addEventListener("mousemove", handleMouseMove);
+  return () => window.removeEventListener("mousemove", handleMouseMove);
+}, []);
+useEffect(() => {
+  const onScroll = () => {
+    if (!isTestimonialsVisible()) {
+const images = testimonialPreviewRef.current?.querySelectorAll("img");
+images?.forEach((img) => {
+  gsap.killTweensOf(img);
+  gsap.to(img, {
+    scale: 0,
+    opacity: 0,
+    duration: 0.35,
+    ease: "power2.inOut",
+    onComplete: () => img.remove(),
+  });
+});
+
+lastStackedIndex.current = null;
+zCounter.current = 1;
+
+      activeTestimonial.current = null;
+      isHovering.current = false;
+      lastScrollActive.current = null;
+
+      testimonials.forEach((_, index) => {
+        highlightText(index, false);
+      });
+
+      return;
+    }
+
+if (!scrollTicking.current) {
+  requestAnimationFrame(() => {
+    updatePreviewOnScroll();
+    scrollTicking.current = false;
+  });
+  scrollTicking.current = true;
+}
+  };
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  return () => window.removeEventListener("scroll", onScroll);
+}, []);
+
+useEffect(() => {
+  testimonialRefs.current.forEach((testimonial, index) => {
+    if (!testimonial) return;
+
+const enter = () => {
+  activeTestimonial.current = index;
+  isHovering.current = true;
+
+  lastStackedIndex.current = null;
+
+  highlightText(index, true);
+  scrambleText(index);
+
+  //  stack immediately on enter
+  stackImage(index, "hover");
+};
+
+const leave = () => {
+  activeTestimonial.current = null;
+  isHovering.current = false;
+
+  highlightText(index, false);
+
+  lastStackedIndex.current = null;
+};
+    testimonial.addEventListener("mouseenter", enter);
+    testimonial.addEventListener("mouseleave", leave);
+
+    return () => {
+      testimonial.removeEventListener("mouseenter", enter);
+      testimonial.removeEventListener("mouseleave", leave);
+    };
+  });
+}, []);
+  
+  const rowCenters = useRef([]);
+useEffect(() => {
+  const computeCenters = () => {
+    rowCenters.current = testimonialRefs.current.map((el) =>
+      el ? el.offsetTop + el.offsetHeight / 2 : null
+    );
+  };
+
+  computeCenters();
+  window.addEventListener("resize", computeCenters);
+  return () => window.removeEventListener("resize", computeCenters);
+}, []);
+
+  const isTestimonialsVisible = () => {
+    if (!testimonialsSectionRef.current) return false;
+
+    const rect = testimonialsSectionRef.current.getBoundingClientRect();
+
+    return (
+      rect.bottom > 0 &&
+      rect.top < window.innerHeight
+    );
+  };
+  
+  return (
+    <div className="testimonialsPage">
+      <section className="intro">
+        <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
+          <div className="w-full md:w-1/2 min-h-[100vh]"></div>
+          <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
+            <div className="max-w-[1200px] w-full">
+              <div className="font-neuehaas45 leading-[1.2] relative">
+                <TerminalPreloader />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="testimonials" ref={testimonialsSectionRef}>
+<div className="flex flex-col items-center text-center mb-10 gap-1">
+  <div className="flex items-baseline gap-2">
+    <p className="text-[19px] tracking-wide font-neuehaas35">Selected Cases</p>
+
+  </div>
+
+  <span className="text-xs font-neuehaas45 opacity-60">
+    A visual archive of selected treatment outcomes.
+  </span>
+</div>
+<div className="flex items-center justify-between w-full">
+          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 13 12"
+              fill="none"
+              className="w-full h-full"
+            >
+              <path
+                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                fill="#000"
+              />
+            </svg>
+          </span>
+
+          <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
+          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 13 12"
+              fill="none"
+              className="w-full h-full"
+            >
+              <path
+                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                fill="#000"
+              />
+            </svg>
+          </span>
+        </div>
+        <div className="testimonials-list" ref={testimonialsListRef}>
+          {testimonials.map((testimonial, index) => (
+            <div
+              key={index}
+              className="testimonial"
+              ref={(el) => (testimonialRefs.current[index] = el)}
+            >
+              <div className="testimonial-content">
+                <div className="testimonial-name">
+                  <span 
+                    className="highlighted-text col-left"
+                    ref={(el) => (nameHighlightRefs.current[index] = el)}
+                  >
+                    <h1 
+                      ref={(el) => (nameRefs.current[index] = el)}
+                    >
+                      {testimonial.name}
+                    </h1>
+                  </span>
+                  <span 
+                    className="highlighted-text col-right"
+                    ref={(el) => (typeHighlightRefs.current[index] = el)}
+                  >
+                    <h1 
+                      ref={(el) => (typeRefs.current[index] = el)}
+                    >
+                      {testimonial.type || ""}
+                    </h1>
+                  </span>
+               
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+
+
+      <div className="testimonial-preview" ref={testimonialPreviewRef} />
+    </div>
+  );
+};
 const Testimonials = () => {
 
   const textRef = useRef(null);
@@ -1477,7 +1967,8 @@ useEffect(() => {
 
   return (
     <>
-
+<List />
+{/* <Testimonial /> */}
       <MouseTrail
         images={[
           "../images/mousetrail/flame.png",
@@ -1512,19 +2003,10 @@ useEffect(() => {
         ref={sectionOneRef}
         className="z-10 relative w-full min-h-[110vh] px-6 md:px-12"
       >
-        <div className="z-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row gap-0">
-          <div className="w-full md:w-1/2 min-h-[100vh]"></div>
-          <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
-            <div className="max-w-[1200px] w-full">
-              <div className="font-neuehaas45 leading-[1.2] relative">
-                <TerminalPreloader />
-              </div>
-            </div>
-          </div>
-        </div>
+
       </section>
       
-      <ScrollList />
+      {/* <ScrollList /> */}
 
   <motion.section
       ref={reviewsRef}
