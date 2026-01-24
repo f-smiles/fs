@@ -1,5 +1,7 @@
 "use client";
-import { RGBELoader } from "three-stdlib";
+import { Lensflare, LensflareElement } from 'three/examples/jsm/objects/Lensflare.js';
+import { Color } from "three";
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import Copy from "@/utils/Copy.jsx";
 import normalizeWheel from "normalize-wheel";
 import {
@@ -12,7 +14,7 @@ import {
   Plane,
 } from "ogl";
 import { Fluid } from "/utils/FluidCursorTemp.js";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, ChromaticAberration, DepthOfField } from "@react-three/postprocessing";
 import { useControls } from "leva";
 import Splitting from "splitting";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
@@ -24,6 +26,7 @@ import React, {
   useRef,
   forwardRef,
   Suspense,
+  useCallback
 } from "react";
 import Link from "next/link";
 // import DotPattern from "../svg/DotPattern";
@@ -41,9 +44,11 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/all";
 import * as THREE from "three";
+import { Vector2 } from "three";
 import { Canvas, useLoader, useFrame, useThree, extend } from "@react-three/fiber";
 import { useMemo } from "react";
-import { Environment, OrbitControls, useTexture, shaderMaterial } from "@react-three/drei";
+import { Environment, OrbitControls, useTexture, shaderMaterial, useGLTF, Text, Center, Stars,
+} from "@react-three/drei";
 import { TextureLoader, CubeTextureLoader } from "three";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
@@ -373,6 +378,7 @@ const WavePlane = forwardRef(({ uniformsRef }, ref) => {
     </mesh>
   );
 });
+
 const MorphingSphere = ({sectionRef}) => {
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -1090,140 +1096,58 @@ ScrollTrigger.create({
     </>
   );
 };
-function ShaderBeam({ width = 4, height = 8, position = [0, 0, -1] }) {
-  const meshRef = useRef();
-  const uniforms = useRef({
-    iResolution: { value: new THREE.Vector3() },
-    iTime: { value: 0 },
-  }).current;
 
-  useFrame(({ clock, size }) => {
-    uniforms.iResolution.value.set(size.width, size.height, 1);
-    uniforms.iTime.value = clock.getElapsedTime();
-  });
+function PortalJourneyModel(props) {
+  const { scene, nodes } = useGLTF("/models/dancerpose.glb");
+  const groupRef = useRef();
 
-  return (
-    <mesh ref={meshRef} position={position}>
-      <planeGeometry args={[width, height]} />
-      <shaderMaterial
-        uniforms={uniforms}
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        vertexShader={`
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `}
-        fragmentShader={`
-          uniform vec3 iResolution;
-          uniform float iTime;
-          varying vec2 vUv;
+const material = useMemo(
+  () =>
+    new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0.92, 0.93, 0.95),
 
-          void main() {
-            vec2 uv = vUv * 2.0 - 1.0;
-            
-            // Wider beam with smooth edges (unchanged for width maintenance)
-            float distX = abs(uv.x);
-            float core = smoothstep(0.5, 0.0, distX);  // solid-ish core
-            float outer = smoothstep(1.0, 0.4, distX); // soft edges
+      metalness: 1.0,
+      roughness: 0.18,
 
-            // Static vertical variation (no time-based travel; subtle shimmer without the blob)
-            float shimmer = 0.9 + 0.1 * sin(uv.y * 6.0);
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
 
-            // Purply blue energy tone with a touch more white in the core
-            vec3 colorTop = vec3(0.6, 0.7, 1.0); // Cooler purple-blue top
-            vec3 colorMid = vec3(0.95, 0.92, 1.0); // Subtle white tint in mid for glow
-            vec3 colorBot = vec3(0.5, 0.4, 0.9); // Deeper purple base
-            vec3 color = mix(colorTop, colorBot, uv.y * 0.5 + 0.5);
-            color = mix(color, colorMid, 0.4 * shimmer); // Less white dominance, static blend
+      specularIntensity: 1.0,
+      specularColor: new THREE.Color(1, 1, 1),
 
-            // Beam brightness and alpha control (toned down for subtlety)
-            vec3 beamGlow = color * (core * 1.2 + outer * 0.3) * shimmer;
-            float alpha = clamp(core * 0.6 + outer * 0.2, 0.0, 1.0);
 
-            gl_FragColor = vec4(beamGlow * 0.7, alpha * 0.8); // Further reduced for cleaner look
-          }
-        `}
-      />
-    </mesh>
-  );
+      envMapIntensity: 1.4,
+      flatShading: false,
+    }),
+  []
+);
+
+// useFrame((state, delta) => {
+  //   if (!groupRef.current) return;
+  //   groupRef.current.rotation.y += delta * 0.35;
+
+  // });
+useEffect(() =>{
+console.log("GLB nodes:", nodes);
 }
-
-function FrostedGlassSphere({ position = [0, 0, 0] }) {
-  const meshRef = useRef();
-
-  const baseColor = useLoader(THREE.TextureLoader, "/images/Glass_Frosted_001_basecolor.jpg");
-  const normalMap = useLoader(THREE.TextureLoader, "/images/Glass_Frosted_001_normal.jpg");
-  const roughnessMap = useLoader(THREE.TextureLoader, "/images/Glass_Frosted_001_roughness.jpg");
-  const aoMap = useLoader(THREE.TextureLoader, "/images/Glass_Frosted_001_ambientOcclusion.jpg");
-  const heightMap = useLoader(THREE.TextureLoader, "/images/Glass_Frosted_001_height.png");
-
-  [baseColor, normalMap, roughnessMap, aoMap, heightMap].forEach((tex) => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(4, 4);
-    tex.anisotropy = 8;
-    tex.encoding = THREE.sRGBEncoding;
-  });
-
-  const geometry = useMemo(() => {
-    const geo = new THREE.SphereGeometry(1, 128, 128);
-    geo.attributes.uv2 = geo.attributes.uv;
-    return geo;
-  }, []);
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.15;
-      meshRef.current.rotation.x += delta * 0.05;
-    }
-  });
+)
+  useMemo(() => {
+scene.traverse((child) => {
+  if (child.isMesh) {
+    child.geometry.computeVertexNormals();
+  }
+});
+  }, [scene, material]);
 
   return (
-  <group position={position}>
-      <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
-        <meshPhysicalMaterial
-          map={baseColor}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(1.2, 1.2)}
-          roughnessMap={roughnessMap}
-          aoMap={aoMap}
-          aoMapIntensity={0.08}
-          displacementMap={heightMap}
-          displacementScale={0.003}
-          metalness={0.45}
-          roughness={0.88}
-          transmission={0.92}
-          ior={1.45}
-          thickness={1.6}
-          attenuationColor="#bcdcff"        // 🌤 powdery light blue tone
-          attenuationDistance={1.5}         // tighter distance for more color saturation
-          clearcoat={0.6}
-          envMapIntensity={0.18}            // lower to remove the gray cast from reflections
-          color="#cfe5ff"                   // 🌤 soft pastel blue
-          transparent
-          opacity={1.0}
-          toneMapped
-          iridescence={0.8}
-          iridescenceIOR={1.25}
-          iridescenceThicknessMap={roughnessMap}
-          iridescenceThicknessMax={400}
-          sheen={0.8}
-          sheenColor="#d6ecff"
-          sheenRoughness={0.8}
-        />
-      </mesh>
-
-      {/* inner glow for diffusion */}
-      <mesh scale={0.97}>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshBasicMaterial color="#cde9ff" transparent opacity={0.35} />
-      </mesh>
+    <group ref={groupRef} {...props}>
+      <Center>
+        <primitive object={scene} />
+      </Center>
     </group>
   );
 }
+
 const Invisalign = () => {
   const headingRef = useRef(null);
 
@@ -1383,61 +1307,52 @@ const Invisalign = () => {
   const addToTextRefs = (el) => el && textRefs.current.push(el);
   const addToSectionLineRefs = (el) => el && sectionLineRefs.current.push(el); 
   
- 
-  useEffect(() => {
-    gsap.set([...lineRefs.current, ...sectionLineRefs.current], {
-      scaleX: 0,
-      transformOrigin: "left center",
-    });
-    gsap.set(textRefs.current, { y: 20, opacity: 0 });
+useEffect(() => {
+  gsap.set([...lineRefs.current, ...sectionLineRefs.current], {
+    scaleX: 0,
+    transformOrigin: "center center", 
+  });
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: "top 80%",
-        toggleActions: "play none none none",
-      },
-    });
+  gsap.set(textRefs.current, { y: 20, opacity: 0 });
 
-    sectionLineRefs.current.forEach((line) => {
-      tl.to(
-        line,
-        {
-          scaleX: 1,
-          duration: 1.4,
-          ease: "power3.out",
-        },
-        0
-      );
-    });
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: containerRef.current,
+      start: "top 80%",
+      toggleActions: "play none none none",
+    },
+  });
 
-    lineRefs.current.forEach((line, i) => {
-      tl.to(
-        line,
-        {
-          scaleX: 1,
-          duration: 1.2,
-          ease: "power2.out",
-        },
-        0.5 + i * 0.15
-      );
-    });
 
-    textRefs.current.forEach((text, i) => {
-      tl.to(
-        text,
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.9,
-          ease: "power2.out",
-        },
-        0.7 + i * 0.07
-      );
-    });
+  sectionLineRefs.current.forEach((line) => {
+    tl.to(line, {
+      scaleX: 1,
+      duration: 1.6,
+      ease: "power3.out",
+    }, 0);
+  });
 
-    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
-  }, []);
+
+  lineRefs.current.forEach((line, i) => {
+    tl.to(line, {
+      scaleX: 1,
+      duration: 1.3,
+      ease: "power3.out",          
+    }, 0.4 + i * 0.12);   
+  });
+
+
+  textRefs.current.forEach((text, i) => {
+    tl.to(text, {
+      y: 0,
+      opacity: 1,
+      duration: 0.9,
+      ease: "power2.out",
+    }, 0.6 + i * 0.08);
+  });
+
+  return () => ScrollTrigger.getAll().forEach(t => t.kill());
+}, []);
   
   const sectionRef = useRef(null);
   const sphereRef = useRef(null);
@@ -1486,101 +1401,270 @@ useEffect(() => {
   return () => ctx.revert();
 }, []);
 
+const panes = [
+  {
+    position: [-5.2,  0.3,  1.6],
+    rotation: [0, 0, -0.12],   // only Z rotation → feels hand-placed, not tilted back
+    scale: .75,
+    title: "With over 40 years of combined experience, our doctors were the first in the region to offer Invisalign—setting the benchmark well before it became the industry standard.",
+    tag: "Expertise"
+  },
+  {
+    position: [-1.8, -0.2,  0.9],
+    rotation: [0, 0, 0.08],
+    scale: .75,
+    title: "We've proudly ranked among the top 1% of certified Invisalign providers nationwide — every year since 2000.",
+    tag: "Recognition"
+  },
+  {
+    position: [ 1.9,  0.4,  0.4],
+    rotation: [0, 0, -0.06],
+    scale: .75,
+    title: "We've treated over 10,000 cases.",
+    tag: "Proven Results"
+  },
+  {
+    position: [ 5.6, -0.1, -0.2],
+    rotation: [0, 0, 0.14],
+    scale: .75,
+    title: "Optional fourth card (matches the Coinbase one in the ref).",
+    tag: "Bonus"
+  }
+];
+useEffect(() => {
+  gsap.registerPlugin(ScrollTrigger);
 
-const noiseTex = useMemo(() => {
-    const size = 256;
-    const data = new Uint8Array(size * size * 4);
-    for (let i = 0; i < size * size; i++) {
-      const stride = i * 4;
-      data[stride] = (Math.random() * 256) | 0; // R
-      data[stride + 1] = (Math.random() * 256) | 0; // G (used in .y)
-      data[stride + 2] = (Math.random() * 256) | 0; // B (used in .z)
-      data[stride + 3] = 255; // A (used in .w)
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: "#scroll-zone",
+      start: "top top",
+      end: "+=900%",
+      scrub: 1,
+      pin: true,
+      anticipatePin: 1,
     }
-    const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-    texture.needsUpdate = true;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    return texture;
-  }, []);
+  });
 
-  const uniforms = useMemo(
-    () => ({
-      u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector3(1, 1, 1) },
-      u_channel1: { value: noiseTex },
-    }),
-    [noiseTex]
-  );
+  tl.to(".block-1", { opacity: 0, y: -60, duration: 1 });
+  tl.fromTo(".block-2", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 1 });
+  tl.to(".block-2", { opacity: 0, y: -60, duration: 1 });
+
+  tl.to(".model-wrapper", { opacity: 1, duration: 2 }, "-=0.5");
+
+  tl.to(".portal-model", {
+    z: -1.2,
+    scale: 1.1,
+    duration: 3,
+    ease: "power2.out"
+  });
+
+  tl.add("lockRotation");
+  gsap.killTweensOf(".portal-model");
+  tl.to(".portal-model", {
+    rotationY: 0,
+    rotationX: 0,
+    rotationZ: 0,
+    duration: 1.2,
+    ease: "power2.inOut"
+  }, "lockRotation");
+
+  tl.to({}, {
+    duration: 9,
+    ease: "power2.inOut",
+    onUpdate() {
+      const p = this.progress();
+      const cam = window.myCamera;
+      if (!cam) return;
+
+      cam.position.z = gsap.utils.interpolate(3, -5, p);
+      cam.rotation.set(0, 0, 0);
+      cam.fov = gsap.utils.interpolate(45, 8, p < 0.7 ? p : 0.7);
+      cam.updateProjectionMatrix();
+    }
+  }, "-=2");
+
+  tl.to(".model-wrapper", { opacity: 0, duration: 1.2 });
+
+  const idleSpin = gsap.to(".portal-model", {
+    rotationY: "+=360",
+    duration: 40,
+    repeat: -1,
+    ease: "none"
+  });
+
+  return () => idleSpin.kill();
+}, []);
+
   return (
     <>
 
-      {/* <div className=" font-neuehaas35 min-h-screen px-8 pt-32 relative text-black "> */}
 
+<section className="mind-mapped">
 
-<section className="relative min-h-screen flex flex-col text-neutral-900 font-sans overflow-hidden">
-        <div className="w-full h-screen">
-<Canvas
-  camera={{ position: [0, 0, 4], fov: 45 }}
-  gl={{
-    toneMapping: THREE.ACESFilmicToneMapping,
-    toneMappingExposure: 1.0,
-    outputEncoding: THREE.sRGBEncoding,
-    antialias: true,
-  }}
->
-  <Environment
-    files="/images/qwantani_night_puresky_4k.hdr"
-    background={false}
-    blur={2.5}
-  />
+  <div className="mind-mapped__layout">
+    <div className="flow-zone">
+       <svg
+    viewBox="0 0 96 1332"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="flow-line"
+  >
+    <defs>
+      <filter
+        id="glow-effect"
+        x="-50%"
+        y="-50%"
+        width="200%"
+        height="200%"
+      >
+        <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+        <feFlood
+          floodColor="black"
+          floodOpacity="0.9"
+          result="glowColor"
+        />
+        <feComposite
+          in="glowColor"
+          in2="coloredBlur"
+          operator="in"
+          result="softGlow"
+        />
+        <feMerge>
+          <feMergeNode in="softGlow" />
+          <feMergeNode in="softGlow" />
+        </feMerge>
+      </filter>
+    </defs>
 
-  <pointLight position={[0, 0, -3]} intensity={1.0} color="#dbeeff" />
-  <pointLight position={[0, 0, 3]} intensity={1.2} color="#e9f6ff" />
-  <ambientLight intensity={0.55} color="#eaf3ff" />
-  <directionalLight position={[1.5, 2.5, 1.5]} intensity={1.5} color="#b0c4de" />
+    {/* Static background line */}
+    <path
+      d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
+      stroke="black"
+      strokeOpacity="0.2"
+      strokeWidth="1"
+    />
 
+    {/* Animated glowing line - using motion.path for animation */}
+    <motion.path
+      d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeOpacity="0.4"
+      filter="url(#glow-effect)"
+      strokeDasharray="620, 1332"
+      initial={{ strokeDashoffset: 1952 }}
+      animate={{ strokeDashoffset: 0 }}
+      transition={{
+        repeat: Infinity,
+        duration: 4.5,
+        ease: "linear",
+      }}
+    />
+  </svg>
+    </div>
 
-<mesh position={[1.5, 0, -1]} rotation={[0, 0, Math.PI / 8]}>
-  <cylinderGeometry args={[0.002, 0.002, 10, 64]} />
-  <meshStandardMaterial
-    emissive="#ffffff"
-    emissiveIntensity={2.5}
-    color="#ffffff"
-    toneMapped={false}
-  />
-</mesh>
-<EffectComposer>
-<Bloom intensity={0.9} luminanceThreshold={0.8} />
-</EffectComposer>
-
-<group scale={0.5}>
-  <FrostedGlassSphere position={[0, 0, 0]} />
-</group>
-</Canvas>
-      </div>
-
-  <div className="absolute inset-0 -z-10">
-<div
-  className="absolute inset-0"
-  style={{
-    background: `radial-gradient(ellipse at center, #D8D8D8 0%, #D8DBDC 60%, #C9CCCE 100%)`,
-  }}
-/>
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div className="w-[500px] h-[500px] rounded-full bg-[#fbe8dc] opacity-90 blur-[100px]" />
+    <div className="mind-mapped__content">
+                    <p className="font-neuehaas45 tracking-wide text-[15px] leading-[1.2] max-w-[650px] mb-20">
+                  Trusted by <span className="font-canelathin">millions</span>  around the world, Invisalign is a clear,
+                  comfortable, and confident choice for straightening smiles.
+                  We've proudly ranked among the top 1% of certified Invisalign
+                  providers nationwide — every year since 2000.
+                </p>
     </div>
   </div>
 
+  <div className="orb orb--right" />
+</section>
+
+    {/* <Scene />
+    <NeonShaderBackground /> */}
 
 
-  <div className="flex flex-col md:flex-row justify-between items-start px-8 md:px-16 py-16 md:py-28 gap-12">
+
+      {/* <div className="absolute inset-0 -z-10">
+        <Canvas
+          orthographic
+          camera={{ zoom: 1, position: [0, 0, 1] }}
+          className="w-full h-full"
+        >
+          <ShaderBackground />
+        </Canvas>
+      </div> */}
+      {/* <div className=" font-neuehaas35 min-h-screen px-8 pt-32 relative text-black "> */}
+
+<section className="relative min-h-screen flex flex-col">
+  <div className="flex flex-col md:flex-row justify-between items-start px-8 md:px-16 gap-12">
     {/* Left */}
         <div className="relative pt-[33vh]">
+       <div className="relative">
+
+  <div className="fixed top-0 left-0 w-full h-screen pointer-events-none flex items-center justify-center">
+<div className="h-screen model-wrapper opacity-0 fixed inset-0 flex items-center justify-center">
+<Canvas
+  camera={{ position: [0, 0, 3], fov: 45 }}
+  onCreated={({ camera }) => (window.myCamera = camera)}
+>
+
+<Environment
+preset="studio"
+  // files="/images/studio_small_08_4k.hdr"
+  background={false}
+ 
+/>
+<ambientLight intensity={0.5} />
+<directionalLight
+  position={[3, 2, 4]}
+  intensity={1}
+  color="#ffffff"
+/>
+<directionalLight
+  position={[-3, 1, -2]}
+  intensity={1}
+  color="#d9d4ff"  
+/>
+<OrbitControls
+  enablePan={false}
+  enableZoom={false}
+  enableDamping
+  dampingFactor={0.08}
+/>
+<PortalJourneyModel
+  scale={0.1}
+  position={[0, 0, 0]}
+  rotation={[Math.PI / 2, 0, 0]} 
+/>
+</Canvas>
+</div>
+{/* 
+    <div id="text-holder" className="text-container max-w-[500px] px-6">
+
+      <div className="text-block block-1">
+        <p className="text-[#353839]/90 leading-[1.2] font-neuehaas35 text-[.83em]">
+                              The power of Invisalign lies not just in the clear aligners, but in the precision of digitally guided treatment planning. Each case is custom-designed by our doctors using comprehensive, board-eligible diagnostic records. It represents a departure from conventional orthodontics—never before have we been able to prescribe such targeted and controlled tooth movements.
+        </p>
+        <div className="text-[#353839]/70 font-neuehaas35 text-[26px] flex justify-center pt-[10vh]">
+          experience that matters
+        </div>
+      </div>
+
+      <div className="text-block block-2 opacity-0 absolute inset-0">
+        <p className="text-[#353839] leading-[1.2] font-neuehaas35 text-[.83em]">
+         Trusted by millions around the world, Invisalign is a clear,
+                  comfortable, and confident choice for straightening smiles.
+                  We've proudly ranked among the top 1% of certified Invisalign
+                  providers nationwide — every year since 2000.
+        </p>
+      </div>
+      
+    </div> */}
+  </div>
 
 
-          
-          <h2 className="text-5xl md:text-6xl leading-tight text-[#0f172a]">
+  {/* <div id="scroll-zone" className="h-[200vh]"></div> */}
+</div>
+  {/* The science of Invisalign is not in the clear aligners, but in overall design and prescription for tooth movement by our doctors based on the full facial evaluation to craft the smile that is perfect for you. Our experienced doctors are top experts and providers in clear aligner treatment. */}
+    {/* <h2 className="text-5xl md:text-6xl leading-tight text-[#0f172a]">
             <Copy>
               <div className="relative ml-10 text-[26px] sm:text-[26px] leading-tight text-black font-neuehaasdisplaythin">
                 <span className="font-normal">Our doctors </span>{" "}
@@ -1593,603 +1677,19 @@ const noiseTex = useMemo(() => {
                 <span className="font-normal">system.</span>{" "}
               </div>
             </Copy>
-          </h2>
+          </h2> */}
         </div>
 
     {/* Right */}
     <div className="flex-1 space-y-6 max-w-md">
      <div className="pt-[33vh] flex flex-col space-y-6">
-          <p className="leading-[1.2] font-neuehaas35 text-[15px] md:text-[15px] text-[#0f172a] max-w-md">
-  The science of Invisalign is not in the clear aligners, but in overall design and prescription for tooth movement by our doctors based on the full facial evaluation to craft the smile that is perfect for you. Our experienced doctors are top experts and providers in clear aligner treatment.
-          </p>
-          <div>
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 px-6 py-3 text-white text-base font-medium"
-            >
-              Read On
-            </a>
-          </div>
+
         </div>
     </div>
   </div>
 </section>
-      {/* <div className="fixed inset-0 bg-black/10 -z-10"></div> */}
 
 
-      <div className="max-w-7xl mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-12 px-6 md:px-12">
-        
-
-
-{/* <style>{`
-        :root {
-          --foreground: #7fff00;
-
-          --speed: 4.5s;
-          --ease-out: cubic-bezier(0.68, -0.6, 0.32, 1.6);
-          --ease-in: cubic-bezier(0.68, -0.6, 0.32, 1.6);
-          --v0: 3%;
-          --v1: 4%;
-          --v2: 5%;
-          --v3: 6%;
-          --v4: 7%;
-          --v5: 8%;
-          --v6: 9%;
-          --v7: 10%;
-          --vmax: 10%;
-          --h0: 3%;
-          --h1: 4%;
-          --h2: 5%;
-          --h3: 6%;
-          --h4: 7%;
-          --h5: 8%;
-          --h6: 9%;
-          --h7: 10%;
-          --hmax: 6.66%;
-        }
-
-
-        #checkered {
-          position: relative;
-        }
-
-        #checkered::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 10;
-          background: var(--foreground);
-          mix-blend-mode: screen;
-        }
-
-        #fill {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 100;
- 
-          mix-blend-mode: multiply;
-        }
-
-        .layer {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          display: flex;
-          justify-content: center;
-          align-content: center;
-          align-items: center;
-        }
-
-        .layer > div {
-          width: 10%;
-          height: 100%;
-          background: white;
-          position: relative;
-          display: block;
-          backface-visibility: hidden;
-        }
-
-        .layer > div:nth-of-type(odd) {
-          background: black;
-        }
-
-        #vert {
-          flex-wrap: nowrap;
-          text-align: center;
-        }
-
-        #horz {
-          flex-wrap: wrap;
-          mix-blend-mode: difference;
-        }
-
-        #horz > div {
-          height: 6.66%;
-          flex-basis: 100%;
-        }
-
-        @keyframes center0 {
-          0% {
-            width: var(--v0);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v0);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v0);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center1 {
-          0% {
-            width: var(--v1);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v1);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v1);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center2 {
-          0% {
-            width: var(--v2);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v2);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v2);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center3 {
-          0% {
-            width: var(--v3);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v3);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v3);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center4 {
-          0% {
-            width: var(--v4);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v4);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v4);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center5 {
-          0% {
-            width: var(--v5);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v5);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v5);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center6 {
-          0% {
-            width: var(--v6);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v6);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v6);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes center7 {
-          0% {
-            width: var(--v7);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            width: var(--v7);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            width: var(--vmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            width: var(--v7);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH0 {
-          0% {
-            height: var(--h0);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h0);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h0);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH1 {
-          0% {
-            height: var(--h1);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h1);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h1);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH2 {
-          0% {
-            height: var(--h2);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h2);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h2);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH3 {
-          0% {
-            height: var(--h3);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h3);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h3);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH4 {
-          0% {
-            height: var(--h4);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h4);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h4);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH5 {
-          0% {
-            height: var(--h5);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h5);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h5);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH6 {
-          0% {
-            height: var(--h6);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h6);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h6);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        @keyframes centerH7 {
-          0% {
-            height: var(--h7);
-            animation-timing-function: var(--ease-out);
-          }
-          20% {
-            height: var(--h7);
-            animation-timing-function: var(--ease-out);
-          }
-          50% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          70% {
-            height: var(--hmax);
-            animation-timing-function: var(--ease-in);
-          }
-          100% {
-            height: var(--h7);
-            animation-timing-function: var(--ease-out);
-          }
-        }
-
-        .center-0 {
-          animation: center0 var(--speed) infinite;
-        }
-
-        .center-1 {
-          animation: center1 var(--speed) infinite 0.1s;
-        }
-
-        .center-2 {
-          animation: center2 var(--speed) infinite 0.2s;
-        }
-
-        .center-3 {
-          animation: center3 var(--speed) infinite 0.3s;
-        }
-
-        .center-4 {
-          animation: center4 var(--speed) infinite 0.4s;
-        }
-
-        .center-5 {
-          animation: center5 var(--speed) infinite 0.5s;
-        }
-
-        .center-6 {
-          animation: center6 var(--speed) infinite 0.6s;
-        }
-
-        .center-7 {
-          animation: center7 var(--speed) infinite 0.7s;
-        }
-
-        #horz .center-0 {
-          animation-name: centerH0;
-        }
-
-        #horz .center-1 {
-          animation-name: centerH1;
-        }
-
-        #horz .center-2 {
-          animation-name: centerH2;
-        }
-
-        #horz .center-3 {
-          animation-name: centerH3;
-        }
-
-        #horz .center-4 {
-          animation-name: centerH4;
-        }
-
-        #horz .center-5 {
-          animation-name: centerH5;
-        }
-
-        #horz .center-6 {
-          animation-name: centerH6;
-        }
-
-        #horz .center-7 {
-          animation-name: centerH7;
-        }
-      `}</style>
-      <div
-        id="checkered"
-        className="absolute z-[10000] top-1/2 left-1/2 w-[75vmin] h-[75vmin] -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-      >
-        <div id="vert" className="layer flex-nowrap items-center justify-center">
-          <div className="center-7"></div>
-          <div className="center-6"></div>
-          <div className="center-5"></div>
-          <div className="center-4"></div>
-          <div className="center-3"></div>
-          <div className="center-2"></div>
-          <div className="center-1"></div>
-          <div className="center-0"></div>
-          <div className="center-1"></div>
-          <div className="center-2"></div>
-          <div className="center-3"></div>
-          <div className="center-4"></div>
-          <div className="center-5"></div>
-          <div className="center-6"></div>
-          <div className="center-7"></div>
-        </div>
-        <div id="horz" className="layer flex-wrap items-center justify-center mix-blend-difference">
-          <div className="center-7 h-[6.66%] flex-basis-full"></div>
-          <div className="center-6 h-[6.66%] flex-basis-full"></div>
-          <div className="center-5 h-[6.66%] flex-basis-full"></div>
-          <div className="center-4 h-[6.66%] flex-basis-full"></div>
-          <div className="center-3 h-[6.66%] flex-basis-full"></div>
-          <div className="center-2 h-[6.66%] flex-basis-full"></div>
-          <div className="center-1 h-[6.66%] flex-basis-full"></div>
-          <div className="center-0 h-[6.66%] flex-basis-full"></div>
-          <div className="center-1 h-[6.66%] flex-basis-full"></div>
-          <div className="center-2 h-[6.66%] flex-basis-full"></div>
-          <div className="center-3 h-[6.66%] flex-basis-full"></div>
-          <div className="center-4 h-[6.66%] flex-basis-full"></div>
-          <div className="center-5 h-[6.66%] flex-basis-full"></div>
-          <div className="center-6 h-[6.66%] flex-basis-full"></div>
-          <div className="center-7 h-[6.66%] flex-basis-full"></div>
-        </div>
-        <div id="fill"></div>
-      </div> */}
-   
-      </div>
 
 
         {/* <Canvas
@@ -2222,98 +1722,59 @@ const noiseTex = useMemo(() => {
      
       {/* </div> */}
       <div className="relative">
-        <section className="mt-[20vh] z-10 relative min-h-screen">
-
-
+        <section className="mt-[20vh] relative min-h-screen">
+          
+          <div className="flex justify-start px-10 font-canelathin text-[18px]">Accolades</div>
             <div
               ref={containerRef}
               className="mt-[10vh] w-full max-w-7xl mx-auto text-[11px] relative"
             >
               <div
                 ref={addToSectionLineRefs}
-                className="absolute top-0 left-0 right-0 h-[1px] bg-gray-300 origin-left"
+                className="absolute top-0 left-0 right-0 h-[1px] bg-black origin-left"
               />
 
-              <div className="font-neuehaas45 flex border-b border-gray-300">
-                <div className="w-1/3 p-5">
-                  <p className="uppercase font-neuehaas45 text-[13px]">Accolades</p>
-                </div>
-                <div className="flex-1 flex flex-col justify-center text-[1.2em]">
-                  {[
-                    ["6x Winner Best Orthodontist", "Best of the Valley"],
-                    [
-                      "5x Winner Best Orthodontist",
-                      "Readers' Choice The Morning Call",
-                    ],
-                    ["Nationally Recognized Top Orthodontist", "Top Dentists"],
-                  ].map(([left, right], i) => (
-                    <div
-                      key={i}
-                      className="flex py-4 items-center px-5 relative"
-                    >
-                      {i < 2 && (
-                        <div
-                          ref={addToLineRefs}
-                          className="absolute bottom-0 left-0 right-0 h-[1px] bg-gray-300 origin-left"
-                        />
-                      )}
-                      <div ref={addToTextRefs} className="flex-1">
-                        {left}
-                      </div>
-                      <div
-                        ref={addToTextRefs}
-                        className="w-[350px] text-left text-black pr-6"
-                      >
-                        {right}
-                      </div>
-                      <div ref={addToTextRefs} className="w-[80px] text-right">
-                        DATE
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+         <div className="font-canelathin  flex-1 flex flex-col justify-center text-[1.2em]">
+  {[
+    ["6x Winner Best Orthodontist", "Best of the Valley"],
+    ["5x Winner Best Orthodontist", "Readers' Choice The Morning Call"],
+    ["Nationally Recognized Top Orthodontist", "Top Dentists"],
+    ["Invisalign", "25+ Years of Experience"],
+    ["Invisalign Teen", "5000+ Cases Treated"],
+    ["Diamond Plus", "Top 1% of All Providers"],
+  ].map(([left, right], i) => (
+    <div key={i} className="flex py-4 items-center px-5 relative">
 
-              <div className="font-neuehaas45 flex">
-                <div className="w-1/3 p-5">
-                  <p className="uppercase font-neuehaas45 text-[13px]">Expertise</p>
-                </div>
-                <div className="flex-1 flex flex-col justify-center text-[1.2em]">
-                  {[
-                    ["Invisalign", "25+ Years of Experience"],
-                    ["Invisalign Teen", "5000+ Cases Treated"],
-                    ["Diamond Plus", "Top 1% of All Providers"],
-                  ].map(([left, right], i) => (
-                    <div
-                      key={i}
-                      className="flex py-4 items-center px-5 relative"
-                    >
-                      {i < 2 && (
-                        <div
-                          ref={addToLineRefs}
-                          className="absolute bottom-0 left-0 right-0 h-[1px] bg-gray-300 origin-left"
-                        />
-                      )}
-                      <div ref={addToTextRefs} className="flex-1">
-                        {left}
-                      </div>
-                      <div
-                        ref={addToTextRefs}
-                        className="w-[350px] text-left text-black pr-6"
-                      >
-                        {right}
-                      </div>
-                      <div ref={addToTextRefs} className="w-[80px] text-right">
-                        DATE
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {i < 5 && (
+        <div
+          ref={addToLineRefs}
+          className="absolute inset-x-0 bottom-0 h-[1px] bg-black origin-center"
+          style={{
+            transform: "scaleX(0)",
+            transformOrigin: "center center",
+          }}
+        />
+      )}
+
+      <div ref={addToTextRefs} className="flex-1 pr-8">
+        {left}
+      </div>
+      <div ref={addToTextRefs} className="w-[350px] text-left text-black pr-6">
+        {right}
+      </div>
+      <div ref={addToTextRefs} className="w-[80px] text-right opacity-50">
+        DATE
+      </div>
+    </div>
+  ))}
+</div>
+   
+
+
 
               <div
                 ref={addToSectionLineRefs}
-                className="absolute bottom-0 left-0 right-0 h-[1px] bg-gray-300 origin-left"
+                className="absolute bottom-0 left-0 right-0 h-[1px] bg-black origin-left"
               />
             </div>
 
@@ -2485,9 +1946,9 @@ With over 40 years of combined experience, our doctors were the first in the reg
 
  
 <section ref={sectionRef} className="relative w-full overflow-hidden">
-<div ref={sphereRef} className="absolute top-0 left-0 w-full h-[600px] pointer-events-none z-0">
+{/* <div ref={sphereRef} className="absolute top-0 left-0 w-full h-[600px] pointer-events-none z-0">
         <MorphingSphere sectionRef={sectionRef} />
-      </div>
+      </div> */}
 
 
 <div className="z-10">
@@ -2862,6 +2323,623 @@ Treatment Duration
 };
 
 export default Invisalign;
+
+
+const SUNSET_THEME = {
+  sphere: [
+    "#e6f1f7", 
+    "#d9ecf5",
+    "#cfdff0",
+    "#e4dcf4",
+    "#f0f4fa", 
+  ],
+  hdr: 'https://www.spacespheremaps.com/wp-content/uploads/HDR_silver_and_gold_nebulae.hdr',
+};
+
+const pointMaterialShader = {
+  vertexShader: `
+      attribute float size;
+      attribute vec3 randomDir;
+      varying vec3 vColor;
+      varying float vDistance;
+      varying float vMouseEffect;
+      uniform float time;
+      uniform vec2 uMouse;
+      uniform float uExplode;
+      
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      
+      float snoise(vec3 v) {
+          const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+          const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+          vec3 i = floor(v + dot(v, C.yyy));
+          vec3 x0 = v - i + dot(i, C.xxx);
+          vec3 g = step(x0.yzx, x0.xyz);
+          vec3 l = 1.0 - g;
+          vec3 i1 = min(g.xyz, l.zxy);
+          vec3 i2 = max(g.xyz, l.zxy);
+          vec3 x1 = x0 - i1 + C.xxx;
+          vec3 x2 = x0 - i2 + C.yyy;
+          vec3 x3 = x0 - D.yyy;
+          i = mod289(i);
+          vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+          float n_ = 0.142857142857;
+          vec3 ns = n_ * D.wyz - D.xzx;
+          vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+          vec4 x_ = floor(j * ns.z);
+          vec4 y_ = floor(j - 7.0 * x_);
+          vec4 x = x_ * ns.x + ns.yyyy;
+          vec4 y = y_ * ns.x + ns.yyyy;
+          vec4 h = 1.0 - abs(x) - abs(y);
+          vec4 b0 = vec4(x.xy, y.xy);
+          vec4 b1 = vec4(x.zw, y.zw);
+          vec4 s0 = floor(b0)*2.0 + 1.0;
+          vec4 s1 = floor(b1)*2.0 + 1.0;
+          vec4 sh = -step(h, vec4(0.0));
+          vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+          vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+          vec3 p0 = vec3(a0.xy,h.x);
+          vec3 p1 = vec3(a0.zw,h.y);
+          vec3 p2 = vec3(a1.xy,h.z);
+          vec3 p3 = vec3(a1.zw,h.w);
+          vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+          p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+          vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+          m = m * m;
+          return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+      void main() {
+          vColor = color;
+          
+          float explodeAmount = uExplode * 35.0;
+          float turbulence = snoise(position * 0.4 + randomDir * 2.0 + time * 0.8) * 10.0 * uExplode;
+          vec3 explodedPos = position + randomDir * (explodeAmount + turbulence);
+          vec3 mixedPos = mix(position, explodedPos, uExplode);
+          
+          vec4 projectedVertex = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec2 screenPos = projectedVertex.xy / projectedVertex.w;
+          float mouseDist = distance(screenPos, uMouse);
+          float mouseEffect = 1.0 - smoothstep(0.0, 0.05, mouseDist);
+          vMouseEffect = mouseEffect;
+          
+          float noiseFrequency = 0.4;
+          float noiseAmplitude = (0.6 + mouseEffect * 0.3) * (1.0 - uExplode);
+          vec3 noiseInput = mixedPos * noiseFrequency + time * 0.5;
+          vec3 displacement = vec3(snoise(noiseInput), snoise(noiseInput + vec3(10.0)), snoise(noiseInput + vec3(20.0)));
+          vec3 finalPos = mixedPos + displacement * noiseAmplitude;
+          float pulse = sin(time + length(position)) * 0.1 + 1.0;
+          
+          vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+          vDistance = -mvPosition.z;
+          gl_PointSize = size * (400.0 / -mvPosition.z) * pulse * (1.0 + vMouseEffect * 0.5);
+          gl_Position = projectionMatrix * mvPosition;
+      }
+  `,
+fragmentShader: `
+    varying vec3 vColor;
+    varying float vMouseEffect;
+      varying float vDistance;
+    uniform float time;
+    uniform float uExplode;
+
+    float rand(vec2 co){
+        return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+    }
+
+    void main() {
+        vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+        float r = dot(cxy, cxy);
+        if (r > 1.0) discard;
+
+  float core = exp(-r * 55.0);  
+
+float outer = exp(-r * 6.5);
+outer = pow(outer, 1.2);  
+
+   float sparkleShift = rand(gl_PointCoord + time * 0.7) * 0.15;
+vec3 sparkleTint = vec3(
+  1.0,
+  0.95 - sparkleShift,
+  1.05
+);
+
+vec3 blueCore = vec3(0.55, 0.72, 1.0);
+vec3 coreGlow = blueCore * pow(core, 0.7) * 0.08;
+vec3 coloredHalo = vColor * sparkleTint * outer * 0.9;
+
+vec3 finalColor = coloredHalo + coreGlow;
+float depthSat = smoothstep(6.0, 2.0, vDistance);
+finalColor = mix(
+  vec3(dot(finalColor, vec3(0.333))),
+  finalColor,
+  depthSat * 0.85
+);
+float alpha = core * 0.05 + outer * 0.18;
+        gl_FragColor = vec4(finalColor, alpha);
+    }
+`
+};
+function CosmicScene({ scrollProgress, mouse }) {
+  const ringsRef = useRef();
+  const lightRef = useRef();
+  const { scene } = useThree();
+
+  useEffect(() => {
+    const loader = new RGBELoader();
+    loader.load(SUNSET_THEME.hdr, (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      scene.background = texture;
+      scene.environment = texture;
+    });
+  }, [scene]);
+
+  const ringsGroup = useMemo(() => {
+    const group = new THREE.Group();
+    const vs = pointMaterialShader.vertexShader;
+    const fs = pointMaterialShader.fragmentShader;
+
+    if (!vs || !fs) return group;
+
+for (let r = 0; r < 8; r++) {
+  const ringCount = 4000;
+
+  const ringGeo  = new THREE.BufferGeometry();
+  const ringPos  = new Float32Array(ringCount * 3);
+  const ringCol  = new Float32Array(ringCount * 3);
+  const ringSize = new Float32Array(ringCount);
+  const ringRand = new Float32Array(ringCount * 3);
+
+  for (let i = 0; i < ringCount; i++) {
+    const i3 = i * 3;
+    const angle = (i / ringCount) * Math.PI * 2;
+
+    const baseRadius = 5.5 + r * 0.6;
+    const jitter = (Math.random() - 0.5) * 1.5;
+    const ellipseBias = 1.0 + Math.sin(i * 0.5) * 0.2;
+
+    const radius = baseRadius * ellipseBias + jitter;
+    const vertical = (Math.random() - 0.5) * (0.4 + r * 0.05);
+
+    ringPos[i3]     = Math.cos(angle) * radius;
+    ringPos[i3 + 1] = vertical;
+    ringPos[i3 + 2] = Math.sin(angle) * radius;
+
+    ringSize[i] = Math.random() * 0.15 + 0.08;
+
+    ringRand[i3]     = Math.random() * 2 - 1;
+    ringRand[i3 + 1] = Math.random() * 2 - 1;
+    ringRand[i3 + 2] = Math.random() * 2 - 1;
+
+
+    const PINK =  [  "#7fb8ff", // true baby blue (anchor)
+  "#8fc4ff", // airy but chromatic
+  "#9fcfff", // soft sky
+  "#6faeff", // deeper glass blue
+  "#84bfff", ];
+
+    const t = i / ringCount;
+    const idx = Math.floor(t * (PINK.length - 1));
+
+    const c1 = new THREE.Color(PINK[idx]);
+    const c2 = new THREE.Color(PINK[Math.min(idx + 1, PINK.length - 1)]);
+    const f = (t * (PINK.length - 1)) % 1;
+
+    const col = c1.clone().lerp(c2, f);
+
+    ringCol[i3]     = col.r;
+    ringCol[i3 + 1] = col.g;
+    ringCol[i3 + 2] = col.b;
+  }
+
+  ringGeo.setAttribute("position", new THREE.BufferAttribute(ringPos, 3));
+  ringGeo.setAttribute("color",    new THREE.BufferAttribute(ringCol, 3));
+  ringGeo.setAttribute("size",     new THREE.BufferAttribute(ringSize, 1));
+  ringGeo.setAttribute("randomDir",new THREE.BufferAttribute(ringRand, 3));
+
+  const material = new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    uMouse: { value: new THREE.Vector2() },
+    uExplode: { value: 0 },
+  },
+  vertexShader: vs,
+  fragmentShader: fs,
+  vertexColors: true,
+  transparent: true,
+  depthWrite: false,
+
+  });
+
+  const ring = new THREE.Points(ringGeo, material);
+
+  ring.rotation.x = Math.random() * Math.PI;
+  ring.rotation.y = Math.random() * Math.PI;
+
+  group.add(ring);
+}
+
+    return group;
+  }, []);
+
+  useEffect(() => {
+    if (!ringsRef.current) return;
+    ringsGroup.children.forEach((child) => ringsRef.current.add(child));
+  }, [ringsGroup]);
+
+  const sceneGroupRef = useRef();
+
+  useFrame((state) => {
+    sceneGroupRef.current.scale.setScalar(0.5);
+    const t = state.clock.getElapsedTime();
+    const explodeAmount = THREE.MathUtils.smoothstep(scrollProgress, 0, 1);
+
+    ringsRef.current.rotation.y = t * 0.0001;
+
+    // expand + move rings toward camera
+    ringsRef.current.scale.setScalar(1 + scrollProgress * 3);
+    ringsRef.current.position.z = -scrollProgress * 6.0;
+
+    ringsRef.current.children.forEach((ring, i) => {
+      ring.rotation.z += 0.001 * (i + 1);
+      ring.rotation.x += 0.0003 * (i + 1);
+
+      const m = ring.material.uniforms;
+      m.time.value = t;
+      m.uMouse.value.copy(mouse);
+      m.uExplode.value = explodeAmount;
+    });
+  });
+
+const sunRef = useRef();
+  return (
+    <>
+      <fog attach="fog" args={["#000", 10, 100]} />
+      <ambientLight intensity={0.3} />
+      <pointLight ref={lightRef} position={[0, 0, 0]} intensity={2} />
+      
+      <group ref={sceneGroupRef}>
+        <group ref={ringsRef} />
+      </group>
+      
+      {/* <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} /> */}
+      <OrbitControls enableDamping dampingFactor={0.04} rotateSpeed={0.6} minDistance={10} maxDistance={50} />
+
+      <EffectComposer>
+<Bloom
+  luminanceThreshold={0.28}
+  luminanceSmoothing={0.85}
+  intensity={0.25}
+  radius={0.45}
+/>
+      </EffectComposer>
+    </>
+  );
+}
+
+function Scene() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const mouse = useRef(new THREE.Vector2(-10, -10));
+
+  useEffect(() => {
+    const updateScroll = () => {
+      const scrollY = window.scrollY;
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      setScrollProgress(Math.min(scrollY / maxScroll, 1));
+    };
+
+    const updateMouse = (e) => {
+      mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    };
+
+    window.addEventListener("scroll", updateScroll);
+    window.addEventListener("mousemove", updateMouse);
+
+    return () => {
+      window.removeEventListener("scroll", updateScroll);
+      window.removeEventListener("mousemove", updateMouse);
+    };
+  }, []);
+
+  return (
+    <div style={{ width: "100vw", height: "300vh" }}>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <Canvas gl={{ alpha: true }} style={{ background: "transparent" }}>
+          <CosmicScene
+            mouse={mouse.current}
+            scrollProgress={scrollProgress}
+          />
+        </Canvas>
+      </div>
+
+      <div
+      className="font-neuehaas45"
+        style={{
+          position: "fixed",
+          bottom: 30,
+          left: "50%",
+          transform: "translateX(-50%)",
+          color: "white",
+          opacity: scrollProgress < 0.9 ? 1 : 0,
+          transition: "opacity 0.8s",
+          pointerEvents: "none",
+        }}
+      >
+        Scroll to explore
+      </div>
+    </div>
+  );
+}
+const vertexShader = `
+attribute float randomAmp;
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position, 1.0);
+  }
+`;
+
+
+const fragmentShader = `
+  uniform vec2 uResolution;   
+  uniform float uTime;      
+  uniform vec2 uMouse;  
+  varying vec2 vUv;  
+
+  #define PI 3.14159265359
+
+  mat2 rot(float a) {
+    float s = sin(a), c = cos(a);
+    return mat2(c, -s, s, c);
+  }
+
+
+float wave(vec2 p, float phase, float freq) {
+    return sin(p.x * freq + phase) * 0.05;  
+}
+
+
+  float glowLine(float dist, float thickness, float intensity) {
+    return intensity * thickness / (abs(dist) + thickness * 0.5);
+  }
+
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+  float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                        -0.577350269189626, 0.024390243902439);
+    vec2 i  = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                   + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    m = m*m; m = m*m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+    vec3 g;
+    g.x  = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+  }
+
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+  float rand1(float n) { return fract(sin(n * 91.3458) * 47453.5453); }
+
+  float ribbonBody(float yDist) { return smoothstep(1.2, 0.0, abs(yDist)); }
+
+  void main() {
+
+    vec2 worldUV = (vUv - 0.5) * 2.0; 
+    worldUV.x *= uResolution.x / uResolution.y;       
+    vec2 uv = worldUV;
+    vec2 uv0 = worldUV;
+
+vec3 coolPearl     = vec3(0.82, 0.86, 0.92); // blue-gray
+vec3 mistBlue      = vec3(0.78, 0.83, 0.90); // foggy blue
+vec3 glassNeutral  = vec3(0.86, 0.87, 0.90); // aluminum gray
+vec3 babyBlueCore = vec3(0.86, 0.92, 0.97); // luminous cyan-blue
+vec3 lavenderMist = vec3(0.80, 0.82, 0.90);
+vec3 pearlGlow     = vec3(0.92, 0.94, 0.96); // cold light
+vec3 mistHighlight = vec3(0.84, 0.88, 0.92);
+
+float t = smoothstep(0.0, 1.0, vUv.x);
+
+vec3 bg = mix(coolPearl, mistBlue, t);
+
+bg = mix(bg, glassNeutral, t * 0.25);
+
+// radial pearl glow - REDUCED SPREAD
+float glowDist = length(uv0);
+float glowAmt = smoothstep(0.9, 0.0, glowDist);
+bg = mix(bg, pearlGlow, glowAmt * 0.25); // Reduced from 0.4
+bg = mix(bg, mistHighlight, t * 0.25);
+
+// fog noise
+float fog = snoise(uv0 * 0.6 + uTime * 0.03) * 0.08;
+bg += fog;
+
+// TIGHTER CENTER GLOW to reduce bloom
+float centerGlow = exp(-length(uv0) * 2.0); // Increased from 1.2 to 2.0
+// Diffuse milky density (NOT glow)
+float density = exp(-length(uv0) * 1.4); // softer falloff
+density = pow(density, 1.6);             // flatten peak
+
+vec3 milkBlue = vec3(0.78, 0.86, 0.94);  // desaturated baby blue
+bg = mix(bg, milkBlue, density * 0.25);
+
+vec3 col = bg;
+  
+    //  Mouse interaction
+  
+    vec2 mouse_uv = (uMouse - 0.5) * 2.0;
+    mouse_uv.x *= uResolution.x / uResolution.y;
+    float mouseDist = length(uv - mouse_uv);
+
+    uv += (mouse_uv - uv) * (0.3 / (mouseDist + 0.5));  // warp space toward cursor
+
+
+
+    vec2 uvNoise = uv * rot(uTime * 0.05);
+    float waveNoise = snoise(uvNoise * 2.0 + uTime * 0.2) * 0.1;
+
+vec3 ribbonDark      = vec3(0.42, 0.58, 0.74);
+vec3 ribbonMid       = vec3(0.64, 0.78, 0.92);
+vec3 ribbonLight     = vec3(0.78, 0.86, 0.96);
+vec3 ribbonCoreGlow  = vec3(0.52, 0.74, 0.94);
+
+    float segLen = 10.0;  // lifetime of ribbon
+
+    for (int i = 0; i < 2; i++) {
+      float slotIndex = float(i);
+      float slotTime = uTime + slotIndex * 3.17;           // offset ribbon
+      float lifeIndex = floor(slotTime / segLen);
+      float tNorm = fract(slotTime / segLen);  
+
+      // starts above screen, falls below
+      float centerY = mix(2.4, -2.4, tNorm);
+      float yRel = worldUV.y - centerY;
+
+      // Fade out when ribbon is far off-screen 
+      float bodyMask = 1.0 - smoothstep(1.4, 1.8, abs(yRel));
+      float timeMask = smoothstep(0.05, 0.15, tNorm) * (1.0 - smoothstep(0.85, 0.95, tNorm));
+      float visibility = bodyMask * timeMask;
+
+      if (visibility > 0.001) {
+        float seed = lifeIndex + slotIndex * 23.71;
+        float xCenter = mix(-0.9, 0.9, rand1(seed * 1.3));
+        float freq    = mix(0.4, 0.9, rand1(seed * 2.1));
+        float phase   = rand1(seed * 3.7) * 6.28318;
+        float ampMod  = mix(0.7, 1.2, rand1(seed * 4.9));
+
+        float waveVal = wave(vec2(worldUV.y * ampMod + phase, worldUV.y * 0.5),
+                             uTime * 1.2 + phase, freq);
+        waveVal += waveNoise * 0.6;  // shared turbulence
+
+        float distX = (worldUV.x - xCenter) - waveVal;
+
+        // ribbon glow - TIGHTER to reduce spread
+        float thickness = 0.4;   // Reduced from 0.5  
+        float intensity = 0.11;  // Reduced from 0.13     
+        
+        // base core (keep it tight)
+float core = smoothstep(thickness, 0.0, abs(distX)) * intensity * visibility;
+
+        // secondary soft body (reduced to prevent spread)
+float body = smoothstep(thickness * 2.0, 0.0, abs(distX)) * (intensity * 0.20) * visibility;
+
+        // gentle atmospheric haze (reduced)
+        float haze = exp(-abs(distX) * 8.0) * 0.025 * visibility; // Tighter
+
+        // inner core glow (more intense but tighter)
+        float innerCore = glowLine(distX, thickness * 0.3, intensity * 0.6) * visibility;
+
+        float grad = smoothstep(-0.25, 0.25, distX);
+        grad = pow(grad, 1.1);     // soften
+        float edge = smoothstep(0.15, 0.75, abs(distX));
+
+        // core color: dark → mid with more blue emphasis
+        vec3 coreTone = mix(ribbonDark, ribbonMid, grad * 1.2);
+
+        // final ribbon color: core → bright edge with blue emphasis
+        vec3 ribbonColor = mix(coreTone, ribbonLight, edge * 0.8);
+
+        // Add the inner core glow with the special glow color
+        col += ribbonCoreGlow * innerCore * 0.2; // Reduced from 0.25
+        col += ribbonColor * core * 0.4;
+        col += ribbonColor * haze * 0.8; // Reduced
+        
+        // Add a subtle blue tint to the entire ribbon area
+        float ribbonArea = max(core, body) * 0.5; // Reduced from 0.7
+        col = mix(col, mix(col, vec3(0.75, 0.88, 0.98), 0.1), ribbonArea); // Reduced
+      }
+    }
+    
+    
+    // Final tightening of overall brightness
+    col = clamp(col, 0.0, 1.0);
+    col = pow(col, vec3(0.97)); // Slightly less contrast
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+function ShaderPlane() {
+  const materialRef = useRef();
+  const mouse = useRef(new THREE.Vector2(0.5, 0.5));
+  const targetMouse = useRef(new THREE.Vector2(0.5, 0.5));
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) / window.innerWidth;
+      const y = 1 - (e.touches ? e.touches[0].clientY : e.clientY) / window.innerHeight;
+      targetMouse.current.set(x, y);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('touchmove', handleMove);
+    };
+  }, []);
+
+  useFrame((state) => {
+    if (!materialRef.current) return;
+    mouse.current.lerp(targetMouse.current, 0.05);
+
+    materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+    materialRef.current.uniforms.uMouse.value.copy(mouse.current);
+
+    const { width, height } = state.size;
+    materialRef.current.uniforms.uResolution.value.set(
+      width * state.viewport.dpr,
+      height * state.viewport.dpr
+    );
+  });
+
+  return (
+    <mesh>
+      <planeGeometry args={[2, 2]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={{
+          uTime: { value: 0 },
+          uResolution: { value: new THREE.Vector2() },      // ← Vector2
+          uMouse: { value: new THREE.Vector2(0.5, 0.5) },   // ← Vector2
+        }}
+      />
+    </mesh>
+  );
+}
+
+ function NeonShaderBackground() {
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1 }}>
+      <Canvas orthographic camera={{ zoom: 1, position: [0, 0, 1] }}>
+        <ShaderPlane />
+      </Canvas>
+    </div>
+  );
+}
 
 // const BulgeGallery = ({ slides }) => {
 //   const canvasWrapperRef = useRef();

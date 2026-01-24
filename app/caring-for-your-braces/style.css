@@ -1,8 +1,8 @@
 :root {
   --terra: #b2b5ce;
   --green: #dd5310;
-  --pink: #f3c744;
-  --blue: #df9df3 ;
+  --pink: #FBCF50;
+  --blue: #DEAAFF ;
   --black: #0e0e0e;
   --beige: #cfde79;
   --grey: #f19949;
@@ -242,7 +242,14 @@
     padding-left: 0;
   }
 }
-
+@media screen and (min-width: 1080px) {
+  .MainSectionItem-contentText {
+    min-height: 20rem; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; 
+  }
+}
 @media screen and (min-width:769px) and (max-width:1079px) {
   .MainSectionItem-contentTitle,
   .MainSectionItem-contentText {

@@ -167,10 +167,11 @@ export default function Page() {
     })
     
     return () => mm.revert()
+    
   }, [])
   
   return (
-    <div ref={mainSection} className="MainSection` --dark --in-view" style={{ backgroundColor: 'var(--blue)', '--91c5acce': 5, }}>
+    <div ref={mainSection} className="EarlyOrthodontics-section MainSection` --dark --in-view" style={{ backgroundColor: 'var(--blue)', '--91c5acce': 5, }}>
       <div className="MainSection-wrap">
         <div className="MainSection-head">
           <h2 className="SplitText AnimatedSplitText --anim-title MainSection-headTitle AppTitle-1 --in-view" style={{ opacity: 1, visibility: "inherit" }}>
@@ -207,7 +208,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-first MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--mint)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--white)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">01</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Smart to Start</h3>
@@ -220,8 +221,8 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/1.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/1.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/7milestone.png')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/7milestone.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -231,7 +232,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--purple)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">02</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Lucky Number 7</h3>
@@ -243,10 +244,102 @@ export default function Page() {
                 </div>
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
-                    <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/2.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/2.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
-                    </div>
+               <div className="AppImage MainSectionItem-image image-wrapper">
+
+{/* 
+  <div
+    className="AppImage-image --placeholder --lazy --loaded base-image"
+    style={{
+      objectFit: 'cover',
+      backgroundImage: "url('/images/test/2.jpg')",
+      backgroundSize: 'cover',
+      backgroundPosition: 'center center'
+    }}
+  ></div> */}
+
+
+  <img
+    src="/images/dentaltest.png"
+    alt="Facial silhouette"
+    loading="lazy"
+    className="profile-image"
+  />
+
+
+{/* <svg
+  className="overlay-lines"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 100 100"
+  preserveAspectRatio="xMidYMid slice"
+>
+  <line x1="58" y1="38" x2="58" y2="64" stroke="#ffffff80" 
+    strokeWidth="0.5"
+    strokeLinecap="round"
+    stroke-dasharray="2 3"
+    vectorEffect="non-scaling-stroke"/>
+    <line
+  x1="55.5" y1="48"
+  x2="60.5" y2="48"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+    stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<line
+  x1="58"
+  y1="65"
+  x2="74"
+  y2="66"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+  stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<path
+  d="M61 66.5 Q69 68.5 77 67.5"
+  fill="none"
+  stroke="#ffffff80"
+  strokeWidth="0.5"
+  strokeLinecap="round"
+  stroke-dasharray="2 3"
+  vectorEffect="non-scaling-stroke"
+/>
+<circle cx="58" cy="48" r="0.4" fill="#ffffff" />
+<circle
+  cx="58"
+  cy="48"
+  r="1.1"
+  fill="none"
+  stroke="rgba(255,255,255,0.25)"
+  strokeWidth="0.2"
+/>
+
+<circle
+  cx="58"
+  cy="65"
+  r="0.4"
+  fill="#ffffff"
+  vectorEffect="non-scaling-stroke"
+/>
+
+
+
+
+<circle
+  cx="74"
+  cy="66"
+  r="0.4"
+  fill="#ffffff"
+  vectorEffect="non-scaling-stroke"
+/>
+
+
+
+</svg> */}
+
+</div>
                   </div>
                 </div>
               </div>
@@ -255,10 +348,10 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--orange)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--brown)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
-                  <h3 className="MainSectionItem-contentTitle AppTitle-3">It All Starts with Breath</h3>
+                  <h3 className="MainSectionItem-contentTitle AppTitle-3">The Airway Equation</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
                       <p className="AppParagraph">We also assess the airway and surrounding structures, including the tonsils and adenoids. Enlarged tonsils (tonsillar hypertrophy) and adenoids can restrict airflow, disrupt breathing during sleep, and negatively impact how the jaws and arches grow—often contributing to a condition known as adenoid facies, characterized by long, narrow facial development and mouth breathing.</p>
@@ -268,8 +361,8 @@ export default function Page() {
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/3.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/checkeredheatmap.png')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/checkeredheatmap.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -279,21 +372,30 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--peach)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">04</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future-Proof</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
-                      <p className="AppParagraph">Timely intervention makes it possible to manage many cases more comfortably with clear aligners. which gently guide growth while also functioning as protective mouth guards during sports or severe dental protrustion. Through proactive, individualized treatment we're able to minimize disruption, improve oral hygiene, reduce enamel damage, and help children avoid the physical and emotional burden of bulky appliances later on.</p>
+                      <p className="AppParagraph">Timely intervention makes it possible to manage many cases more comfortably with clear aligners which gently guide growth while also functioning as protective mouth guards during sports or severe dental protrustion. Through proactive, individualized treatment we're able to minimize disruption, improve oral hygiene, reduce enamel damage, and help children avoid the physical and emotional burden of bulky appliances later on.</p>
                     </div>
                   </div>
                 </div>
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/base.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/videos/retaintracing.mp4')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+<img
+  src="/images/bluewave.gif"
+  alt="Retain tracing animation"
+  loading="lazy"
+  style={{
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }}
+/>
                     </div>
                   </div>
                 </div>
@@ -303,21 +405,21 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--grey)', }} />
                 <div className="MainSectionItem-content">
-                  <span className="MainSectionItem-index">04</span>
+                  <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Future Frey Smiles</h3>
                   <div className="MainSectionItem-contentText">
                     <div className="AppText-12">
-                      <p className="AppParagraph">Once you visit us, we take care of the rest. If no treatment is needed right away, we'll place your child on a customized Growth & Guidance schedule (Frey Smiles Club) —our way of keeping an eye on how things are progressing until treatment is indicated. </p>
+                      <p className="AppParagraph">Once you visit us, we take care of the rest. If no treatment is needed right away, we'll place your child on a customized Growth & Guidance schedule—part of our Frey Smiles Club—our way of keeping an eye on how things are progressing until treatment is indicated. </p>
                     </div>
                   </div>
                 </div>
                 <div className="MainSectionItem-imageContainer">
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
-                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/base.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/Image0001.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
+                      <img src="/images/ffscard.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -327,7 +429,7 @@ export default function Page() {
           <div className="MainSectionItem --bg-terra MainSection-item">
             <div className="--index-last MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--teal)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--terra)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">05</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Early Is Still Now</h3>
@@ -341,7 +443,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/hover.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/hover.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/firstmeeting.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>

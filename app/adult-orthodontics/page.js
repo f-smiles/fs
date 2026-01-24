@@ -222,7 +222,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--teal)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--pink)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">02</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Accelerated Movement</h3>
@@ -269,6 +269,7 @@ export default function Page() {
     stroke="#ffffff80" 
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -279,6 +280,7 @@ export default function Page() {
     stroke="#ffffff80" 
     strokeWidth="0.5" 
     strokeLinecap="round" 
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -289,6 +291,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -299,6 +302,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 
@@ -309,6 +313,7 @@ export default function Page() {
     stroke="#ffffff80"
     strokeWidth="0.5"
     strokeLinecap="round"
+      stroke-dasharray="2 3"
     vectorEffect="non-scaling-stroke"
   />
 </svg>
@@ -322,7 +327,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">03</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Coordinated Care</h3>
@@ -336,7 +341,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/test/3.jpg" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/testposter1.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>
@@ -346,7 +351,7 @@ export default function Page() {
           <div className="MainSectionItem MainSection-item">
             <div className="--index-between MainSectionItem-inner">
               <div className="MainSectionItem-innerSticky">
-                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--green)', }} />
+                <div className="MainSectionItem-background" style={{ backgroundColor: 'var(--beige)', }} />
                 <div className="MainSectionItem-content">
                   <span className="MainSectionItem-index">04</span>
                   <h3 className="MainSectionItem-contentTitle AppTitle-3">Our Philosophy</h3>
@@ -360,7 +365,7 @@ export default function Page() {
                   <div className="MainSectionItem-imageContainerInner">
                     <div className="AppImage MainSectionItem-image">
                       <div className="AppImage-image --placeholder --lazy --loaded" style={{ objectFit: 'cover', backgroundImage: "url('/images/test/base.jpg')", backgroundSize: 'cover', backgroundPosition: 'center center', }} ></div>
-                      <img src="/images/face-line-art.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
+                      <img src="/images/tabletfacelineart.png" width="480" height="348" alt="Video of a landscape" loading="lazy" style={{ objectFit: 'cover' }}></img>
                     </div>
                   </div>
                 </div>

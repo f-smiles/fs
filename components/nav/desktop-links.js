@@ -33,8 +33,8 @@ export const links = [
         <Link href="/auth/login">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <p className="text-sm font-saolitalic opacity-60">(5)</p>
-              <h2 className="text-[20px] font-neuehaas45">
+              <p className="text-xs font-canelathin opacity-60">5.</p>
+              <h2 className="text-[16px] tracking-wide font-neuehaas45">
                 Login
               </h2>
             </div>

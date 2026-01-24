@@ -17,7 +17,7 @@ export default function VariantName({ variants }: { variants: VariantsWithImages
       return (
         <motion.h2
           key={v.id}
-          className="text-[12px] uppercase text-gray-900"
+          className="font-neuehaas45 text-[12px] text-gray-900"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >

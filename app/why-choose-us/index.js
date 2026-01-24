@@ -82,82 +82,6 @@ if (typeof window !== "undefined") {
   );
 }
 
-
-
-function PixiFlower() {
-  const containerRef = useRef(null);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!containerRef.current) return;
-    const app = new PIXI.Application({
-      width: SIZE,
-      height: SIZE,
-      backgroundAlpha: 0,
-      antialias: true,
-      preserveDrawingBuffer: true,
-      transparent: true,
-    });
-
-    containerRef.current.appendChild(app.view);
-
-    app.stage.filterArea = new PIXI.Rectangle(0, 0, SIZE, SIZE);
-
-    const filter = new EffectFilter();
-    app.stage.filters = [filter];
-
-    // const bg = new PIXI.Graphics();
-    // bg.beginFill(0x111111).drawRect(0, 0, SIZE, SIZE).endFill();
-    // app.stage.addChild(bg);
-
-    const g = new PIXI.Graphics();
-    g.x = SIZE / 2;
-    g.y = SIZE / 2;
-    app.stage.addChild(g);
-
-    let frameCount = 0;
-
-    app.ticker.add(() => {
-      g.clear();
-      const t = frameCount * INPUTS.speed;
-
-      for (let i = 0; i < INPUTS.count; i++) {
-        const p = map(i, 0, INPUTS.count, 0, 1);
-        const angle = map(p, 0, 1, 0, 2 * Math.PI);
-
-        const mainAngle = Math.sin(
-          map(t + p, 0, 1, 0, INPUTS.mainFreq * Math.PI)
-        );
-        const len = map(mainAngle, -1, 1, INPUTS.minSize, INPUTS.maxSize);
-
-        let dx = Math.cos(angle) * len;
-        let dy = Math.sin(angle) * len;
-
-        dx += Math.cos(angle * INPUTS.subFreq) * len * INPUTS.subLen;
-        dy += Math.sin(angle * INPUTS.subFreq) * len * INPUTS.subLen;
-
-        g.beginFill(INPUTS.color);
-        g.drawRect(dx, dy, 1, 1);
-        g.endFill();
-      }
-
-      frameCount++;
-    });
-
-    return () => app.destroy(true, true);
-  }, []);
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        width: SIZE,
-        height: SIZE,
-        margin: "0 auto",
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
-
 const FluidSimulation = () => {
   const canvasRef = useRef(null);
 
@@ -1456,6 +1380,222 @@ gl.disable(gl.BLEND);
   );
 }
 
+function LivingLine() {
+  const svgRef = useRef(null);
+  const pathRef = useRef(null);
+
+  const pointsRef = useRef([]);
+  const mouseRef = useRef({ x: 0, y: 0 });
+
+  /* ----------------------------------
+     Geometry helpers
+  ---------------------------------- */
+
+  function sCurve(t) {
+    if (t < 0.5) {
+      const u = t * 2;
+      return -1 + 2 * (u * u * (3 - 2 * u));
+    } else {
+      const u = (t - 0.5) * 2;
+      return 1 - 2 * (u * u * (3 - 2 * u));
+    }
+  }
+
+  function generateBasePoints() {
+    const width = window.innerWidth;
+    const height = document.documentElement.scrollHeight;
+
+    const COUNT = Math.floor(height * 0.35);
+    const CENTER_X = width * 0.5;
+    const AMPLITUDE = width * 0.35;
+
+    return Array.from({ length: COUNT }, (_, i) => {
+      const t = i / (COUNT - 1);
+      const y = t * height;
+      const x = CENTER_X + sCurve((y / window.innerHeight) % 1) * AMPLITUDE;
+
+      return {
+        base: { x, y },
+        current: { x, y },
+        target: { x, y },
+        velocity: { x: 0, y: 0 },
+
+        angular: 0,
+        angularTarget: 0,
+        hoverForce: { x: 0, y: 0 },
+
+        loop: {
+          active: false,
+          center: { x: 0, y: 0 },
+          radius: 0,
+          strength: 0,
+        },
+      };
+    });
+  }
+
+  /* ----------------------------------
+     Interaction forces
+  ---------------------------------- */
+
+  function applyHover(points) {
+    const mouse = mouseRef.current;
+    const RADIUS = 140;
+
+    points.forEach((p) => {
+      const dx = p.current.x - mouse.x;
+      const dy = p.current.y - mouse.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > RADIUS || dist < 2) return;
+
+      const falloff = Math.pow(1 - dist / RADIUS, 2);
+      const px = -dy / dist;
+      const py = dx / dist;
+
+      p.hoverForce.x += px * falloff * 0.8;
+      p.hoverForce.y += py * falloff * 0.8;
+    });
+  }
+
+  function updatePoints(points) {
+    const STIFFNESS = 0.012;
+    const DAMPING = 0.84;
+    const SPREAD = 0.25;
+
+    points.forEach((p) => {
+      p.velocity.x =
+        (p.velocity.x + (p.target.x - p.current.x) * STIFFNESS) * DAMPING;
+      p.velocity.y =
+        (p.velocity.y + (p.target.y - p.current.y) * STIFFNESS) * DAMPING;
+
+      // Syrupy hover response
+      p.velocity.x += p.hoverForce.x * 0.025;
+      p.velocity.y += p.hoverForce.y * 0.025;
+      p.hoverForce.x *= 0.97;
+      p.hoverForce.y *= 0.97;
+
+      if (p.loop.active) {
+        const dx = p.current.x - p.loop.center.x;
+        const dy = p.current.y - p.loop.center.y;
+        const dist = Math.hypot(dx, dy) || 0.0001;
+
+        const err = dist - p.loop.radius;
+        p.velocity.x += (-dx / dist) * err * 0.04;
+        p.velocity.y += (-dy / dist) * err * 0.04;
+
+        p.velocity.x += (-dy / dist) * p.loop.strength * dist;
+        p.velocity.y += (dx / dist) * p.loop.strength * dist;
+
+        p.loop.radius *= 0.998;
+        p.loop.strength *= 0.995;
+        if (p.loop.strength < 0.001) p.loop.active = false;
+      }
+    });
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1];
+      const next = points[i + 1];
+      points[i].velocity.x +=
+        ((prev.current.x + next.current.x) / 2 -
+          points[i].current.x) *
+        SPREAD;
+    }
+
+    points.forEach((p) => {
+      p.current.x += p.velocity.x;
+      p.current.y += p.velocity.y;
+    });
+  }
+
+  /* ----------------------------------
+     Path builder
+  ---------------------------------- */
+
+  function buildPath(points) {
+    let d = `M -40 ${points[0].current.y}`;
+    points.forEach((p) => (d += ` L ${p.current.x} ${p.current.y}`));
+    return d;
+  }
+
+  /* ----------------------------------
+     Animation loop
+  ---------------------------------- */
+
+  useEffect(() => {
+    pointsRef.current = generateBasePoints();
+
+    const animate = () => {
+      const pts = pointsRef.current;
+      applyHover(pts);
+      updatePoints(pts);
+
+      if (pathRef.current) {
+        pathRef.current.setAttribute("d", buildPath(pts));
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+  }, []);
+
+  /* ----------------------------------
+     Mouse + scroll reveal
+  ---------------------------------- */
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    const path = pathRef.current;
+
+    const onMouseMove = (e) => {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const local = pt.matrixTransform(svg.getScreenCTM().inverse());
+      mouseRef.current = { x: local.x, y: local.y };
+    };
+
+    const length = path.getTotalLength();
+    path.style.strokeDasharray = length;
+    path.style.strokeDashoffset = length;
+
+    const onScroll = () => {
+      const progress =
+        window.scrollY /
+        (document.documentElement.scrollHeight - window.innerHeight);
+      path.style.strokeDashoffset = length * (1 - progress);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("scroll", onScroll);
+    onScroll();
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  /* ---------------------------------- */
+
+  return (
+<svg
+  ref={svgRef}
+  className="fixed top-0 left-0 w-full pointer-events-none"
+  style={{ height: document.documentElement.scrollHeight }}
+>
+      <path
+        ref={pathRef}
+        fill="none"
+        stroke="red"
+        strokeWidth="0.4"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 export default function WhyChooseUs() {
   const imageRef = useRef();
   const [isMobile, setIsMobile] = useState(false);
@@ -1469,10 +1609,12 @@ export default function WhyChooseUs() {
 
   return (
     <>
-   {/* <FluidSimulation /> */}
 
-      <div className="relative bg-[#F9F9F9]">
-        <div className=" w-full">
+      <div className="relative ">
+
+<LivingLine />
+             {/* <FluidSimulation /> */}
+
           {/* <div className="relative w-full h-screen" style={{ zIndex: 1 }}>
             <Canvas
               className="absolute inset-0"
@@ -1489,11 +1631,11 @@ export default function WhyChooseUs() {
               <RibbonAroundSphere />
             </Canvas>
           </div> */}
-          <div>
+
             <div>
               <ScrollPanels />
             </div>
-          </div>
+
 
      
            <StackCards />
@@ -1505,7 +1647,7 @@ export default function WhyChooseUs() {
           {/* <About /> */}
          
           <Marquee />
-        </div>
+
       </div>
     </>
   );
@@ -2119,122 +2261,6 @@ void main(void) {
   }
 }
 
-function WigglyString({
-  segments = 600,
-  baseAmplitude = 0.05,
-  frequency = 2,
-  cycles = 5.5,
-  margin = 0.12,
-}) {
-  const { viewport } = useThree();
-  const { width, height } = viewport;
-
-  const easedSin = (v, pow = 2.4, blend = 0.3) => {
-    const raw = Math.sin(v);
-    const eased = Math.sign(raw) * Math.pow(Math.abs(raw), pow);
-    return THREE.MathUtils.lerp(raw, eased, blend);
-  };
-
-  const mouse = useRef({ x: 0, y: 0 });
-  const lastMouse = useRef({ x: 0, y: 0, time: performance.now() });
-  const velocity = useRef(0);
-  const amplitudes = useRef(new Array(segments + 1).fill(baseAmplitude));
-
-  const geometry = useMemo(() => {
-    const points = new Float32Array((segments + 1) * 3);
-    const totalHeight = height * 4;
-    const snakeAmplitude = width * (0.5 - margin);
-
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const y = t * totalHeight - totalHeight / 2;
-      const x = easedSin(t * Math.PI * 2 * cycles) * snakeAmplitude;
-
-      points[i * 3] = x;
-      points[i * 3 + 1] = y;
-      points[i * 3 + 2] = 0;
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(points, 3));
-    return geo;
-  }, [segments, width, height, cycles, margin]);
-
-  useEffect(() => {
-    const handleMove = (e) => {
-      const now = performance.now();
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-      mouse.current.x = x;
-      mouse.current.y = y;
-
-      const dx = x - lastMouse.current.x;
-      const dy = y - lastMouse.current.y;
-      const dt = now - lastMouse.current.time;
-
-      velocity.current = Math.sqrt(dx * dx + dy * dy) / Math.max(dt, 1);
-      lastMouse.current = { x, y, time: now };
-    };
-
-    window.addEventListener("mousemove", handleMove);
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, []);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const scroll = window.scrollY / window.innerHeight;
-    const revealProgress = THREE.MathUtils.clamp(scroll, 0.001, 1);
-    const pos = geometry.attributes.position.array;
-    const pulse = Math.min(velocity.current * 0.5, 0.2);
-    const totalHeight = height * 4;
-    const snakeAmplitude = width * (0.5 - margin);
-    const maxY = revealProgress * totalHeight - totalHeight / 2;
-
-    for (let i = 0; i <= segments; i++) {
-      const idx = i * 3;
-      const tNorm = i / segments;
-      const yTarget = tNorm * totalHeight - totalHeight / 2;
-
-      if (yTarget > maxY) continue;
-
-      const dist = Math.abs(mouse.current.y - (yTarget * 2) / height);
-      const falloff = Math.max(0, 1 - dist * 3);
-      const targetAmp = baseAmplitude + falloff * (0.1 + pulse);
-      amplitudes.current[i] = THREE.MathUtils.lerp(
-        amplitudes.current[i],
-        targetAmp,
-        0.08
-      );
-      const amp = amplitudes.current[i];
-
-      const angle = tNorm * Math.PI * 2 * frequency + t * frequency;
-      const baseX = easedSin(tNorm * Math.PI * 4 * cycles) * snakeAmplitude;
-      const offsetX = Math.sin(angle) * amp;
-      const offsetZ = Math.cos(angle) * amp;
-
-      pos[idx] = baseX + offsetX;
-      pos[idx + 1] = yTarget;
-      pos[idx + 2] = offsetZ;
-    }
-
-    geometry.attributes.position.needsUpdate = true;
-  });
-
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial attach="material" color="black" />
-    </line>
-  );
-}
-function StringScene() {
-  return (
-    <Canvas camera={{ position: [0, 0, 1.5] }}>
-      <ambientLight intensity={0.5} />
-      <WigglyString />
-    </Canvas>
-  );
-}
 
 
 function ScrollPanels() {
@@ -2256,11 +2282,11 @@ function ScrollPanels() {
       gsap.fromTo(
         imgRef.current,
         { 
-          scale: 0.3, 
+          scale: 0.35, 
           y: "-100vh" 
         },
         {
-          scale: 1.2,
+          scale: .85,
           y: 0,
           ease: "none",
           scrollTrigger: {
@@ -2278,24 +2304,26 @@ function ScrollPanels() {
   }, []);
 
 
-  
+
   return (
     <div ref={sectionRef} className="bg-[#F9F9F9]">
+
       <div className="relative">
         <section ref={heroRef} className="w-full h-screen text-black flex flex-col justify-between font-neuehaas35 relative ">
           <div className="flex justify-between px-8 md:px-16 pt-8 h-full relative">
             <div className="flex flex-col justify-between w-1/2 relative">
               <div className="absolute top-[65%] left-0 -translate-y-1/2 text-left">
-                <h1 className="text-[4.5rem] md:text-[4.5rem] leading-[1.05] font-neuehaas45 uppercase">
-                  Backed By<br />Over 60 Years
+                <h1 className="text-xs tracking-widest text-gray-600 uppercase font-neuehaas45">
+                  Backed By over 60 Years Of <br /> Combined Orthodontic Experience
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-col w-1/2 relative">
-              <div className="absolute top-[50%] right-0 -translate-y-1/2 text-left">
-                <h1 className="text-[4.5rem] md:text-[4.5rem] leading-[1.05] font-neuehaas45 uppercase">
-                  Of Combined<br />Orthodontic<br />Experience
+              <div className="max-w-[500px] absolute top-[50%] right-0 -translate-y-1/2 text-left">
+                 <h1 className="text-[15px] tracking-wider text-gray-600 font-canelathinstraight">
+Our doctors rank in the top 1% nationally and have completed thousands of Invisalign cases. As Diamond Plus providers, we focus on precision — in planning, execution, and results that last.
+
                 </h1>
               </div>
             </div>
@@ -2305,25 +2333,12 @@ function ScrollPanels() {
             <span>Welcome</span>
             <div className="flex items-center gap-2">
               <span className="inline-flex w-4 h-4">
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={1.5}
-    stroke="currentColor"
-    className="w-full h-full"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"
-    />
-  </svg>
+
 </span>
               <span>Scroll to Explore</span>
             </div>
             <span className="w-[4px] h-auto">
-              {/* <PixiFlower /> */}
+     
               </span>
           </footer>
         </section>
@@ -2331,9 +2346,9 @@ function ScrollPanels() {
 
 
 
-        <section className="w-full bg-[#f9f9f9] flex flex-col items-center">
+        <section className="w-full flex flex-col items-center">
           <div className="w-full px-[6vw]">
-            <div className="border-t border-black/10 w-full" />
+            {/* <div className="border-t border-black/10 w-full" /> */}
           </div>
           <div ref={standardRef} className="w-full px-[6vw] py-[10vh]">
 <div className="flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 pt-8 relative">
@@ -2341,12 +2356,12 @@ function ScrollPanels() {
         
                 <img
                   ref={imgRef}
-                  src="/images/cardsonpalm.png"
-                  alt="phone"
+                  src="/images/excellence.png"
+                  alt="poster"
                   className="w-full h-auto object-cover"
                 />
               </div>
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
                 <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
                   Redefining
                   <span className="block">Excellence</span>
@@ -2358,12 +2373,12 @@ function ScrollPanels() {
             </div>
           </div>
           <div className="w-full px-[6vw]">
-            <div className="border-t border-black/10 w-full" />
+            {/* <div className="border-t border-black/10 w-full" /> */}
           </div>
 
           <div className="w-full px-[6vw] py-[10vh]">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
               <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
   Smart
   <span className="block">Orthodontics</span>
@@ -2383,12 +2398,12 @@ function ScrollPanels() {
           </div>
 
           <div className="w-full px-[6vw]">
-            <div className="border-t border-black/10 w-full" />
+            {/* <div className="border-t border-black/10 w-full" /> */}
           </div>
 
           <div className="w-full px-[6vw] py-[10vh]">
             <div className="flex flex-col lg:flex-row-reverse items-center justify-between gap-12">
-              <div className="flex flex-col text-left z-10">
+              <div className="flex flex-col text-left">
                 <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
                   3D 
                   <span className="block">Imaging</span>
@@ -2409,7 +2424,7 @@ function ScrollPanels() {
           </div>
 
           <div className="w-full px-[6vw]">
-            <div className="border-t border-black/10 w-full" />
+            {/* <div className="border-t border-black/10 w-full" /> */}
           </div>
         </section>
         {/* <div className="image-grid px-16 grid grid-cols-1 md:grid-cols-2 ">
@@ -3596,229 +3611,10 @@ function StackCards() {
 
 
 
-  const [index, setIndex] = useState(0);
-  const textWrapRef = useRef(null);
-  const sectionRef = useRef(null);
-  const hasAnimated = useRef(false);
-
-  const texts = [
-    `Our doctors aren’t just orthodontists — they’re in the top 1%. That’s a level fewer than 1 in 4 orthodontists reach. And when it comes to Invisalign? We don’t follow trends — we set them. As Diamond Plus providers, we’ve shaped how clear aligners are done in the region (and treated thousands along the way).`,
-    `Our doctors aren’t just orthodontists — they’re in the top 1%. That’s a level fewer than 1 in 4 orthodontists reach. And when it comes to Invisalign? We don’t follow trends — we set them. As Diamond Plus providers, we’ve shaped how clear aligners are done in the region (and treated thousands along the way).`,
-  ];
-
-
-useLayoutEffect(() => {
-  const wrapper = textWrapRef.current;
-  wrapper.innerHTML = '';
-
-
-  texts.forEach((text, i) => {
-    const div = document.createElement('div');
-    div.className = `content__text${i === 0 ? ' content__text--current' : ''}`;
-    const words = text.split(' ');
-    words.forEach((word, wi) => {
-      const wrap = document.createElement('span');
-      wrap.className = 'word-wrap';
-      const span = document.createElement('span');
-      span.className = 'word';
-      span.textContent = word;
-      wrap.appendChild(span);
-      if (wi < words.length - 1) wrap.appendChild(document.createTextNode(' '));
-      div.appendChild(wrap);
-    });
-    wrapper.appendChild(div);
-  });
-
-
-  const switchText = () => {
-    if (hasAnimated.current) return;
-    hasAnimated.current = true;
-
-    const textsEls = textWrapRef.current.querySelectorAll('.content__text');
-    const currentText = textsEls[index];
-    const nextIndex = index === 0 ? 1 : 0;
-    const nextText = textsEls[nextIndex];
-
-    const currentWords = currentText.querySelectorAll('.word');
-    const nextWords = nextText.querySelectorAll('.word');
-
-    gsap.set(nextText, { opacity: 1, zIndex: 2 });
-    gsap.set(nextWords, { yPercent: 125, rotation: -3 });
-
-
-    const outDuration = 0.3;
-    const outStaggerEach = 0.02;
-    const totalOutTime = outDuration + currentWords.length * outStaggerEach;
-    const overlap = totalOutTime * 0.6; 
-
-    const tl = gsap.timeline({
-      defaults: { ease: 'expo' },
-      onComplete: () => {
-        currentText.classList.remove('content__text--current');
-        nextText.classList.add('content__text--current');
-        gsap.set(currentText, { opacity: 0, zIndex: 1 });
-        setIndex(nextIndex);
-      },
-    });
-
-    tl.fromTo(
-      currentWords,
-      { yPercent: 0, rotation: 0 },
-      {
-        duration: outDuration,
-        yPercent: -125,
-        rotation: 3,
-        stagger: { each: outStaggerEach, from: 'start' },
-        ease: 'power1.in',
-      }
-    );
-
-
-    tl.fromTo(
-      nextWords,
-      { yPercent: 125, rotation: -3 },
-      {
-        duration: 0.6,
-        yPercent: 0,
-        rotation: 0,
-        stagger: { each: 0.02, from: 'start' },
-        ease: 'back.out(1.4)',
-      },
-      `-=${overlap}`
-    );
-  };
-
-  const el = sectionRef.current;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-          switchText();
-        }
-      });
-    },
-    { threshold: [0.6] }
-  );
-
-  if (el) observer.observe(el);
-  return () => observer.disconnect();
-}, [texts, index]);
-
-
- const switchText = () => {
-    if (hasAnimated.current) return;
-    hasAnimated.current = true;
-
-    const textsEls = textWrapRef.current.querySelectorAll('.content__text');
-    const currentText = textsEls[index];
-    const nextIndex = index === 0 ? 1 : 0;
-    const nextText = textsEls[nextIndex];
-
-    const currentWords = currentText.querySelectorAll('.word');
-    const nextWords = nextText.querySelectorAll('.word');
-
-    gsap.set(nextText, { opacity: 1, zIndex: 2 });
-    gsap.set(nextWords, { yPercent: 125, rotation: -3 });
-
-    const tl = gsap.timeline({
-      defaults: { ease: 'expo' },
-      onComplete: () => {
-        currentText.classList.remove('content__text--current');
-        nextText.classList.add('content__text--current');
-        gsap.set(currentText, { opacity: 0, zIndex: 1 });
-        setIndex(nextIndex);
-      },
-    });
-
-    tl.fromTo(
-      currentWords,
-      { yPercent: 0, rotation: 0 },
-      {
-        duration: 0.3,
-        yPercent: -125,
-        rotation: 3,
-        stagger: { each: 0.02, from: 'start' },
-        ease: 'power1.in',
-      }
-    ).fromTo(
-      nextWords,
-      { yPercent: 125, rotation: -3 },
-      {
-        duration: 0.6,
-        yPercent: 0,
-        rotation: 0,
-        stagger: { each: 0.02, from: 'start' },
-        ease: 'back.out(1.4)',
-      },
-      '-=0.7'
-    );
-  };
-
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            switchText();
-          }
-        });
-      },
-      { threshold: [0.6] }
-    );
-    if (el) observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <>
-      <section className="mt-[10vh] bg-[#F9F9F9]">
-                     <section
-      ref={sectionRef}
-      className="flex flex-col items-center justify-center text-black"
-    >
-      <div
-        ref={textWrapRef}
-        className="relative text-center text-[1.3rem] leading-snug max-w-3xl overflow-hidden"
-      />
 
-      <style jsx global>{`
-        .content__text {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          opacity: 0;
-          pointer-events: none;
-          display: flex;
-          flex-wrap: wrap;
-          line-height: 1.4;
-          font-family: 'NeueHaasDisplay35';
-        }
-
-        .content__text--current {
-          opacity: 1;
-          pointer-events: auto;
-          position: relative;
-          z-index: 2;
-        }
-
-        .word-wrap {
-          display: inline-block;
-          overflow: hidden;
-          margin-right: 0.25em; 
-        }
-
-        .word {
-          display: inline-block;
-          transform: translateY(0%);
-          will-change: transform;
-        }
-      `}</style>
-    </section>
-
-<div className="mt-[10vh] w-full flex justify-center">
+<div className="bg-[#F9F9F9] w-full flex justify-center">
 
             <div className="flex flex-row gap-x-12 items-center">
             
@@ -3966,7 +3762,7 @@ useLayoutEffect(() => {
           ))}
           <div className="w-full border-b border-black" />
         </div>
-      </section>
+
     </>
   );
 }

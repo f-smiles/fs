@@ -23,6 +23,7 @@ export default async function RootLayout({ children }) {
         <App user={session?.user}>
           {children}
         </App>
+           <div id="modal-root"></div>
       </body>
     </html>
   )

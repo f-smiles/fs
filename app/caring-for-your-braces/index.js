@@ -561,13 +561,13 @@ export default function Page() {
                         className="AppImage-image --placeholder --lazy --loaded"
                         style={{
                           objectFit: "cover",
-                          backgroundImage: "url('/images/dentalwax4.png')",
+                          backgroundImage: "url('/images/dentalwax3landscape.png')",
                           backgroundSize: "cover",
                           backgroundPosition: "center center",
                         }}
                       ></div>
                       <img
-                        src="/images/dentalwax4.png"
+                        src="/images/dentalwax3landscape.png"
                         width="480"
                         height="348"
                         alt="Video of a landscape"

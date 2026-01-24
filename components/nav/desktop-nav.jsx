@@ -2,7 +2,7 @@
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import Flip from "gsap/Flip";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -15,8 +15,9 @@ import styles from "./style.module.css";
 import CartComponent from "@/components/cart/cart-component";
 import UserButton from "@/components/auth/user-button";
 import { useCartStore } from "@/lib/cart-store";
+import SplitText from "gsap/SplitText";
 
-gsap.registerPlugin(ScrollTrigger, Flip);
+gsap.registerPlugin(ScrollTrigger, Flip, SplitText);
 
 export default function DesktopNav({ user }) {
 
@@ -148,6 +149,157 @@ const bgRef = useRef(null);
 
   const [hovered, setHovered] = useState(false);
 const menuText = "Menu";
+
+const linksContainerRef = useRef(null);
+
+useLayoutEffect(() => {
+  if (!linksContainerRef.current) return;
+
+  const ctx = gsap.context(() => {
+    const buttons = linksContainerRef.current.querySelectorAll(".menu-link-button");
+
+    buttons.forEach((button) => {
+      const text = button.querySelector(".split-textflip");
+      if (!text) return;
+
+      const split = new SplitText(text, {
+        type: "chars",
+        charsClass: "char",
+      });
+
+
+      const topLayer = split.chars.map((char) => char.cloneNode(true));
+      const bottomLayer = split.chars.map((char) => char.cloneNode(true));
+
+
+      text.innerHTML = "";
+      text.style.position = "relative";
+      text.style.display = "inline-block";
+
+
+      const bottomWrapper = document.createElement("div");
+      bottomWrapper.style.position = "absolute";
+      bottomWrapper.style.inset = "0";
+      bottomWrapper.style.pointerEvents = "none";
+      bottomLayer.forEach((char) => bottomWrapper.appendChild(char));
+      text.appendChild(bottomWrapper);
+
+
+      const topWrapper = document.createElement("div");
+      topWrapper.style.position = "relative";
+      topLayer.forEach((char) => topWrapper.appendChild(char));
+      text.appendChild(topWrapper);
+
+
+      gsap.set(bottomWrapper, { opacity: 0 });
+      gsap.set(bottomLayer, {
+        rotationX: -100,
+        rotationY: 20,
+        z: -15,
+        opacity: 0,
+        force3D: true,
+      });
+      gsap.set(topLayer, {
+        rotationX: 0,
+        rotationY: 0,
+        z: 0,
+        opacity: 1,
+        force3D: true,
+      });
+
+
+      const enterTl = gsap.timeline({ paused: true });
+      enterTl
+        .to(topLayer, {
+          rotationX: -100,
+          rotationY: 20,
+          z: -15,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.inOut",
+          stagger: { each: 0.05, from: "start" },
+        })
+        .to(bottomWrapper, { opacity: 1, duration: 0.01 }, "-=0.75")
+        .to(
+          bottomLayer,
+          {
+            rotationX: 0,
+            rotationY: 0,
+            z: 0,
+            opacity: 1,
+            duration: 0.9,
+            ease: "power3.inOut",
+            stagger: { each: 0.05, from: "start" },
+          },
+          "-=0.85"
+        );
+
+
+      const leaveTl = gsap.timeline({ paused: true });
+      leaveTl
+        .to(bottomLayer, {
+          rotationX: 90,
+          rotationY: -15,
+          z: -10,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+          stagger: { each: 0.04, from: "end" },
+        })
+        .to(
+          topLayer,
+          {
+            rotationX: 0,
+            rotationY: 0,
+            z: 0,
+            opacity: 1,
+            duration: 0.5,
+            ease: "power2.out",
+            stagger: { each: 0.04, from: "end" },
+          },
+          "-=0.45"
+        )
+        .to(bottomWrapper, { opacity: 0, duration: 0.01 }, "-=0.5");
+
+const onEnter = () => {
+
+  leaveTl.progress(1, true).pause();
+
+
+  enterTl.restart();
+};
+
+const onLeave = () => {
+
+  if (enterTl.progress() > 0 || enterTl.isActive()) {
+    enterTl.pause();
+    leaveTl.restart();
+  } else {
+
+    enterTl.progress(0);
+    leaveTl.progress(1);
+  }
+};
+
+      button.addEventListener("mouseenter", onEnter);
+      button.addEventListener("mouseleave", onLeave);
+
+
+      button._enterTl = enterTl;
+      button._leaveTl = leaveTl;
+      button._split = split;
+      button._cleanup = () => {
+        button.removeEventListener("mouseenter", onEnter);
+        button.removeEventListener("mouseleave", onLeave);
+      };
+    });
+  }, linksContainerRef);
+
+
+  return () => {
+    ctx.revert();
+  };
+}, []);
   return (
     <>
 
@@ -172,7 +324,19 @@ const menuText = "Menu";
 >
 
 <motion.div
-  className="w-12 h-12 rounded-full backdrop-blur-lg bg-white/40 border border-[#808080]/10 flex items-center justify-center z-10"
+className="
+  relative w-12 h-12 rounded-full
+  backdrop-blur-md
+  bg-gradient-to-b from-white/30 to-white/10
+  shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]
+  flex items-center justify-center
+  z-10
+  before:absolute before:inset-[1px]
+  before:rounded-full
+  before:bg-gradient-to-b before:from-white/55 before:to-transparent
+  before:opacity-30
+  before:pointer-events-none
+"
   style={{ position: "absolute", left: 0, transformOrigin: "right center" }}
   initial={{ scaleX: 0, scaleY: 0.3, opacity: 0 }}
   animate={{
@@ -187,22 +351,27 @@ const menuText = "Menu";
   }}
   aria-hidden="true"
 >
-<svg
-  fill="#000000"
-  viewBox="0 0 256 256"
-  id="Flat"
-  xmlns="http://www.w3.org/2000/svg"
-  style={{ width: "50%", height: "50%" }}
->
-  <path d="M218.82812,130.82812l-72,72a3.99957,3.99957,0,0,1-5.65625-5.65625L206.34326,132H40a4,4,0,0,1,0-8H206.34326L141.17187,58.82812a3.99957,3.99957,0,0,1,5.65625-5.65625l72,72A3.99854,3.99854,0,0,1,218.82812,130.82812Z" />
-</svg>
+  
+<img   className="w-3 h-3 scale-x-[-1]" src="/images/dotarrow.png" />
+
+
 </motion.div>
-<motion.div className={`relative ml-12 flex items-center  backdrop-blur-lg bg-white/40  border border-[#808080]/10 rounded-full h-14 overflow-hidden
-              transition-all duration-300 ease-[cubic-bezier(0.16,0.3,0.3,1)]
-              ${hovered ? "w-[380px] md:w-[400px] px-6" : "w-[86px] px-6"}`}
+<motion.div
+  className={`relative ml-12 flex items-center rounded-full h-12 overflow-hidden
+    transition-all duration-300 ease-[cubic-bezier(0.16,0.3,0.3,1)]
+    backdrop-blur-md
+    bg-gradient-to-b from-white/30 to-white/10
+    shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]
+    before:absolute before:inset-[1px]
+    before:rounded-full
+    before:bg-gradient-to-b before:from-white/55 before:to-transparent
+    before:opacity-30
+    before:pointer-events-none
+    ${hovered ? "w-[380px] md:w-[400px] px-6" : "w-[86px] px-6"}
+  `}
 >
     <motion.span
-      className="absolute left-6 tracking-[0.06em] text-black text-[12px] font-neuehaas45 whitespace-nowrap flex"
+      className="absolute left-6 tracking-wider text-black text-[12px] font-neuehaas45 whitespace-nowrap flex"
       initial="show"
       animate={hovered ? "hide" : "show"}
       variants={{
@@ -213,7 +382,7 @@ const menuText = "Menu";
       {(typeof menuText === "string" ? menuText : "Menu").split("").map((char, i) => (
         <motion.span
           key={i}
-          className="inline-block"
+          className="tracking-wider inline-block"
           variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: 20 } }}
           transition={{ duration: 0.3, ease: [0.16, 0.3, 0.3, 1] }}
         >
@@ -224,6 +393,7 @@ const menuText = "Menu";
 
 
     <motion.div
+    ref={linksContainerRef}
       className="absolute left-6 flex items-center gap-3"
       initial="hide"
       animate={hovered ? "show" : "hide"}
@@ -232,10 +402,10 @@ const menuText = "Menu";
         hide: { transition: { staggerChildren: 0.03 } },
       }}
     >
-      {links.slice(0, 5).map((link, i) => {
-        const isDirect = !link.sublinks || link.sublinks.length === 0;
-        const href = isDirect && link.hrefs && link.hrefs[0];
-
+{links.slice(0, 5).map((link, i) => {
+  const isDirect = !link.sublinks || link.sublinks.length === 0;
+  const href = isDirect && link.hrefs && link.hrefs[0];
+  
         const activate = () => {
           if (isDirect && href) {
             setIsActive(false);
@@ -248,37 +418,77 @@ const menuText = "Menu";
         };
 
         return (
-          <motion.button
-            key={link.title}
-            type="button"
-            className="text-black tracking-[0.06em] px-2 py-2 flex items-center cursor-pointer outline-none "
-            variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: -10 } }}
-            transition={{ duration: 0.35, ease: [0.16, 0.3, 0.3, 1] }}
-            onClick={activate}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && activate()}
-          >
-            <span className="text-[11px] text-black font-neuehaas35">{link.title}</span>
-          </motion.button>
+<motion.button
+  key={link.title}
+  type="button"
+  className="menu-link-button relative overflow-hidden px-2 py-2"
+  variants={{ show: { opacity: 1, y: 0 }, hide: { opacity: 0, y: -10 } }}
+  transition={{ duration: 0.35, ease: [0.16, 0.3, 0.3, 1] }}
+  onClick={activate}
+>
+  <div className="relative inline-block text-[11px] tracking-wider font-neuehaas35 leading-none">
+    <span className="split-textflip">{link.title}</span>
+  </div>
+</motion.button>
         );
       })}
     </motion.div>
   </motion.div>
 
   <motion.div
-    className="w-12 h-12 rounded-full backdrop-blur-lg bg-white/40  border border-[#808080]/10 flex items-center justify-center z-10"
+  className="
+    relative w-10 h-10 rounded-full
+    backdrop-blur-md
+    bg-gradient-to-b from-white/35 to-white/10
+    shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]
+    flex items-center justify-center
+    z-10
+    before:absolute before:inset-[1px]
+    before:rounded-full
+    before:bg-gradient-to-b before:from-white/60 before:to-transparent
+    before:opacity-30
+    before:pointer-events-none
+  "
     initial={{ scaleY: 1, opacity: 1 }}
     animate={{ scaleY: hovered ? 0 : 1, opacity: hovered ? 0 : 1 }}
     transition={{ duration: 0.5, ease: [0.16, 0.3, 0.3, 1] }}
     aria-hidden={hovered}
   >
+{/* <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
+</svg> */}
 <svg
-  fill="#000000"
-  viewBox="0 0 256 256"
-  id="Flat"
+  viewBox="0 0 840 980"
+  width="12"
+  height="14"
   xmlns="http://www.w3.org/2000/svg"
-  style={{ width: "50%", height: "50%", transform: "scaleX(-1)" }}
 >
-  <path d="M218.82812,130.82812l-72,72a3.99957,3.99957,0,0,1-5.65625-5.65625L206.34326,132H40a4,4,0,0,1,0-8H206.34326L141.17187,58.82812a3.99957,3.99957,0,0,1,5.65625-5.65625l72,72A3.99854,3.99854,0,0,1,218.82812,130.82812Z" />
+  <defs>
+    <path
+      id="caret"
+      d="M561.4 0H421.2v138.7h140.2z
+         M421.2 138.7H281v140.2h140.2z
+         M281 278.9H140.8v140.2H281z
+         M281 559.4H140.8v140.2H281z
+         M421.2 699.6H281v140.2h140.2z
+         M561.4 839.8H421.2V980h140.2z
+         M140.8 419.1H.6v140.2h140.2z"
+    />
+  </defs>
+
+
+  <use href="#caret" fill="black" />
+
+<use
+  href="#caret"
+  fill="black"
+  transform="
+    translate(281 490)
+    scale(0.7)
+    translate(-281 -490)
+    translate(380 20)
+  "
+/>
 </svg>
   </motion.div>
 </div>
@@ -319,7 +529,7 @@ const menuText = "Menu";
                   alignItems: "center",
                 }}
               >
-                <video
+                {/* <video
                   id="holovideo"
                   loop
                   muted
@@ -339,7 +549,7 @@ const menuText = "Menu";
                     type="video/mp4"
                   />
                   Your browser does not support the video tag.
-                </video>
+                </video> */}
               </div>
               <svg width="14" height="17" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -436,10 +646,10 @@ const menuText = "Menu";
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <p className="text-sm font-saolitalic opacity-60">
-                      ({j + 1})
+                    <p className="text-xs font-canelathin italic opacity-60">
+                      {j + 1}.
                     </p>
-                    <h2 className="text-[20px] font-neuehaas45">
+                    <h2 className="text-[16px] tracking-wide font-neuehaas45">
                       {sublink}
                     </h2>
                   </div>
@@ -472,23 +682,23 @@ const menuText = "Menu";
     <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">
       Email:
     </p>
-    <div className="flex flex-col gap-1 underline underline-offset-2">
+ <div className="flex flex-col gap-1 underline underline-offset-2 tracking-wide">
       <a href="mailto:info@email.com">info@freysmiles.com</a>
     </div>
   </div>
 
   <div>
-    <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">
+    <p className="mb-2 text-[14px] font-neuehaas45 opacity-70">
       Telephone:
     </p>
     <div className="flex flex-col gap-1">
-      <p className="text-[14px] font-neuehaas35">(610) 437-4748</p>
+      <p className="text-[14px] font-neuehaas45 tracking-wide">(610) 437-4748</p>
     </div>
   </div>
 
   <div>
-    <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">Social</p>
-    <div className="flex flex-col gap-1 underline underline-offset-2">
+    <p className="mb-2 text-[14px] font-neuehaas45 opacity-70">Social</p>
+    <div className="flex flex-col gap-1 underline underline-offset-2 tracking-wide">
       <a href="#">Instagram</a>
       <a href="#">Facebook</a>
     </div>

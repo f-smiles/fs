@@ -2,8 +2,9 @@
 
 import NormalizeWheel from "normalize-wheel";
 import * as THREE from "three";
-import { MeshDistortMaterial } from "@react-three/drei";
-import { useRef, useEffect, useState, Suspense } from "react";
+import { TextureLoader } from 'three';
+
+import { useRef, useEffect, useState, Suspense, useMemo} from "react";
 import { Disclosure, Transition } from "@headlessui/react";
 import { gsap } from "gsap";
 import { CustomEase } from "gsap/CustomEase";
@@ -21,6 +22,7 @@ import {
   Text,
   OrbitControls,
   useGLTF,
+  MeshDistortMaterial, Environment, useTexture, shaderMaterial
 } from "@react-three/drei";
 import {
   Canvas,
@@ -28,7 +30,7 @@ import {
   useThree,
   extend,
   useLoader,
-  useTexture,
+
 } from "@react-three/fiber";
 import {
   Renderer,
@@ -1347,7 +1349,7 @@ function RepellingLines({
       canvas.removeEventListener("pointerleave", leaveMouse);
       window.removeEventListener("resize", setSize);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [
     text,
     orientation,
@@ -1380,6 +1382,7 @@ function RepellingLines({
     </div>
   );
 }
+
 const Braces = () => {
   useEffect(() => {
     const canvas = document.getElementById("shader-bg");
@@ -1617,8 +1620,43 @@ void main() {
 
   return (
     <>
+<Canvas
+  shadows
+  style={{
+    position: "fixed",
+    inset: 0,
+    width: "100vw",
+    height: "100vh",
+  }}
+ gl={{
+    physicallyCorrectLights: true,
+    toneMapping: THREE.ACESFilmicToneMapping,
+    toneMappingExposure: 1.65, 
+    outputColorSpace: THREE.SRGBColorSpace,
+  }}
+  camera={{ position: [0, 0, 4.5], fov: 45 }}
+>
 
-    {/* <LandscapeBackground /> */}
+  <ambientLight intensity={0.25} />
+
+<directionalLight
+  position={[-2, 1, 4]}
+  intensity={2.4}
+  color="#ffffff"
+/>
+  <directionalLight
+    position={[5, 6, 4]}
+    intensity={1.2}
+    color="#e6efff"
+    castShadow
+  />
+
+
+  <LandscapeBackground />
+  <PortalFrame />
+</Canvas>
+
+
 <section className="relative w-full h-screen overflow-hidden pointer-events-none">
 
 
@@ -1656,7 +1694,7 @@ void main() {
   />
 </div>
    
-    <button className="uppercase px-1 py-2 text-[10px] font-neuehaas35 text-black">
+    <button className="uppercase px-1 py-2 text-[10px] font-neuehaas45 tracking-wide text-black">
       Scroll to explore
     </button>
       <div className="w-[9px] h-[9px] -scale-x-100">
@@ -1740,11 +1778,7 @@ void main() {
           </div>
 
           <div className="flex justify-center items-center">
-            <img
-              src="/images/fsstickers.png"
-              className="max-w-full max-h-[100vh] object-contain"
-              alt="7graphic"
-            />
+          
           </div>
         </div>
         <section
@@ -1883,7 +1917,7 @@ void main() {
           </div>
         </div>
 
-        <FluidSimulation />
+        {/* <FluidSimulation /> */}
      
       </div>
       <footer id="scroll-down" className=" relative overflow-hidden h-[100vh]">
@@ -1936,29 +1970,89 @@ void main() {
 
 export default Braces;
 
-
-const LandscapeBackground = () => {
-  const canvasRef = useRef(null);
+function PortalFrame() {
+  const { scene } = useGLTF("/models/portal_room.glb");
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const wallMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#b7b2c2"),
+      roughness: 0.88,
+      metalness: 0.0,
 
-    const gl = canvas.getContext('webgl2');
-    if (!gl) {
-      console.error('WebGL2 not supported');
-      return;
+
+      envMapIntensity: 0.2,
+
+
+      clearcoat: 0.05,
+      clearcoatRoughness: 0.9,
+    });
+
+    scene.traverse((child) => {
+
+      if (child.name === "Human_1_5") {
+        child.visible = false;
+        return;
+      }
+
+      if (!child.isMesh) return;
+
+      if (child.name === "skybox_3") {
+        child.visible = false;
+        return;
+      }
+
+      if (child.name === "Object_12") {
+        const mat = child.material.clone();
+        mat.colorWrite = false;
+        mat.depthWrite = true;
+        mat.depthTest = true;
+        child.material = mat;
+        child.renderOrder = 0;
+        child.castShadow = false;
+        child.receiveShadow = false;
+        return;
+      }
+
+      child.material = wallMaterial;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      child.renderOrder = 1;
+    });
+  }, [scene]);
+
+  return (
+    <group position={[0, -1.4, 0]}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+function Backdrop() {
+  return (
+    <mesh position={[0, 0, -2]}>
+      <planeGeometry args={[20, 12]} />
+      <meshStandardMaterial color="#eaeaea" />
+    </mesh>
+  );
+}
+const LandscapeShaderMaterial = shaderMaterial(
+  {
+    iTime: 0,
+    iResolution: new THREE.Vector3(),
+    iMouse: new THREE.Vector4(),
+    iChannel0: null,
+    iChannel1: null,
+    iChannel2: null,
+  },
+  // Vertex shader
+  `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
-
-    const vsSource = `#version 300 es
-      in vec2 a_position;
-      out vec2 v_texCoord;
-      void main() {
-        gl_Position = vec4(a_position, 0.0, 1.0);
-        v_texCoord = (a_position + 1.0) / 2.0;
-      }`;
-
-    const fsSource = `#version 300 es
+  `,
+  // Fragment shader 
+  `
 precision highp float;
 uniform vec3 iResolution;
 uniform float iTime;
@@ -1966,617 +2060,457 @@ uniform vec4 iMouse;
 uniform sampler2D iChannel0;
 uniform sampler2D iChannel1;
 uniform sampler2D iChannel2;
-in vec2 v_texCoord;
-out vec4 fragColor;
+varying vec2 vUv;
 
-#define S smoothstep
-#define AA 1
-#define T iTime*1.2 // Slowed down from 4.0 to 0.5 for dreamy pace
-#define PI 3.1415926535897932384626433832795
-#define TAU 6.283185
-
-#define MAX_STEPS 300
-#define MAX_DIST 60.
-#define SURF_DIST .0001
+#define T iTime * 0.5
+#define PI 3.141592653589793
+#define MAX_STEPS 100
+#define MAX_DIST 100.0
+#define SURF_DIST 0.001
 
 mat2 Rot(float a) {
-    float s = sin(a);
-    float c = cos(a);
-    return mat2(c, -s, s, c);
+  float s = sin(a);
+  float c = cos(a);
+  return mat2(c, -s, s, c);
 }
 
-float smin( float a, float b, float k ) {
-    float h = clamp( 0.5+0.5*(b-a)/k, 0., 1. );
-    return mix( b, a, h ) - k*h*(1.0-h);
-}
-mat3 rotationMatrixY (float theta)
-{
-    float c = cos (theta);
-    float s = sin (theta);
-    return mat3(
-        vec3(c, 0, s),
-        vec3(0, 1, 0),
-        vec3(-s, 0, c)
-    );
-}
-mat3 rotationMatrixX(float theta){
-	float c = cos (theta);
-	float s = sin (theta);
-	return mat3(
-		vec3(1, 0, 0),
-		vec3(0, c, -s),
-		vec3(0, s, c)
-	);
-}
-mat3 rotationMatrixZ(float theta){
-	float c = cos (theta);
-	float s = sin (theta);
-	return mat3(
-		vec3(c, -s, 0),
-		vec3(s, c, 0),
-		vec3(0, 0, 1)
-	);
-}
-vec3 rotateX (vec3 p, float theta)
-{
-	return rotationMatrixX(theta) * p;
-}
-vec3 rotateY (vec3 p, float theta)
-{
-    return p*rotationMatrixY(theta); 
-}
-vec3 rotateZ (vec3 p, float theta)
-{
-	return p*rotationMatrixZ(theta); 
+float sdPlane(vec3 p, vec3 n, float h) {
+  return dot(p, n) + h;
 }
 
-float rounding( in float d, in float h )
-{
-    return d - h;
+float sdSphere(vec3 p, float r) {
+  return length(p) - r;
 }
 
-
-float opUnion( float d1, float d2 )
-{
-    return min(d1,d2);
-}
-
-
-float opSmoothUnion( float d1, float d2, float k )
-{
-    float h = max(k-abs(d1-d2),0.0);
-    return min(d1, d2) - h*h*0.25/k;
-}
-
-
-float opSmoothSubtraction( float d1, float d2, float k ) {
-    float h = clamp( 0.5 - 0.5*(d2+d1)/k, 0.0, 1.0 );
-    return mix( d2, -d1, h ) + k*h*(1.0-h); 
-}
-// ================================
-// SDF
-// ================================
-float sdCircle( in vec3 p, in float r )
-{
-	return length(p)-r;
-}
-float sdBox( vec3 p, vec3 b )
-{
+float sdBox(vec3 p, vec3 b) {
   vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
-float sdCappedCylinder( vec3 p, float h, float r )
-{
-  vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(h,r);
-  return min(max(d.x,d.y),0.0) + length(max(d,0.0));
-}
-float sdCappedTorus(in vec3 p, in vec2 sc, in float ra, in float rb)
-{
-  p.x = abs(p.x);
-  float k = (sc.y*p.x>sc.x*p.y) ? dot(p.xy,sc) : length(p.xy);
-  return sqrt( dot(p,p) + ra*ra - 2.0*ra*k ) - rb;
-}
-float ndot(vec2 a, vec2 b ) { return a.x*b.x - a.y*b.y; }
-float sdRhombus(vec3 p, float la, float lb, float h, float ra)
-{
-  p = abs(p);
-  vec2 b = vec2(la,lb);
-  float f = clamp( (ndot(b,b-2.0*p.xz))/dot(b,b), -1.0, 1.0 );
-  vec2 q = vec2(length(p.xz-0.5*b*vec2(1.0-f,1.0+f))*sign(p.x*b.y+p.z*b.x-b.x*b.y)-ra, p.y-h);
-  return min(max(q.x,q.y),0.0) + length(max(q,0.0));
-}
-float sdEllipsoid( vec3 p, vec3 r )
-{
-  float k0 = length(p/r);
-  float k1 = length(p/(r*r));
-  return k0*(k0-1.0)/k1;
-}
-float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
-{
-  vec3 pa = p - a, ba = b - a;
-  float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-  return length( pa - ba*h ) - r;
-}
-float sdPlane( vec3 p, vec3 n, float h )
-{
-  // n must be normalized
-  return dot(p,n) + h;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
-
-// ================================
-// FBM
-// ===============================
-
-float hash(vec3 p) {
-  // Simple fast hash function to scatter values
-  p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
-  p *= 17.0;
-  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+float hash(vec2 p) {
+  p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));
+  return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));
 }
 
-float noise(vec3 x) {
-  // Smooth interpolated value noise
-  vec3 i = floor(x);
-  vec3 f = fract(x);
-  f = f * f * (3.0 - 2.0 * f);
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
   return mix(
-    mix(
-      mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
-      mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x),
-      f.y
-    ),
-    mix(
-      mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
-      mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x),
-      f.y
-    ),
-    f.z
+    mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+    u.y
   );
 }
-const mat3 m = mat3( 0.00,  0.80,  0.60,
-                    -0.80,  0.36, -0.48,
-                    -0.60, -0.48,  0.64 );
-
-float fbm(vec3 p) {
-  // Fractal Brownian Motion using the procedural noise above
-  float f = 0.0;
+ 
+float fbm(vec2 p) {
+  float value = 0.0;
   float amplitude = 0.5;
-  mat3 m = mat3( 0.00,  0.80,  0.60,
-                -0.80,  0.36, -0.48,
-                -0.60, -0.48,  0.64 );
+  float frequency = 1.0;
+  
   for (int i = 0; i < 5; i++) {
-    f += amplitude * noise(p);
-    p = m * p * 1.8;     // rotate and scale to reduce repetition
+    value += amplitude * noise(p * frequency);
+    frequency *= 2.0;
     amplitude *= 0.5;
   }
-  return f;
-}
-const mat2 m2 = mat2(0.8,-0.6,0.6,0.8);
-float fbm( vec2 p )
-{
-    float f = 0.0;
-    f += 0.5000*texture( iChannel2, p/256.0 ).x; p = m2*p*2.02;
-    f += 0.2500*texture( iChannel2, p/256.0 ).x; p = m2*p*2.03;
-    f += 0.1250*texture( iChannel2, p/256.0 ).x; p = m2*p*2.01;
-    f += 0.0625*texture( iChannel2, p/256.0 ).x;
-    return f/0.9375;
+  
+  return value;
 }
 
+float skyFog(vec3 rd) {
+  float height = smoothstep(-0.15, 0.35, rd.y);
+  height = 1.0 - height; // fog hugs horizon
 
-//===============================
-// TERRAIN
-//=============================== 
+  // Base fog always 
+  float baseFog = 0.45;
 
-vec2 terrainMap(vec3 pos){
-    float hPlane = smoothstep(-0.5, 0.5,  0.2 * sin(pos.z* 2.) * sin(pos.x));
-    float plane = sdPlane(pos, vec3(0.0,2.1,0.0),hPlane);
-    //ROCKS
-    vec3 q = vec3( mod(abs(pos.x),7.0)-2.5,pos.y,mod(abs(pos.z+3.0),7.0)-3.0);
-    vec2 id = vec2( floor(pos.x/7.0)-2.5, floor((pos.z+3.0)/7.0)-3.0);
-    float fid = id.x*121.1 + id.y*31.7;
-    float h   = 1.8 + 1.0 * sin(fid*21.7);
-    float wid = 1.0 + 0.8 * sin(fid*31.7);
-    float len = 1.0 + 0.8 * sin(fid*41.7);
-    h   = min(max(h, 1.),2.2);
-    len = max(len, 1.5);
-    wid = max(wid, 1.5);
-    float ellip = sdEllipsoid(q, vec3(wid,h,len));
-    ellip -= 0.04*smoothstep(-1.0,1.0,sin(5.0*pos.x)+cos(5.0*pos.y)+sin(5.0*pos.z));
-    
+  // Slow internal motion
+  float t = iTime * 0.015;
+  float drift = fbm(vec2(t, rd.y * 2.5));
 
-    //TORUS
-    q = vec3( mod(abs(pos.x+5.0),14.0)-5.,pos.y+0.1,mod(abs(pos.z+3.0),14.0)-3.0);
-    float torus = sdCappedTorus(q, vec2(1.,0), 1.5, 0.35);
-    torus -= 0.05*smoothstep(-1.0,1.0,sin(9.0*pos.x)+cos(5.0*pos.y)+sin(5.0*pos.z));
-    
-    float d = opSmoothUnion(torus, ellip, 0.5);
-    d = opUnion(d, plane);
-    
-    
-    float material;
-    if( abs(d) < 0.001)
-        material = 4.; 
-    if(abs(d -plane) <0.0001) 
-        material = 5.;
-    return vec2(d, material);
+  drift = smoothstep(0.3, 0.8, drift);
+
+  return height * (baseFog + drift * 0.4);
 }
 
+float groundFog(vec3 p) {
+  float h = p.y;
+  float heightMask = exp(-h * 0.4); // Reduced from 0.6 to 0.4 for taller fog
 
-//===============================
+  // Larger scale for more obvious drifting
+  vec2 wind = normalize(vec2(1.0, 0.6)) * 0.8;
+  
+  // Much larger scale for bigger fog patches
+  vec2 uv = p.xz * 0.1; 
+  
+  // Faster movement
+  uv += wind * iTime * 0.2; 
+  
+  // Vertical lift (fog rising) - more pronounced
+  uv.y += iTime * 0.08; // Increased from 0.06 to 0.08
 
-vec2 path(in float z){ 
-    //return vec2(0);
-    float a = sin(z * 0.1);
-    float b = cos(z * 0.8/2.0);
-    return vec2(a*1.5 - b*1., b + a*1.5); 
+  // second layer of fog
+  vec2 uv2 = p.xz * 0.15;
+  uv2 += normalize(vec2(0.8, 0.4)) * iTime * 0.15;
+  uv2.y += iTime * 0.05;
+  
+  // Combine two layers of noise for richer fog structure
+  float n1 = fbm(uv);
+  float n2 = fbm(uv2 * 0.7 + 10.0);
+  
+
+  n1 = smoothstep(0.2, 0.9, n1); 
+  n2 = smoothstep(0.1, 0.8, n2);
+  
+
+  float n = mix(n1, n2, 0.5);
+
+  float distFade = exp(-length(p.xz) * 0.02);
+
+  float fog = heightMask * n * (0.8 + 0.2 * distFade);
+  
+
+  return fog * 1.2; // Boosted from 1.0 to 1.2
 }
 
 
-vec2 map(in vec3 pos)
-{
-    
-    float material;
+float foregroundMist(vec3 p, vec3 rd) {
 
-    vec3 terrainPos = pos;
-    terrainPos.xz -= path(pos.z);
-    vec2 terrain = terrainMap(terrainPos);
+  float h = p.y;
+  float heightMask = exp(-h * 2.0); 
+  
 
-    float d = terrain.x;
-    material = terrain.y;
-    
-    return vec2(d, material);
+  float cameraDist = length(p.xz);
+  float distMask = 1.0 - smoothstep(0.0, 15.0, cameraDist);
+  
+
+  vec2 uv = p.xz * 0.5; // High frequency for detailed mist
+  float t = iTime * 0.1;
+  
+
+  vec2 swirl = vec2(
+    sin(uv.x * 0.3 + t) * 0.5 + cos(uv.y * 0.2 + t * 0.7) * 0.3,
+    sin(uv.y * 0.25 + t * 0.8) * 0.4 + cos(uv.x * 0.35 + t * 0.6) * 0.5
+  );
+  
+  uv += swirl * 0.5;
+  
+  uv.y -= t * 0.3; // Mist rises upward
+  
+
+  float mist1 = fbm(uv);
+  float mist2 = fbm(uv * 1.7 + 5.0);
+  float mist3 = fbm(uv * 3.0 - 10.0);
+  
+
+  mist1 = smoothstep(0.1, 0.7, mist1);
+  mist2 = smoothstep(-0.2, 0.4, mist2);
+  mist3 = smoothstep(0.0, 0.5, mist3 * 0.5 + 0.3);
+  
+  float mist = (mist1 * 0.5 + mist2 * 0.3 + mist3 * 0.2);
+  
+
+  float wisps = sin(p.x * 2.0 + p.z * 1.5 + t * 2.0) * 0.5 + 0.5;
+  wisps *= sin(p.y * 10.0 + t * 3.0) * 0.3 + 0.7;
+  wisps = smoothstep(0.3, 0.8, wisps);
+  
+
+  mist = max(mist, wisps * 0.4);
+  
+  mist *= heightMask * distMask;
+  
+  float groundProximity = exp(-h * 8.0);
+  mist *= (0.7 + 0.3 * groundProximity);
+  
+  return mist * 1.5; // Boost intensity for visible mist
 }
 
 
-vec2 RayMarch(vec3 ro, vec3 rd, out int mat) {
-	float dO=0.;
-    float dM=MAX_DIST;
-    for(int i=0; i<MAX_STEPS; i++) {
-    	vec3 p = ro + rd*dO;
-        vec2 res = map(p);
-        float dS = 0.75*res.x;
-        mat = int(map(p).y);
-        if(dS<dM) dM = dS;
-        dO += dS;
-        if(dO>MAX_DIST || abs(dS)<SURF_DIST) break;
+float screenMist(vec2 uv, vec3 rd, float depth) {
+  // Only apply to lower part of screen (near ground)
+  float screenPosMask = 1.0 - smoothstep(0.0, 0.7, uv.y + 0.5);
+  
+
+  vec2 mistUV = uv * vec2(3.0, 1.5);
+  mistUV += iTime * 0.05;
+  
+  float mistPattern = fbm(mistUV);
+  mistPattern = smoothstep(0.2, 0.8, mistPattern);
+  
+
+  float drift = sin(uv.x * 5.0 + iTime * 0.3) * 0.1;
+  mistPattern += drift;
+  
+
+  float depthMask = smoothstep(2.0, 8.0, depth);
+  depthMask *= 1.0 - smoothstep(8.0, 20.0, depth);
+  
+  return mistPattern * screenPosMask * depthMask * 0.3;
+}
+
+float skyHaze(vec3 rd) {
+
+  vec2 uv = rd.xz / max(rd.y, 0.35);
+  uv += vec2(iTime * 0.004, iTime * 0.002);
+  float n = fbm(uv * 0.06);
+  float heightMask = smoothstep(0.25, 0.85, rd.y);
+  return n * heightMask;
+}
+
+float mapTerrain(vec3 pos) {
+  float plane = sdPlane(pos, vec3(0.0, 1.0, 0.0), 0.0);
+
+  float hills = fbm(pos.xz * 0.2) * 2.0;
+  plane -= hills * smoothstep(-10.0, 10.0, pos.x);
+
+  return plane;
+}
+
+vec2 map(vec3 pos) {
+  float d = mapTerrain(pos);
+  float material = d < 0.001 ? 1.0 : 0.0;
+  return vec2(d, material);
+}
+
+vec3 getNormal(vec3 p) {
+  float d = mapTerrain(p);
+  vec2 e = vec2(0.001, 0.0);
+  
+  vec3 n = vec3(
+    mapTerrain(p + e.xyy) - d,
+    mapTerrain(p + e.yxy) - d,
+    mapTerrain(p + e.yyx) - d
+  );
+  
+  return normalize(n);
+}
+
+vec2 rayMarch(vec3 ro, vec3 rd) {
+  float dO = 0.0;
+  
+  for (int i = 0; i < MAX_STEPS; i++) {
+    vec3 p = ro + rd * dO;
+    vec2 res = map(p);
+    float dS = res.x;
+    
+    dO += dS;
+    
+    if (dO > MAX_DIST || abs(dS) < SURF_DIST) {
+      break;
     }
-    
-    return vec2(dO, dM);
+  }
+  
+  return vec2(dO, 0.0);
 }
 
-vec3 GetNormal(vec3 p) {
-  float h = max(0.00025, 0.5*abs(map(p).x));  // adaptive step
-  vec2 e = vec2(h, 0.0);
-  float dx = map(p + e.xyy).x - map(p - e.xyy).x;
-  float dy = map(p + e.yxy).x - map(p - e.yxy).x;
-  float dz = map(p + e.yyx).x - map(p - e.yyx).x;
-  return normalize(vec3(dx, dy, dz));
+vec3 getSkyColor(vec3 rd) {
+  // Sky gradient
+  vec3 col = vec3(0.4, 0.6, 1.0) * (1.0 - rd.y * 0.5);
+  
+  // Sun
+  vec3 sunDir = normalize(vec3(0.5, 0.5, -1.0));
+  float sun = pow(max(dot(rd, sunDir), 0.0), 32.0);
+  col += vec3(1.0, 0.9, 0.6) * sun * 2.0;
+  
+  // Horizon glow
+  float horizon = smoothstep(0.0, 0.1, rd.y);
+  col = mix(col, vec3(1.0, 0.8, 0.7), horizon * 0.3);
+  
+  return col;
 }
 
-vec3 R(vec2 uv, vec3 p, vec3 l, float z) {
-    vec3 f = normalize(l-p),
-        r = normalize(cross(vec3(0,1,0), f)),
-        u = cross(f,r),
-        c = p+f*z,
-        i = c + uv.x*r + uv.y*u,
-        d = normalize(i-p);
-    return d;
-}
+vec3 getTerrainColor(vec3 p, vec3 n, vec3 rd) {
+  // Base color with noise variation
+  float variation = fbm(p.xz * 0.5);
+  
+  vec3 baseColor = mix(
+    vec3(0.7, 0.6, 0.5),  
+    vec3(0.5, 0.6, 0.7), 
+    smoothstep(-0.5, 0.5, variation)
+  );
+  
+  float detail = fbm(p.xz * 2.0) * 0.1;
+  baseColor += detail;
+  
+  // Lighting
+  vec3 lightDir = normalize(vec3(1.0, 2.0, -1.0));
+  float diff = max(dot(n, lightDir), 0.0);
+  vec3 diffuse = baseColor * diff;
+  
 
-float calcAO( in vec3 pos, in vec3 nor, in float time )
-{
-	float occ = 0.0;
-    float sca = 1.0;
-    for( int i=0; i<5; i++ )
-    {
-        float h = 0.01 + 0.12*float(i)/4.0;
-        float d = map( pos+h*nor).x;
-        occ += (h-d)*sca;
-        sca *= 0.95;
-    }
-    return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );
-}
-
-// https://iquilezles.org/articles/rmshadows
-float calcSoftshadow( in vec3 ro, in vec3 rd, float tmin, float tmax, const float k )
-{
-	float res = 1.0;
-    float t = tmin;
-    for( int i=0; i<50; i++ )
-    {
-		float h = map( ro + rd*t).x;
-        res = min( res, k*h/t );
-        t += clamp( h, 0.02, 0.20 );
-        if( res<0.005 || t>tmax ) break;
-    }
-    return clamp( res, 0.0, 1.0 );
-}
-
-
-
-
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
-{
-    vec2 m = vec2(0.5, 0.3); // Fixed mouse for level flyover (adjust y for pitch)
-    
-    vec3 col = vec3(0.,0.,0.);
-    vec3 ro = vec3(0, 1., 1.)*3.5;
-    ro.yz *= Rot(-m.y*3.14+1.);
-    //ro.xz *= Rot(-m.x*6.2831);
-    ro.z = ro.z - T;
-    
-    ro.x += path(ro.z).x;
-    
-    ro.y = max(ro.y, -0.1);
-    ro.y = min(ro.y, 1.);
-    
-
-    for(int x=0; x<AA; x++) {
-        for(int y=0; y<AA; y++) {
-            
-            vec2 offs = vec2(x, y)/float(AA) -.5;
-
-            vec2 uv = (fragCoord+offs-.5*iResolution.xy)/iResolution.y;
-            vec3 dir = vec3(ro.x, 1, path(ro.z).y - T);
-            vec3 rd = R(uv, ro, dir, 1.);
-            
-// Sky base color (dusty pink tone)
-col = vec3(0.95, 0.78, 0.75); // soft desert pink
-
-// Slight gradient darkening near top of sky
-col -= max(rd.y, 0.0) * 0.7;
-
-// Clouds (dusty white)
-vec2 sc = ro.xz + rd.xz * (200.0 - ro.y) / rd.y;
-float cloudNoise = smoothstep(0.4, 0.9, fbm(0.0005 * sc));
-col = mix(col, vec3(1.0, 0.95, 0.92), 0.5 * cloudNoise); // warmer clouds
-
-
-col += 0.1 * exp(-15.0 * abs(rd.y));
-
-            int mat = -1;
-            float dist = RayMarch(ro, rd, mat).x;
-            
-            
-            vec3 p = ro + rd * dist;
-            vec3 movingPos = p;
-            movingPos.z += T;
-            movingPos.xz = path(movingPos.z);
-            vec3 f0;
-            switch(mat){
-               // Ground
-case 4:
-  f0 = vec3(0.);
-
-  // Sample desaturated texture color
-  vec3 gd = 0.33 * texture(iChannel1, p.xy * 2.0).xyz
-          + 0.33 * texture(iChannel1, p.yz).xyz
-          + 0.33 * texture(iChannel1, p.xz).xyz;
-  gd *= 0.5;
-
-  // Noise variation
-  float variation = fbm(p.xz * 0.2 + iTime * 0.1);
-
-  // Desert-inspired tones
-  vec3 dustyPink     = vec3(0.75, 0.6, 0.62); // dreamy pink-terracotta
-  vec3 powderBlue    = vec3(0.72, 0.78, 0.95); // soft lavender-blue
-  vec3 cloudPurple   = vec3(0.6, 0.5, 0.7);    // dusty violet
-
-  // Strata-like blend
-  vec3 blended = mix(dustyPink, powderBlue, smoothstep(0.4, 0.8, variation));
-  blended = mix(blended, cloudPurple, smoothstep(0.7, 1.0, variation));
-
-  // Final composite
-  col = 0.5 * blended + 0.5 * gd;
-  break;
-                case 5: 
-                    col *= vec3(0.5, 0.4, 0.2);
-                case -1:
-                    //col *= vec3(1.,1.,1.);
-                    break;
-            }
-            
-
-            if(dist<MAX_DIST) {
-                
-                vec3 lightPos = vec3(0.,10.,4.);
-                //vec3 lightPos = movingPos + vec3(0.,10.,4.);
-                vec3 l = normalize(lightPos);
-                vec3 n = GetNormal(p);
-                
-                float occ = calcAO(p, n, iTime);
-                //Top Light
-                {
-                    
-                    float dif = clamp(dot(n, l), 0., 1.);
-                    vec3 ref = reflect(rd, n);
-                    vec3 spe = vec3(1.0) * smoothstep(0.4,0.6,ref.y);
-                     float fre = clamp(1.0+dot(rd, n), 0., 1.);
-                  spe *= f0 + (1.0 - f0) * pow(fre, 5.0);
-                    spe *= 6.0;
-                    //float shadow = calcSoftshadow(p, l, 0.1, 2.0, 32.0 );
-                   // dif *= shadow;
-                    col += 0.55*vec3(0.7,0.7,0.9)*dif*occ;
-                    col += vec3(0.7,0.7,0.9)*spe*dif*f0;  
-                }
-            
-                //Side Light
-                {
-                    vec3 lightPos = normalize(vec3(-2.7,1.2,-0.4));
-                    float dif = clamp(dot(n, lightPos), 0., 1.);
-                    float shadow = calcSoftshadow(p, lightPos, 0.001, 2.0, 16.0 );
-
-                    vec3 hal = normalize(lightPos-rd);
-                    vec3 spe = vec3(1.) * pow(clamp(dot(hal, n), 0., 1.),32.0);
-                    spe *= f0 + (1.-f0) * pow(1.-+clamp(dot(hal, lightPos), 0., 1.),5.0);
-
-                    dif *= shadow;
-                    col += 0.5*vec3(1.0,0.6,0.3)*dif*occ;
-                    col += 1.0*vec3(1.0,0.6,0.3)*spe*f0;
-                }
-                
-                //Bottom light
-                {
-                    float dif = clamp(0.5 -0.5 * n.y,0.0 ,1.);
-                    col += 0.15*dif*occ;
-                }
-                //Reactor Light
-                {
-                    //vec3 lightPos = normalize(vec3(abs(movingPos.x) - 0.5,0.0, lenReactor));
-                    //float dif = clamp(dot(n, lightPos), 0., 1.);
-                    
-                    //float shadow = calcSoftshadow(p, lightPos, 0.001, 0.5, 8.0 );
-                    
-                    //col += (0.7 + 0.3 * sin(iTime))*vec3(1.0,1.0,2.) * dif * shadow;
-                    
-                }
-                col = mix( col, 0.9*vec3(0.5, 0.4, 0.2), 1.0-exp( -0.000005*dist*dist*dist ) );  // Increased fog coefficient (from 0.00001 to 0.000005) for dreamier haze
-            }
-            
-            
-        }
-    }
-    
-    
-    col /= float(AA*AA);
-    
-    col = clamp(col,0.0,1.0);
-    col = col*col*(3.0-2.0*col);
-    
-    
-    fragColor = vec4(col,1.0);
+  vec3 ambient = baseColor * 0.3;
+  
+  vec3 viewDir = -rd;
+  vec3 halfDir = normalize(lightDir + viewDir);
+  float spec = pow(max(dot(n, halfDir), 0.0), 32.0);
+  vec3 specular = vec3(0.2) * spec;
+  
+  return ambient + diffuse + specular;
 }
 
 void main() {
-  vec2 fragCoord = v_texCoord * iResolution.xy;
-  mainImage(fragColor, fragCoord);
+
+  vec2 uv = (vUv - 0.5) * 2.0;
+  uv.x *= iResolution.x / iResolution.y;
+
+  vec3 ro = vec3(0.0, 1.5, 5.0); 
+  ro.xz *= Rot(-0.3);
+  ro.yz *= Rot(0.1); 
+  
+  vec3 lookAt = vec3(0.0, 0.5, 0.0); 
+  
+  vec3 forward = normalize(lookAt - ro);
+  vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+  vec3 up = normalize(cross(forward, right));
+  
+  vec3 rd = normalize(uv.x * right + uv.y * up + forward * 1.5);
+  
+  vec2 res = rayMarch(ro, rd);
+  float dist = res.x;
+  
+  vec3 col;
+  
+  if (dist < MAX_DIST) {
+    // Hit terrain
+    vec3 p = ro + rd * dist;
+    vec3 n = getNormal(p);
+    
+    col = getTerrainColor(p, n, rd);
+    
+    float distFog = exp(-dist * 0.05);
+    col = mix(vec3(0.5, 0.6, 0.8), col, distFog);
+    
+    float gFog = groundFog(p);
+    
+    float fgMist = foregroundMist(p, rd);
+    
+
+    vec3 gFogCol = vec3(0.82, 0.86, 0.9);
+    
+    vec3 fgMistCol = vec3(0.85, 0.88, 0.92);
+    
+    col = mix(col, gFogCol, gFog * 0.6);
+
+    col = mix(col, fgMistCol, fgMist * 0.8);
+
+    float fogGlow = (gFog + fgMist * 0.5) * smoothstep(0.1, 0.4, dot(n, normalize(vec3(0.5, 0.5, -1.0))));
+    col += vec3(0.9, 0.95, 1.0) * fogGlow * 0.15;
+  } else {
+    // Sky base
+    col = getSkyColor(rd);
+    
+    float fog = skyFog(rd);
+    
+    col = mix(col, vec3(dot(col, vec3(0.333))), fog * 0.35);
+    
+    vec3 fogCol = vec3(0.82, 0.86, 0.92);
+    
+    col = mix(col, fogCol, fog * 0.55);
+    
+    float haze = skyHaze(rd);
+    vec3 hazeCol = vec3(0.75, 0.8, 0.88);
+    col = mix(col, hazeCol, haze * 0.15);
+  }
+  
+  float screenMistAmount = screenMist(uv, rd, dist);
+  vec3 screenMistCol = vec3(0.88, 0.91, 0.95);
+  col = mix(col, screenMistCol, screenMistAmount);
+  
+  float atmosphere = pow(1.0 - max(rd.y, 0.0), 2.0);
+  col += vec3(0.3, 0.5, 0.8) * atmosphere * 0.3;
+  
+  float vignette = 1.0 - length(vUv - 0.5) * 0.4; 
+  col *= vignette;
+  
+  col = pow(col, vec3(0.4545));
+  
+  gl_FragColor = vec4(col, 1.0);
 }
-`;
+  `
+);
 
-    const createShader = (type, source) => {
-      const shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-      }
-      return shader;
-    };
+extend({ LandscapeShaderMaterial });
 
-    const vs = createShader(gl.VERTEX_SHADER, vsSource);
-    const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+const createNoiseTexture = () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  
+  const imageData = ctx.createImageData(256, 256);
+  const data = imageData.data;
 
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
-      return;
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 256; x++) {
+      const idx = (y * 256 + x) * 4;
+      const value = Math.random() * 255;
+      data[idx] = value;
+      data[idx + 1] = value;
+      data[idx + 2] = value;
+      data[idx + 3] = 255;
     }
-
-    gl.useProgram(program);
-
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    const positions = new Float32Array([
-      -1, -1,
-      1, -1,
-      -1, 1,
-      1, 1,
-    ]);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-
-    const positionLocation = gl.getAttribLocation(program, 'a_position');
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-    // Uniform locations
-    const iTimeLoc = gl.getUniformLocation(program, 'iTime');
-    const iResLoc = gl.getUniformLocation(program, 'iResolution');
-    const iMouseLoc = gl.getUniformLocation(program, 'iMouse');
-    const iChannel0Loc = gl.getUniformLocation(program, 'iChannel0');
-    const iChannel1Loc = gl.getUniformLocation(program, 'iChannel1');
-    const iChannel2Loc = gl.getUniformLocation(program, 'iChannel2');
-
-    // Fallback textures (1x1 for simplicity; replace with real seamless ones for better results)
-    // iChannel0: Metal (not used after ship removal, but kept for completeness) - silverish
-    const tex0 = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex0);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([200, 200, 200, 255]));
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.uniform1i(iChannel0Loc, 0);
-
-    // iChannel1: Ground/rock texture - earthy brown
-    const tex1 = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, tex1);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([139, 69, 19, 255]));
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.uniform1i(iChannel1Loc, 1);
-
-    // iChannel2: Noise texture - blue noise for FBM (grayscale)
-    const tex2 = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, tex2);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.uniform1i(iChannel2Loc, 2);
-
-    const resizeCanvas = () => {
-      const { clientWidth, clientHeight } = canvas;
-      canvas.width = clientWidth;
-      canvas.height = clientHeight;
-      gl.viewport(0, 0, clientWidth, clientHeight);
-      gl.uniform3f(iResLoc, clientWidth, clientHeight, 1.0);
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    let startTime = Date.now();
-    const animate = () => {
-      const currentTime = (Date.now() - startTime) / 1000;
-      gl.uniform1f(iTimeLoc, currentTime);
-      gl.uniform4f(iMouseLoc, 0.0, 0.0, 0.0, 0.0); // Fixed, as mouse is hardcoded in shader
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      requestAnimationFrame(animate);
-    };
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      gl.deleteProgram(program);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      gl.deleteBuffer(positionBuffer);
-      gl.deleteTexture(tex0);
-      gl.deleteTexture(tex1);
-      gl.deleteTexture(tex2);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none -z-1"
-    />
-  );
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  
+  return texture;
 };
 
+const LandscapeBackground = () => {
+  const materialRef = useRef();
+
+  const textures = useMemo(() => {
+    return {
+      tex0: createNoiseTexture(),
+      tex1: createNoiseTexture(),
+      tex2: createNoiseTexture(),
+    };
+  }, []);
+  
+  useFrame((state) => {
+    if (!materialRef.current) return;
+    
+    const dpr = state.gl.getPixelRatio();
+    
+    materialRef.current.iTime = state.clock.getElapsedTime();
+    materialRef.current.iResolution.set(
+      state.size.width * dpr,
+      state.size.height * dpr,
+      1
+    );
+    
+    const mouseX = (state.mouse.x * 0.5 + 0.5) * 10.0;
+    const mouseY = (state.mouse.y * 0.5 + 0.5) * 10.0;
+    materialRef.current.iMouse.set(mouseX, mouseY, 0, 0);
+  });
+  
+  return (
+    <mesh 
+      position={[0, 0, -5]} 
+      scale={[10, 10, 1]}
+    >
+      <planeGeometry args={[2, 2]} />
+      <landscapeShaderMaterial
+        ref={materialRef}
+        
+        iMouse={new THREE.Vector4(0, 0, 0, 0)}
+        iChannel0={textures.tex0}
+        iChannel1={textures.tex1}
+        iChannel2={textures.tex2}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+        depthTest={true}
+      />
+    </mesh>
+  );
+};
 
 
 
@@ -2909,11 +2843,11 @@ function PulsingGrid() {
     let time = 0;
     let lastTime = 0;
 
-    // Grid parameters
-    const gridSize = 5; // 5x5 grid
+
+    const gridSize = 5; 
     const spacing = 15;
 
-    // Animation parameters
+
     const breathingSpeed = 0.5;
     const waveSpeed = 1.2;
     const colorPulseSpeed = 1.0;
@@ -2928,16 +2862,16 @@ function PulsingGrid() {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Breathing effect (expansion/contraction)
+
       const breathingFactor = Math.sin(time * breathingSpeed) * 0.2 + 1.0;
 
-      // Center dot
+
       ctx.beginPath();
       ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx.fill();
 
-      // Draw pulsing grid
+
       for (let row = 0; row < gridSize; row++) {
         for (let col = 0; col < gridSize; col++) {
           if (row === Math.floor(gridSize / 2) && col === Math.floor(gridSize / 2))
@@ -2975,7 +2909,6 @@ function PulsingGrid() {
             Math.sin(time * 1.5 + angle * 3) * 0.2 +
             normalizedDistance * 0.3;
 
-          // Draw connecting lines
           if (row > 0 && col > 0 && row < gridSize - 1 && col < gridSize - 1) {
             const neighbors = [
               { r: row - 1, c: col },
@@ -3003,7 +2936,6 @@ function PulsingGrid() {
             }
           }
 
-          // Draw dot
           ctx.beginPath();
           ctx.arc(waveX, waveY, size, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;

@@ -1,15 +1,18 @@
 :root {
-  --terra:  #BDD5E6;
-  --green:  #C57B57;
-  --pink: #BDBECF;
-  --blue: #D9CA51;
+  --terra:  #BED8FE;
+  --green:  #FCA519;
+  --pink: #CEC3EA;
+  --blue: #CDB729;
   --black: #0e0e0e;
-  --beige: #C2CB23 ;
+  --beige:  #E7E6E3;
   --grey: #666d73;
   --91c5acce: 5;
   --sbw: 0px;
 }
+/* #A9D442 */
 
+/* #94C001 */
+/* #BDBECF */
 .image-wrapper {
   position: relative;
   width: 100%;
@@ -268,6 +271,14 @@
   }
 }
 
+@media screen and (min-width: 1080px) {
+  .MainSectionItem-contentText {
+    min-height: 20rem; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; 
+  }
+}
 @media screen and (min-width:769px) and (max-width:1079px) {
   .MainSectionItem-contentTitle,
   .MainSectionItem-contentText {
@@ -328,6 +339,7 @@
 
 .MainSection-headTitle {
   pointer-events: auto;
+   /* letter-spacing: 0.02em; */
   display: flex;
   gap: 8px;
 }
@@ -339,7 +351,7 @@
 .AnimatedSplitText .head-lines {
   will-change: transform;
   color: var(--black);
-  font-family: "NeueHaasDisplay35"
+  font-family: "Canela-ThinItalic"
 }
 .AnimatedSplitText .chars-wrapper {
   display: inline-block;

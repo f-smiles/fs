@@ -1,4 +1,5 @@
 'use client'
+import FlutedGlassFilter from '@/components/nav/fluted';
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import { store, persistor } from './_store/config'
@@ -12,11 +13,13 @@ export default function App({ children, user }) {
     <NextThemeProvider>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
+ <FlutedGlassFilter />
           <Navbar user={user} />
           <main>
             <Toast />
             {children}
           </main>
+          <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
           {/* <Footer /> */}
         </PersistGate>
       </Provider>

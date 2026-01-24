@@ -26,7 +26,7 @@ import {
   LinearMipmapLinearFilter,
   RGBFormat,
 } from "three";
-import {
+import GridContainer, {
   MemberCard,
   items,
 } from "../mouse-gooey-effect-5/components/GridContainer";
@@ -34,103 +34,7 @@ import {
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText);
 }
-function SonarSweep() {
-  const canvasRef = useRef(null);
-  const width = 240;
-  const height = 240;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.imageSmoothingEnabled = false;
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    const dotRings = [
-      { radius: 15, count: 6 },
-      { radius: 30, count: 12 },
-      { radius: 45, count: 18 },
-      { radius: 60, count: 24 },
-      { radius: 75, count: 30 },
-    ];
-
-    const waveSpeed = 30;
-    const waveThickness = 40;
-    const maxDotRadius = dotRings[dotRings.length - 1].radius;
-    const maxAnimatedRadius = maxDotRadius + waveThickness;
-    const rotationMagnitude = 0.15;
-    const rotationSpeedFactor = 3;
-    const BLUE = "#DDFF00";
-
-    let time = 0;
-    let lastTime = 0;
-
-    function animate(timestamp) {
-      if (!lastTime) lastTime = timestamp;
-      const deltaTime = timestamp - lastTime;
-      lastTime = timestamp;
-      time += deltaTime * 0.001;
-
-      ctx.clearRect(0, 0, width, height);
-
-      // center dot
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
-      ctx.fillStyle = BLUE;
-      ctx.fill();
-
-      const currentWaveFront = (time * waveSpeed) % maxAnimatedRadius;
-
-      dotRings.forEach((ring) => {
-        for (let i = 0; i < ring.count; i++) {
-          const baseAngle = (i / ring.count) * Math.PI * 2;
-          const baseRadius = ring.radius;
-          const distToWaveFront = baseRadius - currentWaveFront;
-
-          let pulseFactor = 0;
-          if (Math.abs(distToWaveFront) < waveThickness / 2) {
-            pulseFactor = Math.cos(
-              (distToWaveFront / (waveThickness / 2)) * (Math.PI / 2)
-            );
-            pulseFactor = Math.max(0, pulseFactor);
-          }
-
-          let currentAngle = baseAngle;
-          if (pulseFactor > 0.01) {
-            const angleOffset =
-              pulseFactor *
-              Math.sin(time * rotationSpeedFactor + i * 0.5) *
-              rotationMagnitude;
-            currentAngle += angleOffset;
-          }
-
-          const dotSize = 1.5 + pulseFactor * 1.8;
-          const x = centerX + Math.cos(currentAngle) * baseRadius;
-          const y = centerY + Math.sin(currentAngle) * baseRadius;
-
-          ctx.beginPath();
-          ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-          ctx.fillStyle = BLUE;
-          ctx.fill();
-        }
-      });
-
-      requestAnimationFrame(animate);
-    }
-
-    requestAnimationFrame(animate);
-  }, []);
-
-  return (
-    <div className="flex items-center justify-center w-full h-full scale-[0.93]">
-      <canvas ref={canvasRef} width={width} height={height} />
-    </div>
-  );
-}
 const vertexShader = `
 uniform vec2 uOffset;
 varying vec2 vUv;
@@ -192,7 +96,7 @@ const ShaderPlane = ({ imageUrl, mouse }) => {
       uMouseEnter: { value: 0 },
       uMouseEnterMask: { value: 0 },
     }),
-    [texture]
+    [texture],
   );
 
   useFrame(() => {
@@ -258,7 +162,7 @@ const Intro = ({ texts = [], onFinished }) => {
           repeat: -1,
           transformOrigin: "50% 50%",
         },
-        "start"
+        "start",
       );
 
     return () => {
@@ -345,11 +249,11 @@ const Intro = ({ texts = [], onFinished }) => {
   );
 };
 const images = [
-  "../images/team_members/Adriana-Photoroom.jpg",
+  "../images/1024mainsectionimage.jpg",
   "../images/team_members/Nicollewaving.png",
-  "../images/team_members/Lexiworking.png",
+  "../images/1024mainsectionimage.jpg",
   "../images/team_members/Elizabethaao.png",
-  "../images/team_members/Alyssascan.png",
+  "../images/1024mainsectionimage.jpg",
 ];
 
 function ImageCard({ texture, index }) {
@@ -401,27 +305,27 @@ const ShaderHoverEffect = () => {
   const images = [
     {
       name: "Alyssa",
-      url: "../images/team_members/Alyssascan.png",
+      url: "../images/team_members/adrianaportrait.png",
       description: "Treatment Coordinator",
     },
     {
       name: "Nicolle",
-      url: "../images/team_members/Nicollewaving.png",
+      url: "../images/team_members/Dana-Photoroom.png",
       description: "Specialized Orthodontic Assistant",
     },
     {
-      name: "Lexi",
-      url: "../images/team_members/Lexiworking.png",
-      description: "Treatment Coordinator",
+      name: "Nicolle",
+      url: "../images/team_members/Dana-Photoroom.png",
+      description: "Specialized Orthodontic Assistant",
     },
     {
       name: "Elizabeth",
-      url: "../images/team_members/Elizabethaao.png",
+      url: "../images/team_members/adrianaportrait.png",
       description: "Patient Services",
     },
     {
       name: "Adriana",
-      url: "../images/team_members/Adriana-Photoroom.jpg",
+      url: "../images/team_members/adrianaportrait.png",
       description: "Insurance Coordinator",
     },
   ];
@@ -460,6 +364,85 @@ const ShaderHoverEffect = () => {
   );
 };
 
+function Grid() {
+  return (
+    <div className="grid grid-cols-12 grid-rows-3 w-full h-full absolute inset-0 p-8">
+      {Array.from({ length: 36 }).map((_, i) => (
+        <div key={i} className="grid-cell" />
+      ))}
+    </div>
+  );
+}
+
+function Content() {
+  return (
+    <div className="grid grid-cols-12 grid-rows-3 gap-4 w-full h-full absolute inset-0 p-8 text-white text-[11px] uppercase tracking-wide pointer-events-none">
+      <div style={{ gridColumn: 1, gridRow: 1 }}>
+        <br />
+      </div>
+      <div style={{ gridColumn: 2, gridRow: 1 }}></div>
+      <div style={{ gridColumn: 3, gridRow: 1 }}>WHO</div>
+      <div style={{ gridColumn: 4, gridRow: "1 / span 3" }}>BUILD </div>
+      <div style={{ gridColumn: 5, gridRow: 1 }}>WILL</div>
+      <div style={{ gridColumn: 6, gridRow: 1 }}>LOVE!</div>
+
+      <div style={{ gridColumn: 1, gridRow: "2 / span 2" }}>
+        OUR CULTURE IS A REFLECTION OF OUR SHARED VALUES, ATTITUDES, BELIEFS,
+        AND WORKING PRACTICES.
+      </div>
+
+      <div style={{ gridColumn: 2, gridRow: 3 }}>
+        GOOD IS NOT WHERE WE STOP. IT’S WHERE WE BEGIN.
+      </div>
+
+      <div style={{ gridColumn: 3, gridRow: 3 }}></div>
+
+      {/* Highlight column */}
+      <div
+        className="bg-[#FF3A17] rounded-xl"
+        style={{ gridColumn: 9, gridRow: "2 / span 2" }}
+      />
+    </div>
+  );
+}
+const LeftRail = () => {
+  const items = ["Meet Our Doctors", "Our Standards", "Meet Our Team"];
+
+  return (
+    <div className="flex flex-col gap-1">
+      {/* <div className="rounded-[14px] border border-[#E4E7FF] bg-[#EBB9E6] px-4 py-20">
+        <p className="text-[11px] tracking-wide text-black/60 mb-2">
+         
+        </p>
+        <h3 className="font-serif text-[20px] leading-tight">
+          Get<br />To Know Our Team
+        </h3>
+        <div className="mt-6 text-xl">*</div>
+      </div> */}
+
+      {items.map((item, i) => (
+        <button
+          key={i}
+          className="
+            group
+            flex items-center justify-between
+            rounded-[14px]
+            border border-[#E4E7FF]
+            bg-white
+            tracking-wide
+            px-4 py-3
+            font-neuehaas45 
+            transition
+            hover:bg-[#F5F7FF]
+          "
+        >
+          <span>{item}</span>
+          <span className="transition group-hover:translate-y-1">↓</span>
+        </button>
+      ))}
+    </div>
+  );
+};
 export default function OurTeam() {
   const [showContent, setShowContent] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -473,8 +456,7 @@ export default function OurTeam() {
   const smallDanRef = useRef(null);
   const greggNameRef = useRef(null);
   const danNameRef = useRef(null);
-  const greggTitleRef = useRef(null);
-  const danTitleRef = useRef(null);
+
   const wrapperRef = useRef(null);
   const scrollRef = useRef(null);
   const lastSectionRef = useRef(null);
@@ -524,7 +506,7 @@ export default function OurTeam() {
           duration: 1,
           stagger: 0.042,
           delay: 0.2,
-        }
+        },
       );
 
       tl.to(
@@ -534,7 +516,7 @@ export default function OurTeam() {
           duration: 0.6,
           ease: "power2.out",
         },
-        "+=0.2"
+        "+=0.2",
       );
     }
 
@@ -547,7 +529,7 @@ export default function OurTeam() {
         stagger: 0.08,
         ease: "none",
       },
-      "+=0.1"
+      "+=0.1",
     );
 
     tl.call(
@@ -555,7 +537,7 @@ export default function OurTeam() {
         setShowContent(true);
       },
       null,
-      "+=0.2"
+      "+=0.2",
     );
   }, []);
 
@@ -635,155 +617,174 @@ export default function OurTeam() {
             start: "top 80%",
             toggleActions: "play none none none",
           },
-        }
+        },
       );
     });
   }, []);
-
   useLayoutEffect(() => {
-    if (!wrapperRef.current || !scrollRef.current || !lastSectionRef.current)
+    if (
+      !pinRef.current ||
+      !trackRef.current ||
+      !wrapperRef.current ||
+      !scrollRef.current ||
+      !stackRef.current ||
+      !lastSectionRef.current ||
+      !newSectionRef.current
+    )
       return;
-    ScrollTrigger.getAll().forEach((t) => t.kill());
-    if (largeDanRef.current) gsap.set(largeDanRef.current, { x: "-100%" });
-    if (smallGreggRef.current) gsap.set(smallGreggRef.current, { x: "-100%" });
-    if (smallDanRef.current) gsap.set(smallDanRef.current, { x: "0%" });
-    if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
-    if (danTitleRef.current) gsap.set(danTitleRef.current, { opacity: 0 });
 
-    const targetY =
-      scrollRef.current.offsetHeight - lastSectionRef.current.offsetHeight;
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: wrapperRef.current,
-        start: "top top",
-        end: "+=" + window.innerHeight * 3,
-        scrub: true,
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-    });
+    const ctx = gsap.context(() => {
+      if (largeDanRef.current) gsap.set(largeDanRef.current, { x: "-100%" });
+      if (smallGreggRef.current)
+        gsap.set(smallGreggRef.current, { x: "-100%" });
+      if (smallDanRef.current) gsap.set(smallDanRef.current, { x: "0%" });
+      if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
 
-    tl.to(
-      scrollRef.current,
-      {
-        y: -targetY,
-        ease: "none",
-        duration: 1,
-      },
-      0
-    );
+      gsap.set(trackRef.current, { xPercent: 0 });
+      gsap.set(stackRef.current, { y: 0 });
 
-    tl.add("switch", 0);
+      const getTargetY = () => {
+        const viewportH = scrollRef.current.clientHeight; // mask height
+        const contentH = stackRef.current.scrollHeight; // stacked content height
+        return Math.max(0, contentH - viewportH);
+      };
 
-    tl.to(
-      largeGreggRef.current,
-      {
-        x: "100%",
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: pinRef.current,
+          start: "top top",
+          end: () => "+=" + window.innerHeight * 6,
+          scrub: true,
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
 
-    tl.to(
-      largeDanRef.current,
-      {
-        x: "0%",
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      // PHASE 1: Vertical narrative
+      const totalVerticalTravel = getTargetY();
+      const verticalDuration = 1;
+      tl.to(
+        stackRef.current,
+        {
+          y: -totalVerticalTravel,
+          ease: "none",
+          duration: verticalDuration,
+        },
+        0,
+      );
 
-    tl.to(
-      smallDanRef.current,
-      {
-        x: "100%",
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      // PHASE 1 Image switching should START when vertical scroll STARTS and END when vertical scroll ENDS
+      // So we place the label at 0 (start) and use the same duration as vertical scroll
+      tl.add("switchStart", 0);
 
-    tl.to(
-      smallGreggRef.current,
-      {
-        x: "0%",
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      tl.to(
+        largeGreggRef.current,
+        {
+          x: "100%",
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      greggNameRef.current,
-      {
-        opacity: 0,
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      tl.to(
+        largeDanRef.current,
+        {
+          x: "0%",
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      danNameRef.current,
-      {
-        opacity: 1,
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      tl.to(
+        smallDanRef.current,
+        {
+          x: "100%",
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      greggTitleRef.current,
-      {
-        opacity: 0,
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      tl.to(
+        smallGreggRef.current,
+        {
+          x: "0%",
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      danTitleRef.current,
-      {
-        opacity: 1,
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      "switch"
-    );
+      tl.to(
+        greggNameRef.current,
+        {
+          opacity: 0,
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      wrapperRef.current,
-      {
-        xPercent: -100,
-        ease: "none",
-        duration: 1,
-      },
-      "+=0.5"
-    );
+      tl.to(
+        danNameRef.current,
+        {
+          opacity: 1,
+          duration: verticalDuration,
+          ease: "power2.inOut",
+        },
+        "switchStart",
+      );
 
-    tl.to(
-      [col1Ref.current, col2Ref.current, col3Ref.current],
-      {
-        yPercent: (i) => (i % 2 === 0 ? -100 : 100),
+      // PHASE 2: Horizontal slide AFTER vertical scroll completes
+      // PHASE 2: ONE continuous slide where exit + entry overlap
+      tl.to(trackRef.current, {
+        xPercent: -66.666,
         ease: "none",
         duration: 2,
-        stagger: {
-          each: 0.3,
+      });
+      // PHASE 3
+      tl.to(
+        [col1Ref.current, col2Ref.current, col3Ref.current],
+        {
+          yPercent: (i) => (i % 2 === 0 ? -100 : 100),
+          ease: "none",
+          duration: 2,
+          stagger: { each: 0.3 },
         },
-      },
-      "+=0.2"
-    );
+        "+=0.2",
+      );
+      // PHASE 4: Fade in team cards
+      // PHASE 4: Editorial card reveal (like screenshot)
+      tl.add("teamReveal", ">");
 
-    ScrollTrigger.refresh();
+      const cards = gridRef.current?.getCards?.();
 
-    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+      if (cards?.length) {
+        tl.from(
+          cards,
+          {
+            opacity: 0,
+            y: 40, // slightly softer lift
+            duration: 1.1, // not too slow, not UI-fast
+            stagger: {
+              each: 0.15,
+              ease: "power1.out",
+            },
+            ease: "power3.out",
+            clearProps: "all", // avoids GSAP residue
+          },
+          "teamReveal+=0.15",
+        );
+      }
+
+      ScrollTrigger.refresh();
+    }, pinRef);
+
+    return () => ctx.revert();
   }, []);
-
   const lines = [
     "Our experience spans over 50 years—a testament to the ",
     "precision, accuracy, and relevance of our vision, demonstrating",
@@ -803,361 +804,380 @@ export default function OurTeam() {
     },
   });
 
+  const pinRef = useRef(null);
+  const trackRef = useRef(null);
+  const stackRef = useRef(null);
+  const teamSectionRef = useRef(null);
+  const gridRef = useRef(null);
   return (
-    <div className="relative w-full h-screen bg-[#E4E7FF]">
-      <div className="relative overflow-x-clip">
-        <div ref={wrapperRef} className="flex w-full bg-[#E4E7FF]">
-          <div
-            ref={leftColumnRef}
-            className="z-10 h-screen sticky top-0 py-[10em] sm:py-[10em] border-l border-b border-r border-[#E4E7FF] w-3/5 bg-[#FCFFFE] rounded-[12px]"
-          >
-            <div className="max-w-[400px] ml-10 my-10 flex flex-col overflow-hidden">
-              <div className="inline-block overflow-hidden">
-                <div className="text-[12px] leading-[1.1] font-neuehaas45 tracking-wider text-black">
-                  {lines.map((line, index) => (
-                    <div key={index} className="overflow-hidden">
-                      <motion.span
-                        variants={fadeUpMasked(index * 0.2)}
-                        initial="hidden"
-                        animate="visible"
-                        className="inline-block"
+    <>
+      <div
+        ref={pinRef}
+        className="relative w-full h-screen overflow-hidden bg-[#FB4D40]"
+      >
+        <div ref={trackRef} className="relative flex w-[300vw] h-screen">
+          <div className="w-screen h-screen shrink-0">
+            <div ref={wrapperRef} className="w-full h-full flex">
+              {/* <aside className="sticky top-0 h-screen w-[18%] bg-[#E9ECFF] flex flex-col">
+    <LeftRail />
+  </aside> */}
+              <div className="flex basis-[100%] h-screen">
+                <div
+                  ref={leftColumnRef}
+                  className="
+    left-panel
+    w-[65%]
+    z-10
+    h-screen
+    sticky top-1
+    py-[10em] sm:py-[10em]
+    border-l border-b border-r border-[#E4E7FF]
+    bg-[#FCFFFE]
+    rounded-[14px]
+    chamfer-br
+  "
+                >
+                  <svg width="0" height="0">
+                    <defs>
+                      <clipPath
+                        id="panelMask"
+                        clipPathUnits="objectBoundingBox"
                       >
-                        {line}
-                      </motion.span>
+                        <path
+                          d="
+        M 0 0
+        H 1
+        V 0.78
+        C 1 0.86 0.94 0.88 0.9 0.92
+        L 0.82 1
+        H 0
+        V 0
+        Z
+      "
+                        />
+                      </clipPath>
+                    </defs>
+                  </svg>
+
+                  <div className="max-w-[400px] ml-10 my-10 flex flex-col overflow-hidden">
+                    <div className="inline-block overflow-hidden">
+                      <div className="text-[12px] leading-[1.1] font-neuehaas35 tracking-wider text-black">
+                        {lines.map((line, index) => (
+                          <div key={index} className="overflow-hidden">
+                            <motion.span
+                              variants={fadeUpMasked(index * 0.2)}
+                              initial="hidden"
+                              animate="visible"
+                              className="inline-block"
+                            >
+                              {line}
+                            </motion.span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  </div>
+                  <section>
+                    <div className="flex justify-center gap-6 overflow-hidden ">
+                      <div className="w-[275px] mr-10">
+                        <figure className="relative w-full aspect-[3/4] overflow-hidden">
+                          <img
+                            ref={largeGreggRef}
+                            src="../../images/team_members/GreggFrey.png"
+                            alt="Dr. Gregg Frey"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <img
+                            ref={largeDanRef}
+                            src="../../images/team_members/DanFrey.png"
+                            alt="Dr. Dan Frey"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        </figure>
+                        <figcaption className="mt-3 relative h-[3em]">
+                          <div className="relative h-[1.4em]">
+                            <p
+                              ref={greggNameRef}
+                              className="absolute top-0 left-0 text-[13px] text-[#111] tracking-wide font-neuehaas45"
+                            >
+                              Dr. Gregg Frey
+                            </p>
+                            <p
+                              ref={danNameRef}
+                              className="absolute top-0 left-0 text-[13px] text-[#111] tracking-wide font-neuehaas45"
+                            >
+                              Dr. Dan Frey
+                            </p>
+                          </div>
+                          <div className="relative mt-1 h-[1.2em]"></div>
+                        </figcaption>
+                      </div>
+
+                      <div className="w-[200px]">
+                        <figure className="relative grayscale w-full aspect-[3/4] overflow-hidden">
+                          <img
+                            ref={smallGreggRef}
+                            src="../../images/team_members/GreggFrey.png"
+                            alt="Dr. Gregg Frey"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <img
+                            ref={smallDanRef}
+                            src="../../images/team_members/DanFrey.png"
+                            alt="Dr. Dan Frey"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        </figure>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div
+                  ref={scrollRef}
+                  className="shrink-0 w-[35%] h-screen relative"
+                >
+                  <div ref={stackRef} className="will-change-transform">
+                    <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
+                      <h1 className="font-canelathin text-[20px]">
+                        Dr. Gregg Frey,
+                        <br />{" "}
+                        <div className="my-2 font-neuehaas45 text-[14px] tracking-wider">
+                          DDS
+                        </div>
+                      </h1>
+
+                      <div className="flex justify-center items-center h-full gap-8 px-6 max-w-[600px] relative">
+                        <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] ">
+                          Dr. Gregg Frey is an orthodontist based in
+                          Pennsylvania, who graduated from Temple University
+                          School of Dentistry with honors and served in the U.S.
+                          Navy Dental Corps before establishing his practice in
+                          the Lehigh Valley. He is a Diplomat of the American
+                          Board of Orthodontics and has received numerous
+                          distinctions, accreditations, and honors, including
+                          being named one of America&apos;s Top Orthodontists by
+                          the Consumer Review Council of America.
+                          <div className="mt-10">
+                            This distinction is held by fewer than 25% of
+                            orthodontists nationwide. ABO certification
+                            represents the culmination of 5-10 years of written
+                            and oral examinations and independent expert review
+                            of actual treated patients. Recently Dr. Frey
+                            voluntarily re-certified. Dr. Frey enjoys coaching
+                            soccer, vintage car racing, and playing the drums.
+                          </div>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative h-full">
+                      <section
+                        ref={lastSectionRef}
+                        className="relative bg-cover h-screen  rounded-[12px] overflow-hidden"
+                      >
+                        <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
+                          <h1 className="font-canelathin text-[20px]">
+                            Dr. Daniel Frey,
+                            <br />{" "}
+                            <div className="my-2 font-neuehaas45 text-[14px] tracking-wider">
+                              DMD, MSD
+                            </div>
+                          </h1>
+                          <div className="flex justify-center items-center h-full gap-8 px-6 max-w-[600px] relative">
+                            <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] ">
+                              Dr. Daniel Frey completed his pre-dental
+                              requisites at the University of Pittsburgh,
+                              majoring in Biology. Dr. Frey excelled in his
+                              studies and was admitted to Temple
+                              University&apos;s dental school, graduating at the
+                              top of his class achieving the prestigious Summa
+                              Cum Laude designation. Continuing his education,
+                              Dr. Frey was admitted to the esteemed orthodontic
+                              residency program at the University of the Pacific
+                              Arthur A Dugoni School of Dentistry in San
+                              Francisco. While in San Francisco, he studied and
+                              worked with students and faculty from around the
+                              world and utilized cutting-edge orthodontic
+                              techniques. During his time in San Francisco, he
+                              conducted research in three-dimensional
+                              craniofacial analysis and earned his Master of
+                              Science degree.
+                              <div className="mt-10">
+                                Dr. Frey is a member of the American Association
+                                of Orthodontists, American Academy of Facial
+                                Esthetics, and the American Dental Association.
+                                In his free time, he enjoys staying active,
+                                camping, music, cooking, and spending time with
+                                loved ones.
+                              </div>
+                            </p>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <section>
-              <div className="flex justify-center gap-6 overflow-hidden ">
-                <div className="w-[275px] mr-10">
-                  <figure className="relative w-full aspect-[3/4] overflow-hidden">
-                    <img
-                      ref={largeGreggRef}
-                      src="../../images/team_members/GreggFrey.png"
-                      alt="Dr. Gregg Frey"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <img
-                      ref={largeDanRef}
-                      src="../../images/team_members/DanFrey.png"
-                      alt="Dr. Dan Frey"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </figure>
-                  <figcaption className="mt-5 relative h-[3em]">
-                    <div className="relative h-[1.4em]">
-                      <p
-                        ref={greggNameRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
-                      >
-                        Dr. Gregg Frey
-                      </p>
-                      <p
-                        ref={danNameRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
-                      >
-                        Dr. Dan Frey
-                      </p>
-                    </div>
-                    <div className="relative mt-1 h-[1.2em]">
-                      <p
-                        ref={greggTitleRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
-                      >
-                        DDS
-                      </p>
-                      <p
-                        ref={danTitleRef}
-                        className="absolute top-0 left-0 text-[14px] text-[#111] tracking-wider font-neuehaas45"
-                      >
-                        DMD, MSD
-                      </p>
-                    </div>
-                  </figcaption>
-                </div>
+          </div>
 
-                <div className="w-[200px]">
-                  <figure className="relative grayscale w-full aspect-[3/4] overflow-hidden">
-                    <img
-                      ref={smallGreggRef}
-                      src="../../images/team_members/GreggFrey.png"
-                      alt="Dr. Gregg Frey"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <img
-                      ref={smallDanRef}
-                      src="../../images/team_members/DanFrey.png"
-                      alt="Dr. Dan Frey"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </figure>
+          <section className="relative w-screen h-screen bg-[#FB4D40] overflow-hidden">
+            <Grid />
+            <Content />
+          </section>
+          <div
+            ref={newSectionRef}
+            className="w-screen h-screen shrink-0 relative overflow-hidden"
+          >
+            <div
+              onMouseEnter={() => setIsFocused(true)}
+              onMouseLeave={() => setIsFocused(false)}
+              className="bg-[#000] w-screen h-screen grid grid-cols-3 text-[#333] font-neuehaas45 text-[14px] leading-relaxed"
+            >
+              {/* Col 1 */}
+              <div className="overflow-hidden">
+                <div
+                  ref={col1Ref}
+                  className="flex flex-col will-change-transform"
+                >
+                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+                    <div className="mt-[48px]">
+                      <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
+                        The systems, the flow, the details — all dialed in so
+                        your visits stay smooth start to finish.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
+                      <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                        Our members have received the designation of Specialized
+                        Orthodontic Assistant. This is a voluntary certification
+                        program started by the American Association of
+                        Orthodontists to recognize those in the profession for
+                        their knowledge and experience.
+                      </p>
+                    </a>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      Entrust your smile's transformation to our handpicked team
+                      of orthodontic specialists.
+                    </p>
+                  </div>
                 </div>
               </div>
+              {/* Col 2  */}
+              <div className="overflow-hidden">
+                <div
+                  ref={col2Ref}
+                  className="flex flex-col will-change-transform"
+                  style={{ transform: "translateY(-66.66vh)" }}
+                >
+                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+                    <div className="mt-[48px]">
+                      <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
+                        The systems, the flow, the details — all dialed in so
+                        your visits stay smooth start to finish.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
+                      <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                        Our members have received the designation of Specialized
+                        Orthodontic Assistant. This is a voluntary certification
+                        program started by the American Association of
+                        Orthodontists to recognize those in the profession for
+                        their knowledge and experience.
+                      </p>
+                    </a>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      Entrust your smile's transformation to our handpicked team
+                      of orthodontic specialists.
+                    </p>
+                  </div>
+                  <a
+                    href="https://g.co/kgs/Sds93Ha"
+                    className="flex justify-center items-center bg-[#FCFFFE] rounded-[12px] p-8 border-b border-r border-[#E4E7FF] h-[33.33vh]"
+                  >
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      This office is on 🔥! The orthodontists as well as every
+                      single staff member.
+                    </p>
+                  </a>
+                </div>
+              </div>
+
+              {/* Col 3  */}
+              <div className="overflow-hidden">
+                <div
+                  ref={col3Ref}
+                  className="flex flex-col will-change-transform"
+                >
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[16px] leading-[1.1]">
+                      Trained in CPR and first aid
+                    </p>
+                  </div>
+                  <a
+                    href="https://g.co/kgs/YkknjNg"
+                    className="flex justify-center items-center  bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] h-[33.33vh]"
+                  >
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      Had a wonderful experience at FreySmiles. Everyone is
+                      extremely professional, polite, timely. Would highly
+                      recommend! — TK
+                    </p>
+                  </a>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      We've invested in in-office trainings with leading
+                      clinical consultants that have helped us develop systems
+                      and protocols streamlining our processes.
+                    </p>
+                  </div>
+                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
+                    <div className="mt-[48px]">
+                      <a
+                        href="https://g.co/kgs/example-review-1"
+                        className="block hover:opacity-90 transition-opacity duration-200"
+                      >
+                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.4] text-[#252424]">
+                          Fun fact — our team is made up of former patients,
+                          something we think is important, because we have all
+                          experienced treatment and can help guide you through
+                          it.
+                        </p>
+                      </a>
+                    </div>
+                  </div>
+                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
+                      Eco-friendly practice: We prioritize recycling and digital
+                      workflows to reduce waste.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <section
+              ref={teamSectionRef}
+              className="absolute inset-0 z-0 pointer-events-none team-section"
+            >
+              <GridContainer ref={gridRef} />
             </section>
           </div>
-
-          <div ref={scrollRef} className="z-10 relative w-2/5">
-            <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
-              <div className="flex items-center justify-center h-full gap-8 px-6 max-w-[600px] relative">
-                <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] absolute inset-0 flex justify-center items-center">
-                  Dr. Gregg Frey is an orthodontist based in Pennsylvania, who
-                  graduated from Temple University School of Dentistry with
-                  honors and served in the U.S. Navy Dental Corps before
-                  establishing his practice in the Lehigh Valley. He is a
-                  Diplomat of the American Board of Orthodontics and has
-                  received numerous distinctions, accreditations, and honors,
-                  including being named one of America&apos;s Top Orthodontists
-                  by the Consumer Review Council of America. This distinction is
-                  held by fewer than 25% of orthodontists nationwide. ABO
-                  certification represents the culmination of 5-10 years of
-                  written and oral examinations and independent expert review of
-                  actual treated patients. Recently Dr. Frey voluntarily
-                  re-certified. Dr. Frey enjoys coaching soccer, vintage car
-                  racing, and playing the drums.
-                </p>
-              </div>
-            </div>
-            <div className="relative h-full">
-              <section
-                ref={lastSectionRef}
-                className="relative bg-cover h-screen  rounded-[12px] overflow-hidden"
-              >
-                <div className="flex justify-center items-center rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
-                  <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111]">
-                    Dr. Daniel Frey completed his pre-dental requisites at the
-                    University of Pittsburgh, majoring in Biology. Dr. Frey
-                    excelled in his studies and was admitted to Temple
-                    University&apos;s dental school, graduating at the top of
-                    his class achieving the prestigious Summa Cum Laude
-                    designation. Continuing his education, Dr. Frey was admitted
-                    to the esteemed orthodontic residency program at the
-                    University of the Pacific Arthur A Dugoni School of
-                    Dentistry in San Francisco. While in San Francisco, he
-                    studied and worked with students and faculty from around the
-                    world and utilized cutting-edge orthodontic techniques.
-                    During his time in San Francisco, he conducted research in
-                    three-dimensional craniofacial analysis and earned his
-                    Master of Science degree. Dr. Frey is a member of the
-                    American Association of Orthodontists, American Academy of
-                    Facial Esthetics, and the American Dental Association. In
-                    his free time, he enjoys staying active, camping, music,
-                    cooking, and spending time with loved ones.
-                  </p>
-                </div>
-              </section>
-
-              <div
-                ref={newSectionRef}
-                className="absolute top-0 w-full h-full left-full"
-              >
-                {/* <div className="absolute inset-0 z-1">
-
-   <GridContainer />
-
-
-                </div> */}
-                <div
-                  onMouseEnter={() => setIsFocused(true)}
-                  onMouseLeave={() => setIsFocused(false)}
-                  className="bg-[#E4E7FF] w-screen h-screen grid grid-cols-3 text-[#333] font-neuehaas45 text-[14px] leading-relaxed"
-                >
-                  {/* Col 1 */}
-                  <div className="overflow-hidden">
-                    <div
-                      ref={col1Ref}
-                      className="flex flex-col will-change-transform"
-                    >
-                      {/* Adriana */}
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-0 border-r border-b border-[#E4E7FF] border-l h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[0] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
-
-                      {/*  Alyssa */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-r border-b border-[#E4E7FF] h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[1] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
-
-                      {/* Elizabeth */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[2] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
-
-                      {/* Lexi */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[3] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
-
-                      {/*  Nicolle */}
-                      <div className="border-l bg-[#FCFFFE] rounded-[12px] p-0 border-b border-[#E4E7FF] border-r h-[66.66vh]">
-                        <MemberCard
-                          member={
-                            items?.[4] || {
-                              name: "Fallback",
-                              role: "Loading...",
-                              src: "/placeholder.jpg",
-                              hoverSrc: "/placeholder.jpg",
-                            }
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {/* Col 2  */}
-                  <div className="overflow-hidden">
-                    <div
-                      ref={col2Ref}
-                      className="flex flex-col will-change-transform"
-                      style={{ transform: "translateY(-66.66vh)" }}
-                    >
-                      <div className="relative bg-[#F9F7F0] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
-                        <div className="absolute top-0 left-0 right-0 h-[36px] bg-[#F7FF9E] rounded-t-[12px] flex items-center px-4 border-b border-[#E4E7FF]">
-                          <span className="font-neuehaas45 text-[12px] tracking-wide uppercase text-[#2F2F2F]">
-                            ,.,.,
-                          </span>
-                        </div>
-
-                        <div className="mt-[48px]">
-                          <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
-                            The systems, the flow, the details — all dialed in
-                            so your visits stay smooth start to finish.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
-                      </div>
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
-                          <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                            Our members have received the designation of
-                            Specialized Orthodontic Assistant. This is a
-                            voluntary certification program started by the
-                            American Association of Orthodontists to recognize
-                            those in the profession for their knowledge and
-                            experience.
-                          </p>
-                        </a>
-                      </div>
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                          Entrust your smile's transformation to our handpicked
-                          team of orthodontic specialists.
-                        </p>
-                      </div>
-                      <a
-                        href="https://g.co/kgs/Sds93Ha"
-                        className="flex justify-center items-center bg-[#FCFFFE] rounded-[12px] p-8 border-b border-r border-[#E4E7FF] h-[33.33vh]"
-                      >
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                          This office is on 🔥! The orthodontists as well as
-                          every single staff member.
-                        </p>
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Col 3  */}
-                  <div className="overflow-hidden">
-                    <div
-                      ref={col3Ref}
-                      className="flex flex-col will-change-transform"
-                    >
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <p className="font-neuehaas45 tracking-wide text-[16px] leading-[1.1]">
-                          Trained in CPR and first aid
-                        </p>
-                      </div>
-                      <a
-                        href="https://g.co/kgs/YkknjNg"
-                        className="flex justify-center items-center  bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] h-[33.33vh]"
-                      >
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                          Had a wonderful experience at FreySmiles. Everyone is
-                          extremely professional, polite, timely. Would highly
-                          recommend! — TK
-                        </p>
-                      </a>
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                          We've invested in in-office trainings with leading
-                          clinical consultants that have helped us develop
-                          systems and protocols streamlining our processes.
-                        </p>
-                      </div>
-                      <div className="relative bg-[#F9F7F0] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
-                        <div className="absolute top-0 left-0 right-0 h-[36px] bg-[#F7FF9E] rounded-t-[12px] flex items-center px-4 border-b border-[#E4E7FF]">
-                          <span className="font-neuehaas45 text-[12px] tracking-wide uppercase">
-                            Fun Fact
-                          </span>
-                        </div>
-
-                        <div className="mt-[48px]">
-                          <a
-                            href="https://g.co/kgs/example-review-1"
-                            className="block hover:opacity-90 transition-opacity duration-200"
-                          >
-                            <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.4] text-[#252424]">
-                              Fun fact — our team is made up of former patients,
-                              something we think is important, because we have
-                              all experienced treatment and can help guide you
-                              through it.
-                            </p>
-                          </a>
-                        </div>
-                      </div>
-                      <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                          Eco-friendly practice: We prioritize recycling and
-                          digital workflows to reduce waste.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* <div style={greenCursorStyle}>
+        {/* <ShaderHoverEffect /> */}
+          {/* <div style={greenCursorStyle}>
           {isFocused && (
             <img
               src="/images/pinkeye.png"
@@ -1176,32 +1196,15 @@ export default function OurTeam() {
             />
           )}
         </div> */}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 {
   /* bg-[#E2F600] */
 }
 
-{
-  /*   
-        <section ref={container} style={{ marginTop: "50vh" }}>
-          {projects.map((project, i) => {
-            const targetScale = 1 - (projects.length - i) * 0.05;
-            return (
-              <Card
-                key={`p_${i}`}
-                i={i}
-                {...project}
-                progress={scrollYProgress}
-                range={[i * 0.25, 1]}
-                targetScale={targetScale}
-              />
-            );
-          })}
-        </section> */
-}
 
 {
   /* <div

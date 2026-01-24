@@ -120,7 +120,7 @@ const holoOverlayStyle: React.CSSProperties = {
   return (
 <div
   ref={cardRef}
-  className="card-anim holo-card relative rounded-[24px] overflow-hidden h-[460px] will-change-transform group"
+className="card-anim relative rounded-[16px] h-[460px] will-change-transform group bg-transparent"
   style={{
     transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
     transformStyle: "preserve-3d",
@@ -132,67 +132,79 @@ const holoOverlayStyle: React.CSSProperties = {
   }}
 >
 
-  <div className="absolute inset-0 z-[0]">
-    {backgroundUrl && (
-      <img
-        src={backgroundUrl}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-    )}
+
+<div className="absolute inset-0 z-[0] p-5">
+
+  <div className="relative h-full w-full bg-transparent border border-[#EBECF0] p-4">
+
     <div
-      className="absolute inset-0 pointer-events-none"
-      style={holoOverlayStyle}
+      className="relative h-[90%] w-full overflow-hidden"
+style={{
+  clipPath: "polygon(0 0, 90% 0, 100% 10%, 100% 100%, 0 100%)",
+}}
+    >
+      {backgroundUrl && (
+        <img
+          src={backgroundUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      )}
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={holoOverlayStyle}
+      />
+    </div>
+  </div>
+</div>
+
+
+<Link
+  href={`/shop/products/${variant.id}?id=${variant.id}&title=${variant.product.title}&variant=${variant.variantName}&prodId=${variant.productID}`}
+  className="relative z-[10] flex flex-col h-full px-5 pt-5 pb-6"
+>
+
+
+
+
+  <figure className="flex-1 flex items-center justify-center">
+    <Image
+      className="object-contain w-[60%] max-h-[210px]"
+      src={variant.variantImages[0].url}
+      alt={`${variant.product.title} - ${variant.variantName}`}
+      width={400}
+      height={600}
+      priority
     />
+  </figure>
+
+<div className="mt-auto px-2 py-3 flex items-center justify-between gap-4">
+  <h3 className="text-[12px] font-neuehaas45 tracking-wide text-black">
+    {variant.product.title}
+  </h3>
+
+  <button className="relative text-[12px] font-neuehaas45">
+    ${Number(variant.product.price).toFixed(2)}
+  </button>
+</div>
+
+  {/* bottom row */}
+ 
+
+  <div className="text-zinc-600 tracking-wide font-neuehaas45 mt-auto pt-6 py-3 px-2 flex items-end justify-between gap-4">
+    <span className="text-[12px] leading-tight">
+      {variant.variantName}
+    </span>
+  <div className="flex justify-end">
+    <div className="text-[12px] ">
+     Add to Cart
+    </div>
   </div>
 
-
-  <Link
-    href={`/shop/products/${variant.id}?id=${variant.id}&title=${variant.product.title}&variant=${variant.variantName}&prodId=${variant.productID}`}
-    className="relative z-[10] flex flex-col h-full p-5"
-  >
-    <div className="flex items-center justify-between mb-5">
-      <span className="px-4 py-[5px] bg-white/60 text-black text-[11px] font-neuehaas45 rounded-full tracking-wide shadow-sm">
-        {variant.product.title}
-      </span>
-      <div className="w-6 h-6 rounded-full bg-white/60 flex items-center justify-center shadow-sm">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#111"
-          strokeWidth="1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-4 h-4 transition-transform duration-500 group-hover:-translate-y-[1.5px] group-hover:rotate-[5deg]"
-        >
-          <path d="M6 8h12l-1.5 12h-9L6 8z" />
-          <path d="M9 8a3 3 0 0 1 6 0" />
-        </svg>
-      </div>
-    </div>
-
-    <figure className="flex-1 flex items-center justify-center">
-      <Image
-        className="object-contain w-[58%] max-h-[210px]"
-        src={variant.variantImages[0].url}
-        alt={`${variant.product.title} - ${variant.variantName}`}
-        width={400}
-        height={600}
-        priority
-      />
-    </figure>
-
-    <div className="flex items-center justify-between pt-6">
-      <span className="text-[12px] font-neuehaas45 text-zinc-800">
-        {variant.variantName}
-      </span>
-      <span className="text-[12px] font-neuehaas45 text-zinc-800">
-        ${Number(variant.product.price).toFixed(2)}
-      </span>
-    </div>
-  </Link>
+  </div>
+</Link>
 </div>
   );
 }
@@ -207,19 +219,19 @@ export default function Variants({ variants }: ProductVariantsProps) {
   const groupedVariants = [
     {
       id: "devices",
-      prefix: "Optimizing Treatment,",
+      prefix: "Optimizing Treatment",
       label: "Devices",
       variants: row4,
     },
     {
       id: "floss",
-      prefix: "Our #1 Floss Pick,",
+      prefix: "Our #1 Floss Pick",
       label: "Floss",
       variants: row2,
     },
     {
       id: "whitening",
-      prefix: "For a Brighter Smile,",
+      prefix: "For a Brighter Smile",
       label: "Whitening Gel",
       variants: row3,
     },
@@ -373,65 +385,54 @@ export default function Variants({ variants }: ProductVariantsProps) {
     }
   }, []);
 
-  useLayoutEffect(() => {
-    if (!sectionContainerRef.current) return;
+useLayoutEffect(() => {
+  if (!sectionContainerRef.current) return;
 
-    const ctx = gsap.context(() => {
-      const rows = gsap.utils.toArray<HTMLElement>(
-        sectionContainerRef.current.querySelectorAll(".products-row")
+  const ctx = gsap.context(() => {
+    const rows = gsap.utils.toArray<HTMLElement>(
+      sectionContainerRef.current.querySelectorAll(".products-row")
+    );
+
+    rows.forEach((row) => {
+      const cards = gsap.utils.toArray<HTMLElement>(
+        row.querySelectorAll(".card-anim")
       );
 
-      rows.forEach((row) => {
-        const cards = gsap.utils.toArray<HTMLElement>(
-          row.querySelectorAll(".card-anim")
-        );
-
-
-        gsap.set(cards, {
-          opacity: 0,
-          x: 140,
-          y: -40,
-          force3D: true,
-          willChange: "transform, opacity",
-        });
-
-        ScrollTrigger.create({
-          trigger: row,
-          start: "top 90%",
-          once: true,
-          onEnter: () => {
-            gsap.set(row, { overflow: 'visible' });
-
-            const tl = gsap.timeline({ 
-              defaults: { ease: "power3.out" },
-              onComplete: () => {
-                // overflow hidden after animation
-                gsap.set(row, { overflow: 'hidden' });
-              }
-            });
-
-            tl.to(cards, {
-              x: 0,
-              y: 0,
-              duration: 1.1,
-              ease: "cubic-bezier(0.33, 1, 0.68, 1)", 
-              stagger: { each: 0.12, from: "start" },
-            }, 0);
-
-
-            tl.to(cards, {
-              opacity: 1,
-              duration: 0.9,
-              ease: "linear",
-              stagger: { each: 0.12, from: "start" },
-            }, 0.05);
-          },
-        });
+ 
+      gsap.set(cards, {
+        opacity: 0,
+        y: 200,
+        force3D: true,
+        willChange: "transform, opacity",
       });
-    }, sectionContainerRef);
 
-    return () => ctx.revert();
-  }, []);
+      ScrollTrigger.create({
+        trigger: row,
+        start: "top 90%",
+        once: true,
+        onEnter: () => {
+          gsap.set(row, { overflow: "visible" });
+
+          gsap.to(cards, {
+            y: 0,
+            opacity: 1,
+            duration: 1.1,
+            ease: "power3.out",
+            stagger: {
+              each: 0.12,
+              from: "start",
+            },
+            onComplete: () => {
+              gsap.set(row, { overflow: "hidden" });
+            },
+          });
+        },
+      });
+    });
+  }, sectionContainerRef);
+
+  return () => ctx.revert();
+}, []);
 
   return (
     <>
@@ -443,31 +444,31 @@ export default function Variants({ variants }: ProductVariantsProps) {
             className="pt-12 space-y-8 will-change-transform pl-2" 
           >
             <div className="space-y-4 space-x-6">
-              <h3 className="text-[12px] font-neuehaas45 uppercase tracking-wide text-gray-400 pl-6">Filters</h3>
+              <h3 className="text-[11px] font-neuehaas45 text-gray-400 pl-6">Filters</h3>
         
               <div className="space-y-2">
-                <h4 className="text-[10px] font-neuehaas45 uppercase text-gray-400">Range</h4>
+                <h4 className="text-[11px] font-neuehaas45  text-gray-400">Range</h4>
                 {groupedVariants.map((group) => (
                   <button 
                     key={group.id}
                     onClick={() => handleFilterClick(group.id)}
-                    className="block text-left text-[11px] font-neuehaas45 tracking-wide text-black hover:underline"
+                    className="block text-left text-[11px] font-neuehaas45 text-gray-400 hover:underline"
                   >
-                    {group.label.toUpperCase()}
+                    {group.label}
                   </button>
                 ))}
                 <button 
                   onClick={() => handleFilterClick('gift-card')}
-                  className="block text-left text-[11px] font-neuehaas45 text-black hover:underline"
+                  className="block text-left text-[11px] font-neuehaas45 text-gray-400 hover:underline"
                 >
-                  GIFT CARD
+                  Gift Card
                 </button>
               </div>
         
               <div className="border-t w-[70%] pt-4 space-y-2">
-                <h4 className="text-[10px] font-neuehaas45 uppercase text-gray-400">Price</h4>
-                <div className="block text-left text-[11px] text-black font-neuehaas45 hover:underline">Low to high</div>
-                <div className="block text-left text-[11px] text-black font-neuehaas45 hover:underline">High to low</div>
+                <h4 className="text-[11px] font-neuehaas45 text-gray-400">Price</h4>
+                <div className="block text-left text-[11px] text-gray-400 font-neuehaas45 hover:underline">Low to high</div>
+                <div className="block text-left text-[11px] text-gray-400 font-neuehaas45 hover:underline">High to low</div>
               </div>
             </div>
           </div>
@@ -486,7 +487,7 @@ export default function Variants({ variants }: ProductVariantsProps) {
 
   switch (group.id) {
     case "devices":
-      backgroundUrl = "/images/_mesh_gradients/metallicdream.png";
+      backgroundUrl = "/images/_mesh_gradients/wavyrainbow.png";
       break;
     case "floss":
       backgroundUrl = "/images/_mesh_gradients/wavyrainbow.png";
@@ -495,7 +496,7 @@ export default function Variants({ variants }: ProductVariantsProps) {
       backgroundUrl = "/images/_mesh_gradients/metallicblue.png";
       break;
     case "cases":
-      backgroundUrl = "/images/_mesh_gradients/wavyrainbow.png";
+      backgroundUrl = "/images/_mesh_gradients/metallicblue.png";
       break;
   }
 
@@ -507,35 +508,43 @@ export default function Variants({ variants }: ProductVariantsProps) {
       className="space-y-4"
     >
       <div className="flex items-start gap-2">
-        <div className="text-[18px] text-zinc-500 font-canelathin">
+        <div className="text-[16px] text-zinc-600 font-canelathin">
           {group.prefix}
           <br />
         </div>
         {showArrows && (
      <div className="flex items-center gap-2">
-  <button
-    onClick={() => handlePrev(group.id, maxIndex)}
-    disabled={currentIndex === 0}
-    className={`w-8 h-8 flex items-center border justify-center rounded-full text-sm transition-all duration-200 ${
-      currentIndex === 0
-        ? "opacity-90"
-        : "bg-[#B4DCE1]/80 hover:bg-white text-white"
-    }`}
-  >
-    ←
-  </button>
+<button
+  onClick={() => handlePrev(group.id, maxIndex)}
+  disabled={currentIndex === 0}
+  className={`p-1 transition-opacity duration-200 ${
+    currentIndex === 0
+      ? "opacity-30 cursor-default"
+      : "opacity-80 hover:opacity-100"
+  }`}
+>
+  <img
+    src="/images/arrow-left.svg"
+    alt="Previous"
+    className="w-3 h-3"
+  />
+</button>
 
-  <button
-    onClick={() => handleNext(group.id, maxIndex)}
-    disabled={currentIndex >= maxIndex}
-    className={`w-8 h-8 flex items-center border justify-center rounded-full text-sm transition-all duration-200 ${
-      currentIndex >= maxIndex
-        ? "opacity-90"
-        : "bg-[#B4DCE1]/80 hover:bg-white text-white"
-    }`}
-  >
-    →
-  </button>
+<button
+  onClick={() => handleNext(group.id, maxIndex)}
+  disabled={currentIndex >= maxIndex}
+  className={`p-1 transition-opacity duration-200 ${
+    currentIndex >= maxIndex
+      ? "opacity-30 cursor-default"
+      : "opacity-80 hover:opacity-100"
+  }`}
+>
+  <img
+    src="/images/arrow-right.svg"
+    alt="Next"
+    className="w-3 h-3"
+  />
+</button>
 </div>
         )}
       </div>

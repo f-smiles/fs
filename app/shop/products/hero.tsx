@@ -1,89 +1,323 @@
 "use client";
-
+import { EffectComposer, Bloom, Selection, Select, ChromaticAberration } from "@react-three/postprocessing";
 import { gsap } from "gsap";
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useLayoutEffect} from "react";
 import { useFrame, extend, useThree, Canvas } from "@react-three/fiber";
 import FlutedGlassEffect from "../../../utils/glass";
-
+import { Vector2 } from "three";
 import {
   OrbitControls,
   useGLTF,
   MeshTransmissionMaterial,
   Environment,
   shaderMaterial,
+  Center,
+  useAnimations
 } from "@react-three/drei";
+import { Physics2DPlugin } from "gsap/Physics2DPlugin";
+import { SplitText } from "gsap/SplitText";
 import * as THREE from "three";
-
+import { Engine, Render, World, Bodies, Runner, Body } from "matter-js";
+gsap.registerPlugin(SplitText, Physics2DPlugin);
 
 const Marquee = () => {
-  const text = "Our gift cards can be used toward any part of treatment—and they never expire. Send one digitally or choose a physical card.";
+  const text =
+    "Reserve an appointment to experience our year end holiday courtesy of up to 700 dollars off full treatment";
   const repeatCount = 12;
 
   return (
- <div className="relative overflow-hidden w-full bg-[#F0EF59]">
-  <div className="marquee">
-    <div className="marquee__group">
-      {[...Array(repeatCount)].map((_, i) => (
-        <span
-          key={i}
-          className="px-6 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide"
-        >
-          {text}
-        </span>
-      ))}
-    </div>
+    <div className="relative w-full overflow-hidden bg-[#F0EF59]">
+      <div className="marquee">
+<div className="marquee__group">
+  {Array.from({ length: repeatCount }).map((_, i) => (
+    <div
+      key={`a-${i}`}
+      className="flex items-center"
+    >
+      <span className="px-6 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide">
+        {text}
+      </span>
 
-    <div className="marquee__group" aria-hidden="true">
-      {[...Array(repeatCount)].map((_, i) => (
-        <span
-          key={i}
-          className="px-8 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide"
-        >
-          {text}
-        </span>
-      ))}
+
+<span className="mx-4 text-[12px] font-light opacity-70">+</span>
     </div>
-  </div>
+  ))}
 </div>
+
+<div className="marquee__group">
+  {Array.from({ length: repeatCount }).map((_, i) => (
+    <div
+      key={`a-${i}`}
+      className="flex items-center"
+    >
+      <span className="px-6 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide">
+        {text}
+      </span>
+
+
+<span className="mx-4 text-[12px] font-light opacity-70">+</span>
+    </div>
+  ))}
+</div>
+      </div>
+    </div>
   );
 };
+const LETTERS = [
+  { char: "h", texture: "/images/h.png" },
+  { char: "p", texture: "/images/p.png" },
+  { char: "s", texture: "/images/s.png" },
+  { char: "o", texture: "/images/o.png" },
 
+  { char: "s", texture: "/images/s.png" },
+
+  { char: "o", texture: "/images/o.png" },
+
+];
+
+
+function FallingTitleDemo() {
+  const loadImage = (src) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () =>
+        resolve({
+          src,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+    });
+  
+  const sceneRef = useRef(null);
+  
+  useEffect(() => {
+    let render;
+    let engine;
+    let runner;
+    let isActive = true;
+
+    const run = async () => {
+      if (!isActive) return;
+
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      const containerWidth = viewportWidth / 2;
+      const containerHeight = viewportHeight;
+      
+      const leftOffset = (viewportWidth - containerWidth) ;
+
+      const images = await Promise.all(
+        LETTERS.map((l) => loadImage(l.texture))
+      );
+
+      if (!isActive) return;
+
+      engine = Engine.create();
+      engine.gravity.y = 1.4;
+
+engine.positionIterations = 12;
+engine.velocityIterations = 10;
+engine.constraintIterations = 4;
+
+      render = Render.create({
+        element: sceneRef.current,
+        engine,
+        options: {
+          width: containerWidth, 
+          height: containerHeight,
+          wireframes: false,
+          background: "transparent",
+
+             
+        },
+      });
+
+const wallThickness = 50;
+
+const leftWall = Bodies.rectangle(
+  -wallThickness / 2,
+  containerHeight / 2,
+  wallThickness,
+  containerHeight,
+  { isStatic: true, render: { visible: false } }
+);
+
+const rightWall = Bodies.rectangle(
+  containerWidth + wallThickness / 2,
+  containerHeight / 2,
+  wallThickness,
+  containerHeight,
+  { isStatic: true, render: { visible: false } }
+);
+
+
+const floor = Bodies.rectangle(
+  containerWidth / 2,
+  containerHeight * 0.79 + 45,    
+  containerWidth + 160,         
+  90,                            
+  {
+    isStatic: true,
+    friction: 0.9,
+    restitution: 0.01,                
+    render: { visible: false }
+  }
+);
+      const SCALE = .7;
+const spacing = 20;
+const totalWidth =
+  images.reduce((sum, img) => sum + img.width * SCALE, 0) +
+  spacing * (images.length - 1);
+
+const DROP_X = containerWidth / 2;
+
+const letters = images.map((img) => {
+  const w = img.width * SCALE;
+  const h = img.height * SCALE;
+
+const body = Bodies.rectangle(
+  DROP_X + (Math.random() - 0.5) * 8,
+  -h - 120,
+  w,
+  h,
+  {
+    friction: 0.9,
+    frictionStatic: 1,
+    restitution: 0.05,
+    density: 0.001,
+    render: {
+      sprite: {
+        texture: img.src,
+        xScale: SCALE,
+        yScale: SCALE,
+      },
+    },
+  }
+);
+
+Body.setAngle(body, (Math.random() - 0.5) * 0.25);
+Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.02);
+
+  Body.setAngle(body, (Math.random() - 0.5) * 0.3);
+  Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.04);
+
+  return body;
+});    
+ World.add(engine.world, [leftWall, rightWall, floor]);
+letters.forEach((body, i) => {
+  setTimeout(() => {
+    if (!isActive) return;
+    World.add(engine.world, body);
+  }, i * 140);
+});
+
+
+      Render.run(render);
+      runner = Runner.create();
+      Runner.run(runner, engine);
+      
+      if (sceneRef.current) {
+        sceneRef.current.style.position = 'absolute';
+        sceneRef.current.style.left = `${leftOffset}px`;
+        sceneRef.current.style.width = `${containerWidth}px`;
+        sceneRef.current.style.height = `${containerHeight}px`;
+        sceneRef.current.style.overflow = 'hidden';
+      }
+    };
+
+    run();
+
+    return () => {
+      isActive = false;
+      
+      if (runner) {
+        Runner.stop(runner);
+      }
+      
+      if (render) {
+        Render.stop(render);
+        if (render.canvas && render.canvas.parentNode) {
+          render.canvas.parentNode.removeChild(render.canvas);
+        }
+      }
+      
+      if (engine) {
+        if (engine.world) {
+          World.clear(engine.world, false);
+        }
+        Engine.clear(engine);
+      }
+    };
+  }, []);
+
+  return <div ref={sceneRef} />;
+}
 function DentalModel() {
-  const { nodes } = useGLTF("/models/flower_button.glb");
-  const groupRef = useRef();
+  const { scene, animations } = useGLTF("/models/art_gallery_test.glb");
+  const animatedRef = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, animatedRef);
 
-useFrame((state, delta) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.5;  
-      groupRef.current.rotation.x += delta * 0.2;  
-    }
+
+  useEffect(() => {
+    console.log("end mesh");
+scene.traverse((child: any) => {
+  if (!child.isMesh || !child.material) return;
+
+  const mat = child.material as THREE.MeshStandardMaterial;
+
+  if (mat.name.includes("Wall")) {
+    mat.color.set("#f2f2f2");
+    mat.roughness = 0.9;
+  }
+
+  if (mat.name.includes("Floor")) {
+    mat.color.set("#e6e6e6");
+    mat.roughness = 0.6;
+  }
+
+  if (mat.name.includes("Ceiling")) {
+    mat.color.set("#fafafa");
+    mat.roughness = 1.0;
+  }
+
+  mat.needsUpdate = true;
+});
+
+    console.log("end mesh");
+  }, [scene]);
+
+
+useEffect(() => {
+  const tl = gsap.timeline({ delay: 1 });
+
+  tl.from(".line-inner", {
+    y: 100,
+    skewY: 7,
+    duration: 1.8,
+    ease: "power4.out",
+    stagger: 0.15
   });
+}, []);
+  useEffect(() => {
+    if (!actions) return;
+
+    const firstAction = Object.values(actions)[0];
+    if (!firstAction) return;
+
+    firstAction.reset();
+    firstAction.setLoop(THREE.LoopRepeat, Infinity);
+    firstAction.play();
+
+    return () => firstAction.stop();
+  }, [actions]);
 
   return (
-    <group
-      ref={groupRef}
-  rotation={[Math.PI / 3, 0, 0]} 
-      scale={0.23}
-      position={[-1, 0, 0]}
-    >
-      <mesh geometry={nodes.Object_2.geometry}>
-       <meshPhysicalMaterial
-  transmission={0.9}         
-  roughness={0.25}     
-  thickness={2.0}               
-  clearcoat={0.6}            
-  clearcoatRoughness={0.15}     
-  metalness={0.0}
-  reflectivity={0.5}           
-  ior={1.3}                 
-  attenuationDistance={1.8}
-  attenuationColor="#B6D0E2" 
-  color="#BDB6D7"        
-  sheen={0.3}
-  sheenTint="#c7b7ff"        
-  sheenRoughness={0.6}
-/>
-      </mesh>
+    <group rotation={[0, 0, 0]} scale={1}>
+      <group ref={animatedRef}>
+        <primitive object={scene} />
+      </group>
     </group>
   );
 }
@@ -91,36 +325,61 @@ const Hero: React.FC = () => {
 
   return (
     <section> 
-         
+
       {/* <Marquee /> */}
 
       <AnimatedBackground />
-<div className="relative min-h-screen overflow-hidden">
-<section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen items-center px-6 py-20">
+<div className="relative min-h-screen">
 
-  <div className="flex justify-end pr-[-50px] lg:pr-[-100px] xl:pr-[-120px]">
-<div className="translate-x-[30%] h-[200px]">
-  <Canvas
-    camera={{ position: [0, 0.5, 6], fov: 40 }}
-    className="w-full h-full"
-  >
-    <ambientLight intensity={0.4} />
-    <directionalLight position={[2, 2, 2]} intensity={0.8} />
-    <pointLight position={[0, 0, -3]} intensity={1.5} color="#e5f2e9" />
-    <DentalModel />
-    <Environment preset="dawn" background={false} />
-    <OrbitControls enableZoom={false} />
-  </Canvas>
+
+<section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen px-6 py-20">
+
+{/* <Canvas camera={{ position: [4, 3, 6], fov: 45 }}>
+  <Environment files="/images/studio_small_03_4k.hdr" />
+
+
+<ambientLight intensity={0.4} />
+
+<directionalLight
+  position={[5, 8, 5]}
+  intensity={1.2}
+  castShadow
+/>
+
+<directionalLight
+  position={[-5, 4, -5]}
+  intensity={0.6}
+/>
+
+
+  <DentalModel />
+
+  <OrbitControls enableZoom={false} enablePan={false} />
+</Canvas> */}
+<FallingTitleDemo />
+<div className="flex items-center justify-center text-center lg:text-left">
+<div className="text-gsap-contain">
+  <h1 className="text-[clamp(24px,3vw,32px)] font-neuehaas35">
+    <div className="gsap-line">
+      <span className="line-inner">
+        <span className="font-canelathin">shop</span> your smile.
+      </span>
+    </div>
+
+    <div className="gsap-line">
+      <span className="line-inner">
+        buy something — or <span className="font-canelathin">don’t</span>.
+      </span>
+    </div>
+
+    <div className="gsap-line">
+      <span className="line-inner">
+        just don't forget to floss.
+      </span>
+    </div>
+  </h1>
 </div>
-  </div>
-
-  <div className="flex items-center justify-center text-center lg:text-left">
-    <h1 className="text-[clamp(24px,4vw,48px)] font-canelathin leading-tight text-[#4a484b]">
-      welcome to the dental shop. <br />
-     buy something - or don’t. <br />
-      but don't forget to floss.
-    </h1>
-  </div>
+</div>
 </section>
 </div>
     </section>
@@ -247,14 +506,20 @@ void main() {
   float lines = cos((st.x * 0.3 + n * 0.25 + mouse.x + 0.2) * PI);
 
 
-vec3 colorA = vec3(1.0, 1.0, 1.0);           // brighter pure white
+vec3 colorA = vec3(.92, .95, 1.0);     
 vec3 colorB = vec3(0.4, 0.6, 1.0);   
 
 
   float wave = bounceIn(lines * 0.5 + 0.5);
-  float fade = smoothstep(0.2, 1.0, uv.x);
+float fade = smoothstep(0.0, 1.0, uv.x);
 
-  vec3 col = mix(colorA, colorB, wave * fade * 0.8);
+
+float blueBase = 0.15;
+
+// final blend
+float mixAmt = blueBase + wave * fade * 0.6;
+
+vec3 col = mix(colorA, colorB, mixAmt);
 
   fragColor = vec4(col, 1.0);
 }

@@ -30,6 +30,7 @@ module.exports = withUt({
   theme: {
   	fontFamily: {
   		'agrandir-bold': 'Agrandir Bold',
+		'unifraktur': ['UnifrakturMaguntia', 'cursive'],
   		'agrandir-grandheavy': 'Agrandir Grand Heavy',
   		aileron: 'Aileron-Black',
   		altero: 'Altero',
@@ -41,6 +42,7 @@ module.exports = withUt({
 		calyx: 'Calyx Regular',
 		canelalight:'Canela-LightItalic',
 		canelathin:'Canela-ThinItalic',
+		canelathinstraight:'Canela-ThinStraight',
   		cera: 'CeraProRegular',
   		'cera-bold': 'CeraProBold',
   		'Chaney-Ultra': 'Chaney-Ultra',
@@ -81,6 +83,7 @@ module.exports = withUt({
   		saol: 'SaolDisplay-Regular',
   		saolitalic: 'SaolDisplay-LightItalic',
 		sinistre:"Sinistre-Regular",
+		seaword: "Seaword2",
   		syne: 'syne-extra',
   	},
   	extend: {
