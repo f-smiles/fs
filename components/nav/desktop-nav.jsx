@@ -649,7 +649,7 @@ className="
                     <p className="text-xs font-canelathin italic opacity-60">
                       {j + 1}.
                     </p>
-                    <h2 className="text-[18px] font-neuehaas45">
+                    <h2 className="text-[16px] tracking-wide font-neuehaas45">
                       {sublink}
                     </h2>
                   </div>
@@ -682,23 +682,23 @@ className="
     <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">
       Email:
     </p>
-    <div className="flex flex-col gap-1 underline underline-offset-2">
+ <div className="flex flex-col gap-1 underline underline-offset-2 tracking-wide">
       <a href="mailto:info@email.com">info@freysmiles.com</a>
     </div>
   </div>
 
   <div>
-    <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">
+    <p className="mb-2 text-[14px] font-neuehaas45 opacity-70">
       Telephone:
     </p>
     <div className="flex flex-col gap-1">
-      <p className="text-[14px] font-neuehaas35">(610) 437-4748</p>
+      <p className="text-[14px] font-neuehaas45 tracking-wide">(610) 437-4748</p>
     </div>
   </div>
 
   <div>
-    <p className="mb-2 text-[14px] font-neuehaas35 opacity-70">Social</p>
-    <div className="flex flex-col gap-1 underline underline-offset-2">
+    <p className="mb-2 text-[14px] font-neuehaas45 opacity-70">Social</p>
+    <div className="flex flex-col gap-1 underline underline-offset-2 tracking-wide">
       <a href="#">Instagram</a>
       <a href="#">Facebook</a>
     </div>

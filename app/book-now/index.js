@@ -936,10 +936,10 @@ transition={{
                 transition={{ delay: 0.4 }}
                 className="text-[28px] font-canelathin mb-10"
               >
-                Start Your Application{" "}
+                Start Your Application
                 <span className="opacity-50 font-canelathin mx-2">—</span>
                 <span className="text-[14px] tracking-wide opacity-70 align-middle font-neuehaas45 text-[#FEB44A]">
-                  Drop us your info and we'll reach out
+                For open positions at Frey Smiles
                 </span>
               </motion.h2>
               
