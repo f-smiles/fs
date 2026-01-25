@@ -9,13 +9,12 @@ export default function GridOverlay() {
   const container = useRef(null)
 
   useGSAP(() => {
-    const gridColumns = gsap.utils.toArray('.grid-column')
-    // Set initial state - fully transparent
+const gridColumns = container.current.querySelectorAll('.grid-column')
     gsap.set(gridColumns, {
       opacity: 0,
       scaleY: 0,
     })
-    // Animate left and right borders with staggered effect
+
     gsap.to(gridColumns, {
       opacity: 1,
       scaleY: 1,

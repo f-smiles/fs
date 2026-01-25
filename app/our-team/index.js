@@ -35,376 +35,46 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText);
 }
 
-const vertexShader = `
-uniform vec2 uOffset;
-varying vec2 vUv;
-const float PI = 3.14159265359;
-
-vec3 deformationCurve(vec3 position, vec2 uv, vec2 offset) {
-    position.x += sin(uv.y * PI) * offset.x;
-    position.y += sin(uv.x * PI) * offset.y;
-    return position;
-}
-
-void main() {
-    vUv = uv;
-    vec3 pos = position;
-    pos = deformationCurve(pos, uv, uOffset);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-}
-`;
-const fragmentShader = `
-uniform sampler2D iChannel0;
-uniform vec2 uMeshSize;
-uniform vec2 uMediaSize;
-uniform vec2 uOffset;
-uniform float uOpacity;
-uniform float uMouseEnter;
-uniform float uMouseEnterMask;
-varying vec2 vUv;
-
-vec2 distort(vec2 uv) {
-    uv -= 0.5;
-    float mRatio = uMeshSize.x / uMeshSize.y;
-    float strength = 1.0 - (10.0 * (1.0 - uMouseEnter)) * (pow(uv.x * mRatio, 2.0) + pow(uv.y, 2.0));
-    uv *= strength;
-    uv += 0.5;
-    return uv;
-}
-
-void main() {
-    vec2 uv = vUv;
-    uv = distort(uv);
-    vec4 tex = texture2D(iChannel0, uv);
-    gl_FragColor = vec4(tex.rgb, tex.a * uOpacity);
-}
-`;
-
-const ShaderPlane = ({ imageUrl, mouse }) => {
-  const meshRef = useRef();
-  const texture = useLoader(TextureLoader, imageUrl);
-
-  const uniforms = useMemo(
-    () => ({
-      iChannel0: { value: texture },
-      uMeshSize: { value: new THREE.Vector2(300, 400) },
-      uMediaSize: {
-        value: new THREE.Vector2(texture.image.width, texture.image.height),
-      },
-      uOffset: { value: new THREE.Vector2(0, 0) },
-      uOpacity: { value: 1.0 },
-      uMouseEnter: { value: 0 },
-      uMouseEnterMask: { value: 0 },
-    }),
-    [texture],
-  );
-
-  useFrame(() => {
-    if (!meshRef.current) return;
-
-    const targetX = mouse.current.x;
-    const targetY = mouse.current.y;
-
-    gsap.to(meshRef.current.position, {
-      x: (targetX - 0.5) * window.innerWidth,
-      y: -(targetY - 0.5) * window.innerHeight,
-      duration: 0.4,
-      ease: "power3.out",
-    });
-
-    gsap.to(uniforms.uOffset.value, {
-      x: (targetX - 0.5) * 0.2,
-      y: (targetY - 0.5) * 0.2,
-      duration: 0.3,
-    });
-
-    gsap.to(uniforms.uMouseEnter, {
-      value: 1,
-      duration: 1.2,
-      ease: "power2.out",
-    });
-    gsap.to(uniforms.uMouseEnterMask, {
-      value: 1,
-      duration: 0.7,
-      ease: "power2.out",
-    });
-  });
-
-  return (
-    <mesh ref={meshRef} scale={[300, 400, 1]}>
-      <planeGeometry args={[1, 1, 64, 64]} />
-      <shaderMaterial
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-      />
-    </mesh>
-  );
-};
-const Intro = ({ texts = [], onFinished }) => {
-  const wrapperRef = useRef(null);
-  const circleTextRefs = useRef([]);
+function Grid() {
+  const cellsRef = useRef([]);
 
   useEffect(() => {
-    const circleEls = circleTextRefs.current;
-    gsap.set(circleEls, { transformOrigin: "50% 50%" });
+    const cells = cellsRef.current;
 
-    const introTL = gsap
-      .timeline()
-      .addLabel("start", 0)
-      .to(
-        circleEls,
-        {
-          duration: 30,
-          ease: "linear",
-          rotation: (i) => (i % 2 ? 360 : -360),
-          repeat: -1,
-          transformOrigin: "50% 50%",
-        },
-        "start",
-      );
+    function randomize() {
 
-    return () => {
-      introTL.kill();
-    };
-  }, [onFinished]);
+      cells.forEach(cell => cell?.classList.remove("active"));
+      const count = Math.floor(Math.random() * 3) + 2;
+      const shuffled = [...cells].sort(() => 0.5 - Math.random());
 
-  return (
-    <main ref={wrapperRef}>
-      <svg className="w-full h-full circles" viewBox="0 0 1400 1400">
-        <defs>
-          <path
-            id="circle-0"
-            d="M150,700.5A550.5,550.5 0 1 11251,700.5A550.5,550.5 0 1 1150,700.5"
-          />
-          <path
-            id="circle-1"
-            d="M250,700.5A450.5,450.5 0 1 11151,700.5A450.5,450.5 0 1 1250,700.5"
-          />
-          <path
-            id="circle-2"
-            d="M382,700.5A318.5,318.5 0 1 11019,700.5A318.5,318.5 0 1 1382,700.5"
-          />
-          <path
-            id="circle-3"
-            d="M487,700.5A213.5,213.5 0 1 1914,700.5A213.5,213.5 0 1 1487,700.5"
-          />
-        </defs>
+      shuffled.slice(0, count).forEach(cell => {
+        cell?.classList.add("active");
 
-        <path
-          d="M100,700.5A600,600 0 1 11301,700.5A600,600 0 1 1100,700.5"
-          fill="none"
-          stroke="black"
-          strokeWidth="1"
-        />
-        <path
-          d="M250,700.5A450.5,450.5 0 1 11151,700.5A450.5,450.5 0 1 1250,700.5"
-          fill="none"
-          stroke="black"
-          strokeWidth="1"
-        />
-        <path
-          d="M382,700.5A318.5,318.5 0 1 11019,700.5A318.5,318.5 0 1 1382,700.5"
-          fill="none"
-          stroke="black"
-          strokeWidth="1"
-        />
-        <path
-          d="M487,700.5A213.5,213.5 0 1 1914,700.5A213.5,213.5 0 1 1487,700.5"
-          fill="none"
-          stroke="black"
-          strokeWidth="1"
-        />
+        setTimeout(() => {
+          cell?.classList.remove("active");
+        }, 1200);
+      });
+    }
 
-        <text
-          dy="-20"
-          ref={(el) => (circleTextRefs.current[1] = el)}
-          className="circles__text circles__text--1"
-        >
-          <textPath xlinkHref="#circle-1" textLength="2830">
-            Low dose 3d digital radiographs&nbsp;
-          </textPath>
-        </text>
-        <text
-          dy="-20"
-          ref={(el) => (circleTextRefs.current[2] = el)}
-          className="circles__text circles__text--2"
-        >
-          <textPath xlinkHref="#circle-2" textLength="2001">
-            Accelerated Treatment&nbsp;
-          </textPath>
-        </text>
-        <text
-          dy="-20"
-          ref={(el) => (circleTextRefs.current[3] = el)}
-          className="circles__text circles__text--3"
-        >
-          <textPath xlinkHref="#circle-3" textLength="1341">
-            Invisalign&nbsp; Invisalign&nbsp; Invisalign&nbsp;
-          </textPath>
-        </text>
-      </svg>
-    </main>
-  );
-};
-const images = [
-  "../images/1024mainsectionimage.jpg",
-  "../images/team_members/Nicollewaving.png",
-  "../images/1024mainsectionimage.jpg",
-  "../images/team_members/Elizabethaao.png",
-  "../images/1024mainsectionimage.jpg",
-];
+    randomize();
+    const interval = setInterval(randomize, 1600);
 
-function ImageCard({ texture, index }) {
-  const ref = useRef();
-  const z = index * -1.5;
-  const x = 0;
-  const rotation = useMemo(() => [0, 0.1 * index, 0], [index]);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <group ref={ref} position={[x, 0, z]} rotation={rotation}>
-      <mesh>
-        <boxGeometry args={[2, 3, 0.02]} />
-        <meshPhysicalMaterial
-          map={texture}
-          roughness={0.1}
-          metalness={0.2}
-          transparent
-          transmission={0.2}
-          thickness={0.1}
-          ior={1.1}
-          reflectivity={0.2}
-          clearcoat={1}
-          clearcoatRoughness={0.05}
-          toneMapped={false}
-          opacity={1}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function Scene() {
-  const textures = useLoader(THREE.TextureLoader, images);
-
-  return (
-    <>
-      {textures.map((tex, i) => (
-        <ImageCard key={i} texture={tex} index={i} />
-      ))}
-      <Environment preset="sunset" />
-      <ambientLight intensity={1.2} />
-      <directionalLight intensity={1.5} position={[5, 5, 5]} />
-
-      <OrbitControls enableZoom={false} />
-    </>
-  );
-}
-const ShaderHoverEffect = () => {
-  const images = [
-    {
-      name: "Alyssa",
-      url: "../images/team_members/adrianaportrait.png",
-      description: "Treatment Coordinator",
-    },
-    {
-      name: "Nicolle",
-      url: "../images/team_members/Dana-Photoroom.png",
-      description: "Specialized Orthodontic Assistant",
-    },
-    {
-      name: "Nicolle",
-      url: "../images/team_members/Dana-Photoroom.png",
-      description: "Specialized Orthodontic Assistant",
-    },
-    {
-      name: "Elizabeth",
-      url: "../images/team_members/adrianaportrait.png",
-      description: "Patient Services",
-    },
-    {
-      name: "Adriana",
-      url: "../images/team_members/adrianaportrait.png",
-      description: "Insurance Coordinator",
-    },
-  ];
-  const [hoveredImage, setHoveredImage] = useState(null);
-  const mouse = useRef({ x: 0.5, y: 0.5 });
-
-  const handleMouseMove = (e) => {
-    mouse.current.x = e.clientX / window.innerWidth;
-    mouse.current.y = e.clientY / window.innerHeight;
-  };
-
-  return (
-    <div
-      className="relative w-screen h-screen overflow-hidden"
-      onMouseMove={handleMouseMove}
-    >
-      <Canvas orthographic camera={{ zoom: 1, position: [0, 0, 100] }}>
-        {hoveredImage && <ShaderPlane imageUrl={hoveredImage} mouse={mouse} />}
-      </Canvas>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex flex-col justify-between space-y-6 text-center">
-          {images.map((img) => (
-            <div
-              key={img.name}
-              className="flex flex-row justify-between text-xl cursor-pointer font-neuehaasdisplaythin w-96"
-              onMouseEnter={() => setHoveredImage(img.url)}
-              onMouseLeave={() => setHoveredImage(null)}
-            >
-              <span>{img.name}</span>
-              <span className="text-sm text-gray-400">{img.description}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-function Grid() {
-  return (
-    <div className="grid grid-cols-12 grid-rows-3 w-full h-full absolute inset-0 p-8">
+    <div className="footer-grid">
       {Array.from({ length: 36 }).map((_, i) => (
-        <div key={i} className="grid-cell" />
+        <div
+          key={i}
+          ref={(el) => (cellsRef.current[i] = el)}
+          className="is-desktop"
+        />
       ))}
     </div>
   );
 }
 
-function Content() {
-  return (
-    <div className="grid grid-cols-12 grid-rows-3 gap-4 w-full h-full absolute inset-0 p-8 text-white text-[11px] uppercase tracking-wide pointer-events-none">
-      <div style={{ gridColumn: 1, gridRow: 1 }}>
-        <br />
-      </div>
-      <div style={{ gridColumn: 2, gridRow: 1 }}></div>
-      <div style={{ gridColumn: 3, gridRow: 1 }}>WHO</div>
-      <div style={{ gridColumn: 4, gridRow: "1 / span 3" }}>BUILD </div>
-      <div style={{ gridColumn: 5, gridRow: 1 }}>WILL</div>
-      <div style={{ gridColumn: 6, gridRow: 1 }}>LOVE!</div>
-
-      <div style={{ gridColumn: 1, gridRow: "2 / span 2" }}>
-        OUR CULTURE IS A REFLECTION OF OUR SHARED VALUES, ATTITUDES, BELIEFS,
-        AND WORKING PRACTICES.
-      </div>
-
-      <div style={{ gridColumn: 2, gridRow: 3 }}>
-        GOOD IS NOT WHERE WE STOP. IT’S WHERE WE BEGIN.
-      </div>
-
-      <div style={{ gridColumn: 3, gridRow: 3 }}></div>
-
-      {/* Highlight column */}
-      <div
-        className="bg-[#FF3A17] rounded-xl"
-        style={{ gridColumn: 9, gridRow: "2 / span 2" }}
-      />
-    </div>
-  );
-}
 const LeftRail = () => {
   const items = ["Meet Our Doctors", "Our Standards", "Meet Our Team"];
 
@@ -621,170 +291,164 @@ export default function OurTeam() {
       );
     });
   }, []);
-  useLayoutEffect(() => {
-    if (
-      !pinRef.current ||
-      !trackRef.current ||
-      !wrapperRef.current ||
-      !scrollRef.current ||
-      !stackRef.current ||
-      !lastSectionRef.current ||
-      !newSectionRef.current
-    )
-      return;
+useLayoutEffect(() => {
+  if (
+    !pinRef.current ||
+    !trackRef.current ||
+    !scrollRef.current ||
+    !stackRef.current ||
+    !newSectionRef.current
+  ) return;
 
-    const ctx = gsap.context(() => {
-      if (largeDanRef.current) gsap.set(largeDanRef.current, { x: "-100%" });
-      if (smallGreggRef.current)
-        gsap.set(smallGreggRef.current, { x: "-100%" });
-      if (smallDanRef.current) gsap.set(smallDanRef.current, { x: "0%" });
-      if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
+  const ctx = gsap.context(() => {
 
-      gsap.set(trackRef.current, { xPercent: 0 });
-      gsap.set(stackRef.current, { y: 0 });
+    if (largeDanRef.current) gsap.set(largeDanRef.current, { x: "-100%" });
+    if (smallGreggRef.current) gsap.set(smallGreggRef.current, { x: "-100%" });
+    if (smallDanRef.current) gsap.set(smallDanRef.current, { x: "0%" });
+    if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
 
-      const getTargetY = () => {
-        const viewportH = scrollRef.current.clientHeight; // mask height
-        const contentH = stackRef.current.scrollHeight; // stacked content height
-        return Math.max(0, contentH - viewportH);
-      };
+    gsap.set(trackRef.current, { xPercent: 0 });
+    gsap.set(stackRef.current, { y: 0 });
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: pinRef.current,
-          start: "top top",
-          end: () => "+=" + window.innerHeight * 6,
-          scrub: true,
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
+  
+    const getTargetY = () => {
+      const viewportH = scrollRef.current.clientHeight;
+      const contentH = stackRef.current.scrollHeight;
+      return Math.max(0, contentH - viewportH);
+    };
 
-      // PHASE 1: Vertical narrative
-      const totalVerticalTravel = getTargetY();
-      const verticalDuration = 1;
-      tl.to(
-        stackRef.current,
-        {
-          y: -totalVerticalTravel,
-          ease: "none",
-          duration: verticalDuration,
-        },
-        0,
-      );
+    const col1Cells = Array.from(col1Ref.current.querySelectorAll(".cell"));
+    const col2Cells = Array.from(col2Ref.current.querySelectorAll(".cell"));
+    const col3Cells = Array.from(col3Ref.current.querySelectorAll(".cell"));
 
-      // PHASE 1 Image switching should START when vertical scroll STARTS and END when vertical scroll ENDS
-      // So we place the label at 0 (start) and use the same duration as vertical scroll
-      tl.add("switchStart", 0);
+    const maxRows = Math.max(
+      col1Cells.length,
+      col2Cells.length,
+      col3Cells.length
+    );
 
-      tl.to(
-        largeGreggRef.current,
-        {
-          x: "100%",
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
+    const lateralCells = [];
+    for (let i = 0; i < maxRows; i++) {
+      if (col1Cells[i]) lateralCells.push(col1Cells[i]);
+      if (col2Cells[i]) lateralCells.push(col2Cells[i]);
+      if (col3Cells[i]) lateralCells.push(col3Cells[i]);
+    }
 
-      tl.to(
-        largeDanRef.current,
-        {
-          x: "0%",
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
 
-      tl.to(
-        smallDanRef.current,
-        {
-          x: "100%",
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
+    gsap.set(lateralCells, { opacity: 0 });
 
-      tl.to(
-        smallGreggRef.current,
-        {
-          x: "0%",
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: pinRef.current,
+        start: "top top",
+        end: () => "+=" + window.innerHeight * 6,
+        scrub: 1.5,
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+    });
 
-      tl.to(
-        greggNameRef.current,
-        {
-          opacity: 0,
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
+    const totalVerticalTravel = getTargetY();
+    const verticalDuration = 1;
 
-      tl.to(
-        danNameRef.current,
-        {
-          opacity: 1,
-          duration: verticalDuration,
-          ease: "power2.inOut",
-        },
-        "switchStart",
-      );
+    tl.to(
+      stackRef.current,
+      {
+        y: -totalVerticalTravel,
+        ease: "none",
+        duration: verticalDuration,
+      },
+      0
+    );
 
-      // PHASE 2: Horizontal slide AFTER vertical scroll completes
-      // PHASE 2: ONE continuous slide where exit + entry overlap
-      tl.to(trackRef.current, {
-        xPercent: -66.666,
+    tl.add("switchStart", 0);
+
+    tl.to(largeGreggRef.current, { x: "100%", duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+    tl.to(largeDanRef.current,   { x: "0%",   duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+    tl.to(smallDanRef.current,   { x: "100%", duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+    tl.to(smallGreggRef.current, { x: "0%",   duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+    tl.to(greggNameRef.current,  { opacity: 0, duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+    tl.to(danNameRef.current,    { opacity: 1, duration: verticalDuration, ease: "power2.inOut" }, "switchStart");
+
+
+    tl.to(trackRef.current, {
+      xPercent: -66.666,
+      ease: "none",
+      duration: 2,
+    });
+
+    const panels = trackRef.current.children;
+
+tl.to(trackRef.current, {
+  xPercent: -100 * (panels.length - 1),
+  ease: "none",
+  duration: 2,
+});
+
+    tl.to(
+      lateralCells,
+      {
+        opacity: 1,
+        stagger: 0.12,
+        ease: "power2.out",
+      },
+      ">-=0.4"
+    );
+
+    tl.to(
+      [col1Ref.current, col2Ref.current, col3Ref.current],
+      {
+        yPercent: (i) => (i % 2 === 0 ? -100 : 100),
         ease: "none",
         duration: 2,
-      });
-      // PHASE 3
-      tl.to(
-        [col1Ref.current, col2Ref.current, col3Ref.current],
-        {
-          yPercent: (i) => (i % 2 === 0 ? -100 : 100),
-          ease: "none",
-          duration: 2,
-          stagger: { each: 0.3 },
-        },
-        "+=0.2",
-      );
-      // PHASE 4: Fade in team cards
-      // PHASE 4: Editorial card reveal (like screenshot)
-      tl.add("teamReveal", ">");
-
-      const cards = gridRef.current?.getCards?.();
-
-      if (cards?.length) {
-        tl.from(
-          cards,
-          {
-            opacity: 0,
-            y: 40, // slightly softer lift
-            duration: 1.1, // not too slow, not UI-fast
-            stagger: {
-              each: 0.15,
-              ease: "power1.out",
-            },
-            ease: "power3.out",
-            clearProps: "all", // avoids GSAP residue
-          },
-          "teamReveal+=0.15",
-        );
+        stagger: { each: 0.3 },
       }
+    );
 
-      ScrollTrigger.refresh();
-    }, pinRef);
+    tl.add("teamReveal", ">");
 
-    return () => ctx.revert();
-  }, []);
+const cards = gridRef.current?.getCards?.();
+const scroller = gridRef.current?.getScroller?.();
+if (cards?.length) {
+  tl.from(
+    cards,
+    {
+      opacity: 0,
+      y: 40,
+      duration: 1.1,
+      stagger: {
+        each: 0.15,
+        ease: "power1.out",
+      },
+      ease: "power3.out",
+      clearProps: "all",
+    },
+    "teamReveal"
+  );
+}
+
+if (scroller) {
+  const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+
+  if (maxScroll > 0) {
+    tl.to(
+      scroller,
+      {
+        scrollLeft: maxScroll,
+        ease: "none",
+        duration: 1.5,
+      },
+      "teamReveal+=1.2" //  delay until vertical reveal finishes
+    );
+  }
+}
+
+    ScrollTrigger.refresh();
+  }, pinRef);
+
+  return () => ctx.revert();
+}, []);
   const lines = [
     "Our experience spans over 50 years—a testament to the ",
     "precision, accuracy, and relevance of our vision, demonstrating",
@@ -811,11 +475,12 @@ export default function OurTeam() {
   const gridRef = useRef(null);
   return (
     <>
+
       <div
         ref={pinRef}
         className="relative w-full h-screen overflow-hidden bg-[#FB4D40]"
       >
-        <div ref={trackRef} className="relative flex w-[300vw] h-screen">
+        <div ref={trackRef} className="relative flex h-screen">
           <div className="w-screen h-screen shrink-0">
             <div ref={wrapperRef} className="w-full h-full flex">
               {/* <aside className="sticky top-0 h-screen w-[18%] bg-[#E9ECFF] flex flex-col">
@@ -831,7 +496,7 @@ export default function OurTeam() {
     h-screen
     sticky top-1
     py-[10em] sm:py-[10em]
-    border-l border-b border-r border-[#E4E7FF]
+    border-l border-b border-r border-[#F2F2F2]
     bg-[#FCFFFE]
     rounded-[14px]
     chamfer-br
@@ -937,8 +602,8 @@ export default function OurTeam() {
                   ref={scrollRef}
                   className="shrink-0 w-[35%] h-screen relative"
                 >
-                  <div ref={stackRef} className="will-change-transform">
-                    <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
+                 <div ref={stackRef} className="will-change-transform">
+                    <div className="rounded-[12px] border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
                       <h1 className="font-canelathin text-[20px]">
                         Dr. Gregg Frey,
                         <br />{" "}
@@ -973,9 +638,9 @@ export default function OurTeam() {
                     <div className="relative h-full">
                       <section
                         ref={lastSectionRef}
-                        className="relative bg-cover h-screen  rounded-[12px] overflow-hidden"
+                        className="panel1 relative bg-cover h-screen  rounded-[12px] overflow-hidden"
                       >
-                        <div className="rounded-[12px] border-b border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
+                        <div className="rounded-[12px] bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
                           <h1 className="font-canelathin text-[20px]">
                             Dr. Daniel Frey,
                             <br />{" "}
@@ -1016,15 +681,28 @@ export default function OurTeam() {
                       </section>
                     </div>
                   </div>
+
+
                 </div>
               </div>
             </div>
           </div>
 
-          <section className="relative w-screen h-screen bg-[#FB4D40] overflow-hidden">
-            <Grid />
-            <Content />
-          </section>
+{/* <section className="relative w-screen h-screen bg-[#FB4D40]">
+  <div className="absolute inset-0">
+<Grid/>
+  </div>
+
+  <Canvas
+    orthographic
+    camera={{ position: [0, 0, 5], zoom: 50 }}
+  >
+    <SwirlTextPlane
+      text={`GOOD IS NOT\nWHERE WE\nSTOP IT'S WHERE\nWE BEGIN`}
+    />
+  </Canvas>
+
+</section> */}
           <div
             ref={newSectionRef}
             className="w-screen h-screen shrink-0 relative overflow-hidden"
@@ -1040,7 +718,7 @@ export default function OurTeam() {
                   ref={col1Ref}
                   className="flex flex-col will-change-transform"
                 >
-                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
                     <div className="mt-[48px]">
                       <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
                         The systems, the flow, the details — all dialed in so
@@ -1048,10 +726,10 @@ export default function OurTeam() {
                       </p>
                     </div>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
                       <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                         Our members have received the designation of Specialized
@@ -1062,7 +740,7 @@ export default function OurTeam() {
                       </p>
                     </a>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       Entrust your smile's transformation to our handpicked team
                       of orthodontic specialists.
@@ -1077,7 +755,7 @@ export default function OurTeam() {
                   className="flex flex-col will-change-transform"
                   style={{ transform: "translateY(-66.66vh)" }}
                 >
-                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
                     <div className="mt-[48px]">
                       <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
                         The systems, the flow, the details — all dialed in so
@@ -1085,10 +763,10 @@ export default function OurTeam() {
                       </p>
                     </div>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
                       <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                         Our members have received the designation of Specialized
@@ -1099,7 +777,7 @@ export default function OurTeam() {
                       </p>
                     </a>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       Entrust your smile's transformation to our handpicked team
                       of orthodontic specialists.
@@ -1107,7 +785,7 @@ export default function OurTeam() {
                   </div>
                   <a
                     href="https://g.co/kgs/Sds93Ha"
-                    className="flex justify-center items-center bg-[#FCFFFE] rounded-[12px] p-8 border-b border-r border-[#E4E7FF] h-[33.33vh]"
+                    className="cell flex justify-center items-center bg-[#FCFFFE] rounded-[12px] p-8 border-b border-r border-[#E4E7FF] h-[33.33vh]"
                   >
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       This office is on 🔥! The orthodontists as well as every
@@ -1123,14 +801,14 @@ export default function OurTeam() {
                   ref={col3Ref}
                   className="flex flex-col will-change-transform"
                 >
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[16px] leading-[1.1]">
                       Trained in CPR and first aid
                     </p>
                   </div>
                   <a
                     href="https://g.co/kgs/YkknjNg"
-                    className="flex justify-center items-center  bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] h-[33.33vh]"
+                    className="cell flex justify-center items-center  bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] h-[33.33vh]"
                   >
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       Had a wonderful experience at FreySmiles. Everyone is
@@ -1138,14 +816,14 @@ export default function OurTeam() {
                       recommend! — TK
                     </p>
                   </a>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       We've invested in in-office trainings with leading
                       clinical consultants that have helped us develop systems
                       and protocols streamlining our processes.
                     </p>
                   </div>
-                  <div className="relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
+                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
                     <div className="mt-[48px]">
                       <a
                         href="https://g.co/kgs/example-review-1"
@@ -1160,7 +838,7 @@ export default function OurTeam() {
                       </a>
                     </div>
                   </div>
-                  <div className="bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
+                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
                       Eco-friendly practice: We prioritize recycling and digital
                       workflows to reduce waste.
@@ -1199,6 +877,133 @@ export default function OurTeam() {
         </div>
       </div>
     </>
+  );
+}
+
+
+function createTextTexture(text, width = 1024, height = 512) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  // ctx.fillStyle = "#111";
+  // ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "#fff";
+ctx.font = "550 96px 'NeueHaasGroteskDisplayPro45Light'";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const lines = text.split("\n");
+  lines.forEach((line, i) => {
+    ctx.fillText(line, width / 2, height / 2 + i * 110 - (lines.length - 1) * 55);
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+const vertex = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`
+
+const fragment = `
+uniform sampler2D uTexture;
+uniform vec2 uMouse;
+uniform float uRadius;
+uniform float uStrength;
+uniform vec2 uPlaneSize;
+
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 center = uMouse;
+
+  // Convert UV to plane-relative coordinates
+  vec2 tc = (uv - center) * uPlaneSize;
+  float dist = length(tc);
+
+if (dist < uRadius) {
+  float percent = (uRadius - dist) / uRadius;
+  float theta = percent * percent * uStrength;
+
+  float s = sin(theta);
+  float c = cos(theta);
+
+  // SWIRL
+  tc = vec2(
+    tc.x * c - tc.y * s,
+    tc.x * s + tc.y * c
+  );
+
+  // RADIAL STRETCH
+  vec2 dir = normalize(tc + 0.0001);
+  float stretch = percent * 0.6;
+  tc += dir * stretch * dist;
+
+  // BULGE
+  float bulge = percent * percent * 0.45;
+  tc *= 1.0 + bulge * 0.6;
+
+  // MICRO LETTER WARP
+  float micro = sin(tc.x * 18.0 + tc.y * 12.0) * 0.008;
+  tc += dir * micro * percent;
+}
+
+  // Convert back to UV space
+  vec2 finalUV = tc / uPlaneSize + center;
+  vec4 color = texture2D(uTexture, finalUV);
+  gl_FragColor = color;
+}
+`
+function SwirlTextPlane({ text }) {
+  const meshRef = useRef();
+
+  const texture = useMemo(() => createTextTexture(text), [text]);
+
+  const planeSize = useMemo(() => new THREE.Vector2(20, 10), []);
+
+  const uniforms = useMemo(() => ({
+    uTexture: { value: texture },
+    uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+    uRadius: { value: 0.0 },
+    uStrength: { value: 0.0 },
+    uPlaneSize: { value: planeSize },
+  }), [texture, planeSize]);
+
+  const onPointerMove = (e) => {
+    const uv = e.uv;
+    uniforms.uMouse.value.copy(uv);
+
+    gsap.to(uniforms.uRadius, { value: 2.5, duration: 0.4 });   // world units now
+    gsap.to(uniforms.uStrength, { value: 3.0, duration: 0.4 });
+  };
+
+  const onPointerOut = () => {
+    gsap.to(uniforms.uRadius, { value: 0.0, duration: 0.6 });
+    gsap.to(uniforms.uStrength, { value: 0.0, duration: 0.6 });
+  };
+
+  return (
+    <mesh
+      ref={meshRef}
+      onPointerMove={onPointerMove}
+      onPointerOut={onPointerOut}
+    >
+      <planeGeometry args={[20, 10]} />
+      <shaderMaterial
+        uniforms={uniforms}
+        vertexShader={vertex}
+        fragmentShader={fragment}
+        transparent
+      />
+    </mesh>
   );
 }
 {

@@ -894,6 +894,7 @@ useEffect(() => {
           <div className="w-full md:w-1/2 flex items-center justify-center min-h-[100vh]">
             <div className="max-w-[1200px] w-full">
               <div className="font-neuehaas45 leading-[1.2] relative">
+          
                 <TerminalPreloader />
               </div>
             </div>
@@ -1324,7 +1325,7 @@ const [activeIndex, setActiveIndex] = useState(0);
       <section className="w-full py-12">
           <section className="relative min-h-[80vh] bg-[#ebe7f0] overflow-hidden mx-auto max-w-[1400px] px-10">
 
-      {/* Top border */}
+    
    <div className="flex items-center justify-between py-10 w-full">
           <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
             <svg
@@ -1356,7 +1357,7 @@ const [activeIndex, setActiveIndex] = useState(0);
           </span>
         </div>
 
-      {/* Left micro text */}
+  
       <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
  Every smile tells a story — these are some of our favorites.
       </div>
@@ -1517,6 +1518,96 @@ const [activeIndex, setActiveIndex] = useState(0);
 };
 
 export default Testimonials;
+
+
+const Cell = React.memo(({ char, index, lineIndex, cellData }) => {
+  const cellRef = useRef(null);
+  
+  // Store original char in ref
+  const originalChar = useRef(char);
+  
+  useEffect(() => {
+    if (cellRef.current) {
+      cellRef.current.innerHTML = originalChar.current;
+    }
+  }, []);
+  
+  const setValue = (value) => {
+    if (cellRef.current) {
+      cellRef.current.innerHTML = value;
+    }
+  };
+  
+  // Expose setValue method to parent
+  useEffect(() => {
+    if (cellData && cellRef.current) {
+      cellData.ref = cellRef;
+      cellData.setValue = setValue;
+      cellData.original = originalChar.current;
+      cellData.position = index;
+      cellData.previousCellPosition = index === 0 ? -1 : index - 1;
+    }
+  }, [cellData, index]);
+  
+  return (
+    <span 
+      ref={cellRef}
+      className="typeshuffle-cell"
+      data-position={index}
+      data-line={lineIndex}
+      style={{ display: 'inline-block' }}
+    />
+  );
+});
+
+/**
+ * Line component
+ */
+const Line = React.memo(({ text, lineIndex, lineData }) => {
+  const [cells, setCells] = useState([]);
+  const lineRef = useRef(null);
+  const cellDataRefs = useRef([]);
+  
+  useEffect(() => {
+    // Split text into characters
+    const chars = text.split('');
+    setCells(chars);
+    
+    // Initialize cell data
+    cellDataRefs.current = chars.map(() => ({
+      ref: null,
+      setValue: null,
+      original: '',
+      position: -1,
+      previousCellPosition: -1,
+      cache: null
+    }));
+  }, [text]);
+  
+  useEffect(() => {
+    if (lineData && lineRef.current) {
+      lineData.cells = cellDataRefs.current;
+      lineData.position = lineIndex;
+      lineData.ref = lineRef;
+    }
+  }, [lineData, lineIndex, cells]);
+  
+  return (
+    <div ref={lineRef} className="typeshuffle-line" data-line={lineIndex}>
+      {cells.map((char, index) => (
+        <Cell
+          key={`${lineIndex}-${index}`}
+          char={char}
+          index={index}
+          lineIndex={lineIndex}
+          cellData={cellDataRefs.current[index]}
+        />
+      ))}
+    </div>
+  );
+});
+
+
 
 const TextSwirl = () => {
   const containerRef = useRef(null);

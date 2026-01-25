@@ -50,6 +50,7 @@ body {
   background: #111;
 }
 
+
 .member-info {
   display: flex;
   justify-content: space-between;
@@ -63,12 +64,12 @@ body {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: .01rem;
-  color: #252424;
+  color: #FFF;
 }
 
 .member-role {
   font-size: 14px;
-  color: #252424;
+  color: #FFF;
   letter-spacing: .01rem;
 }
 
@@ -120,13 +121,55 @@ body {
 }
 
 
-.grid-container-wrapper .members-section {
-  flex-direction: column;  
-  flex-wrap: nowrap; 
-  justify-content: flex-start;  
-  align-items: flex-start;  
-  gap: 0.5rem; 
-  padding: 0; 
-  height: 100%;  
-  overflow-y: auto;  
+.grid-container-wrapper {
+  position: absolute;
+  inset: 0;
+}
+.members-section {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  min-height: clamp(420px, 55vh, 600px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.members-track {
+  position: absolute;
+  bottom: 0;          
+  left: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+}
+
+.member-card {
+  flex: 0 0 auto;
+  width: 260px;
+}
+
+.grid-copy {
+  position: absolute;
+  top: 15%;
+  left: 4rem;
+  max-width: 420px;
+  color: white;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.grid-copy h3 {
+  font-size: 28px;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+
+.grid-copy p {
+  line-height: 1.5;
+  opacity: 0.85;
+  letter-spacing: .05px;
 }

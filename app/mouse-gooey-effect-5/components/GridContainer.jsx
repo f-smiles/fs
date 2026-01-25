@@ -46,6 +46,16 @@ export const items = [
     role: 'Records Technician',
     name: 'Alexis',
   },
+    {
+    // src: '/images/members/edit/nicole-blurry-distortion-effect.jpg',
+    // hoverSrc: '/images/members/orig/nicolle.png',
+    src: '/images/team_members/elizabethaao.png',
+    hoverSrc: '/images/test/alexisgooey.png',
+    role: 'Records Technician',
+    name: 'Alexis',
+  },
+
+
 ]
 
 const vertexShader = `
@@ -337,7 +347,7 @@ const ImageCanvas = ({ className, member, imgSrc, hoverSrc }) => {
             mouseMoveTimeout = setTimeout(() => {
               updateCursorState(lastMouseX, lastMouseY)
               mouseMoveTimeout = null
-            }, 16) // ~60fps
+            }, 16) 
           }
         }
 
@@ -432,34 +442,48 @@ export { MemberCard };
 
 export default forwardRef(function GridContainer(props, ref) {
   const cardsRef = useRef([]);
+  const membersRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     getCards: () => cardsRef.current.filter(Boolean),
+    getScroller: () => membersRef.current,   //  expose the container
   }));
 
   return (
     <section className="layout">
-      <div className="members-section">
-        {items.map((item, i) => (
-          <div
-            key={item.name}
-            ref={(el) => (cardsRef.current[i] = el)}
-            className="member-card"
-          >
-            <div className="image-wrapper">
-              <ImageCanvas
-                className={`item-${i + 1}`}
-                member={item.name}
-                imgSrc={item.src}
-                hoverSrc={item.hoverSrc}
-              />
-            </div>
-            <div className="member-info">
-              <div className="member-role">{item.role}</div>
-              <div className="member-title">{item.name}</div>
-            </div>
-          </div>
-        ))}
+      <div className="grid-container-wrapper">
+        <div className="font-canelathin grid-copy">
+          <h3>Our team at Frey Smiles is built around care, clarity, and craft.</h3>
+          <p className="font-neuehaas45 text-[14px]">
+            Behind every visit is a group of people who care deeply about how things feel, how they flow, and how you’re treated.
+            We’re here to make every visit feel smooth, personal, and easy from start to finish.
+          </p>
+        </div>
+
+    <div ref={membersRef} className="members-section">
+  <div className="members-track">
+    {items.map((item, i) => (
+      <div
+        key={item.name}
+        ref={(el) => (cardsRef.current[i] = el)}
+        className="member-card"
+      >
+        <div className="image-wrapper">
+          <ImageCanvas
+            className={`item-${i + 1}`}
+            member={item.name}
+            imgSrc={item.src}
+            hoverSrc={item.hoverSrc}
+          />
+        </div>
+        <div className="member-info">
+          <div className="member-role">{item.role}</div>
+          <div className="member-title">{item.name}</div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
       </div>
     </section>
   );
