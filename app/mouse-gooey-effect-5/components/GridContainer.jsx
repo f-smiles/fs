@@ -46,14 +46,7 @@ export const items = [
     role: 'Records Technician',
     name: 'Alexis',
   },
-    {
-    // src: '/images/members/edit/nicole-blurry-distortion-effect.jpg',
-    // hoverSrc: '/images/members/orig/nicolle.png',
-    src: '/images/team_members/elizabethaao.png',
-    hoverSrc: '/images/test/alexisgooey.png',
-    role: 'Records Technician',
-    name: 'Alexis',
-  },
+   
 
 
 ]
@@ -453,8 +446,8 @@ export default forwardRef(function GridContainer(props, ref) {
     <section className="layout">
       <div className="grid-container-wrapper">
         <div className="font-canelathin grid-copy">
-          <h3>Our team at Frey Smiles is built around care, clarity, and craft.</h3>
-          <p className="font-neuehaas45 text-[14px]">
+          <h3><span></span>Our team at Frey Smiles is built around care, clarity, and craft.</h3>
+          <p className="font-khteka uppercase text-[12px]">
             Behind every visit is a group of people who care deeply about how things feel, how they flow, and how you’re treated.
             We’re here to make every visit feel smooth, personal, and easy from start to finish.
           </p>

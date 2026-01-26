@@ -457,39 +457,23 @@ className="
 {/* <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" className="w-5 h-5">
   <path stroke-linecap="round" stroke-linejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
 </svg> */}
-<svg
-  viewBox="0 0 840 980"
-  width="12"
-  height="14"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <defs>
-    <path
-      id="caret"
-      d="M561.4 0H421.2v138.7h140.2z
-         M421.2 138.7H281v140.2h140.2z
-         M281 278.9H140.8v140.2H281z
-         M281 559.4H140.8v140.2H281z
-         M421.2 699.6H281v140.2h140.2z
-         M561.4 839.8H421.2V980h140.2z
-         M140.8 419.1H.6v140.2h140.2z"
-    />
-  </defs>
-
-
-  <use href="#caret" fill="black" />
-
-<use
-  href="#caret"
-  fill="black"
-  transform="
-    translate(281 490)
-    scale(0.7)
-    translate(-281 -490)
-    translate(380 20)
-  "
-/>
-</svg>
+          <svg width="14" height="17" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#A3A8F0" stop-opacity="0.4" />
+                    <stop offset="50%" stop-color="#C6B5F7" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="#A0EACF" stop-opacity="0.2" />
+                  </linearGradient>
+                  <filter id="glassBlur" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" />
+                  </filter>
+                </defs>
+                <g fill="url(#glassGradient)">
+                  <path d="M0 8H8V34H0V24H8V16H0V8Z" />
+                  <rect x="8" width="20" height="8" />
+                  <rect x="8" y="16" width="16" height="8" />
+                </g>
+              </svg>
   </motion.div>
 </div>
 
@@ -551,23 +535,7 @@ className="
                   Your browser does not support the video tag.
                 </video> */}
               </div>
-              <svg width="14" height="17" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#A3A8F0" stop-opacity="0.4" />
-                    <stop offset="50%" stop-color="#C6B5F7" stop-opacity="0.3" />
-                    <stop offset="100%" stop-color="#A0EACF" stop-opacity="0.2" />
-                  </linearGradient>
-                  <filter id="glassBlur" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" />
-                  </filter>
-                </defs>
-                <g fill="url(#glassGradient)">
-                  <path d="M0 8H8V34H0V24H8V16H0V8Z" />
-                  <rect x="8" width="20" height="8" />
-                  <rect x="8" y="16" width="16" height="8" />
-                </g>
-              </svg>
+    
             </motion.div> 
           </Link>
 

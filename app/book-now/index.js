@@ -684,7 +684,7 @@ const [resumeName, setResumeName] = useState("");
   return (
     <>
 
- {/* <div className="absolute inset-0 -z-10">
+ <div className="absolute inset-0 -z-10">
     <Canvas
       orthographic
       camera={{ zoom: 1, position: [0, 0, 1] }}
@@ -692,11 +692,11 @@ const [resumeName, setResumeName] = useState("");
     >
       <ShaderBackground />
     </Canvas>
-  </div> */}
+  </div>
 
 <div className="flex flex-col lg:flex-row w-full h-screen">
-            {/* <div className="w-1/2 relative h-screen"> */}
-              {/* <Canvas
+            <div className="w-1/2 relative h-screen">
+              <Canvas
                 camera={{ position: [0, 0, 1000], fov: 75 }}
                 gl={{ alpha: true }}
                 style={{
@@ -709,9 +709,9 @@ const [resumeName, setResumeName] = useState("");
                 }}
               >
                 <Scene />
-              </Canvas> */}
+              </Canvas>
 
-              {/* <div className="relative z-10 flex flex-col justify-center h-full items-center">
+              <div className="relative z-10 flex flex-col justify-center h-full items-center">
                 <div className="flex flex-col gap-6 text-sm uppercase">
                   <p className="text-[11px] text-white  uppercase font-ibmplex">
                     // Contact Us
@@ -752,10 +752,10 @@ const [resumeName, setResumeName] = useState("");
                     </p>
                   </div>
                 </div>
-              </div> */}
-            {/* </div> */}
+              </div>
+            </div>
 
-<section
+{/* <section
   className="relative z-10 w-full lg:w-1/2 h-[50vh] lg:h-full 
              flex flex-col items-center justify-center text-white p-8 overflow-hidden"
 >
@@ -817,7 +817,7 @@ website coming soon
     </h1>
   </div>
 </div>
-  {/* Button */}
+
       <div className="font-neuehaas45 absolute top-[85%] right-16 py-2 px-4 z-10">
 <button
   type="button"
@@ -902,9 +902,9 @@ transition={{
                        overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-          {/* Lavender gradient */}
-          {/* <div className="absolute inset-0 pointer-events-none z-[0]
-                        bg-[radial-gradient(circle_at_45%_22%,rgba(140,130,170,0.10),transparent_55%)]" /> */}
+    
+          <div className="absolute inset-0 pointer-events-none z-[0]
+                        bg-[radial-gradient(circle_at_45%_22%,rgba(140,130,170,0.10),transparent_55%)]" />
 
      
           <div className="absolute inset-0 pointer-events-none z-[1]">
@@ -947,7 +947,7 @@ transition={{
                 onSubmit={handleSubmit}
                 className="w-full grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-8"
               >
-                {/* LEFT COLUMN */}
+  
                 <motion.div 
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
@@ -1145,14 +1145,14 @@ transition={{
                   </motion.div>
                 </motion.div>
 
-                {/* RIGHT COLUMN */}
+          
                 <motion.div 
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.55 }}
                   className="space-y-8"
                 >
-                  {/* Resume */}
+               
                   <motion.div
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -1272,7 +1272,7 @@ transition={{
   </div>
 </div>
 
-</section>
+</section> */}
 
 <div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center">
   <div className="w-full h-full p-[5vh]">

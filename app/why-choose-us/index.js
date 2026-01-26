@@ -2261,8 +2261,65 @@ void main(void) {
   }
 }
 
+function FeaturedWorkSection() {
+  const items = [
+    "/images/excellence.png",
+    "/images/signonmetalrack.png",
+    "/images/table_mockup.jpg",
+  ];
 
+  return (
+    <section className="relative w-full min-h-screen bg-[#FAFAF7] px-16 py-24">
+      {/* Header pill */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+        <div className="px-4 py-2 rounded-md bg-black text-white text-sm font-medium shadow-sm">
+          Estrela Studio™
+        </div>
+        <button className="w-9 h-9 rounded-md bg-black text-white flex items-center justify-center">
+          …
+        </button>
+      </div>
 
+      {/* Main layout */}
+      <div className="grid grid-cols-[420px_1fr] gap-16 items-start">
+        {/* Featured Card */}
+        <div className="relative h-[520px] rounded-lg overflow-hidden bg-black text-white flex flex-col justify-between p-10">
+          <div>
+            <h2 className="text-4xl font-serif tracking-tight">
+              Featured Work
+            </h2>
+            <p className="mt-4 text-white/60 max-w-sm leading-relaxed">
+              Design without compromise. Explore our blend of digital product
+              design, website design, and branding.
+            </p>
+          </div>
+
+          <button className="relative w-full h-[110px] rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center text-sm">
+            All Work <span className="ml-2">•</span>
+          </button>
+        </div>
+
+        {/* Horizontal Gallery */}
+        <div className="relative overflow-hidden">
+          <div className="flex gap-6">
+            {items.map((src, i) => (
+              <div
+                key={i}
+                className="w-[260px] h-[380px] rounded-lg overflow-hidden bg-[#E5E5E0] shrink-0"
+              >
+                <img
+                  src={src}
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 function ScrollPanels() {
   useEffect(() => {
     gsap.to(".textslide", {
@@ -2346,87 +2403,22 @@ Our doctors rank in the top 1% nationally and have completed thousands of Invisa
 
 
 
-        <section className="w-full flex flex-col items-center">
-          <div className="w-full px-[6vw]">
-            {/* <div className="border-t border-black/10 w-full" /> */}
-          </div>
-          <div ref={standardRef} className="w-full px-[6vw] py-[10vh]">
-<div className="flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 pt-8 relative">
-              <div className="w-full lg:w-[40vw] flex justify-center">
-        
-                <img
-                  ref={imgRef}
-                  src="/images/excellence.png"
-                  alt="poster"
-                  className="w-full h-auto object-cover"
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
-                  Redefining
-                  <span className="block">Excellence</span>
-                </h1>
-                <p className="text-[16px] mt-4 font-neuehaas45 text-xs tracking-widest text-gray-600 uppercase">
-                  Since 1977
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="w-full px-[6vw]">
-            {/* <div className="border-t border-black/10 w-full" /> */}
-          </div>
+   <section className="relative w-full min-h-screen bg-[#FAFAF7] px-16 py-24">
+  {/* Header pill */}
+  <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+    <div className="px-4 py-2 rounded-md bg-black text-white text-sm font-medium shadow-sm">
+      Estrela Studio™
+    </div>
+    <button className="w-9 h-9 rounded-md bg-black text-white flex items-center justify-center">
+      …
+    </button>
+  </div>
 
-          <div className="w-full px-[6vw] py-[10vh]">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-              <div className="flex flex-col text-left">
-              <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
-  Smart
-  <span className="block">Orthodontics</span>
-</h1>
-                <p className="text-[16px] mt-4 text-xs tracking-widest text-gray-600 uppercase font-neuehaas45">
-                  Built around your life
-                </p>
-              </div>
-              <div className="w-full lg:w-[40vw]">
-                <img
-                  src="/images/signonmetalrack.png"
-                  alt="sign"
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-          </div>
+  <div className="grid grid-cols-[420px_1fr] gap-16 items-start">
+    <FeaturedWorkSection />
 
-          <div className="w-full px-[6vw]">
-            {/* <div className="border-t border-black/10 w-full" /> */}
-          </div>
-
-          <div className="w-full px-[6vw] py-[10vh]">
-            <div className="flex flex-col lg:flex-row-reverse items-center justify-between gap-12">
-              <div className="flex flex-col text-left">
-                <h1 className="text-[8vw] lg:text-[3.5vw] leading-[1] font-neuehaas45">
-                  3D 
-                  <span className="block">Imaging</span>
-                </h1>
-                <p className="max-w-[400px] mt-4 text-xs tracking-widest text-gray-600 uppercase font-neuehaas45">
-                  3D technology is reshaping modern orthodontics. Expect
-                  different information from our competitors
-                </p>
-              </div>
-              <div className="w-full lg:w-[50vw]">
-                <img
-                  src="/images/table_mockup.jpg"
-                  alt="table"
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full px-[6vw]">
-            {/* <div className="border-t border-black/10 w-full" /> */}
-          </div>
-        </section>
+  </div>
+</section>
         {/* <div className="image-grid px-16 grid grid-cols-1 md:grid-cols-2 ">
   {images.map((img, i) => (
     <div

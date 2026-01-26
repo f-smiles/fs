@@ -342,7 +342,7 @@ useLayoutEffect(() => {
         trigger: pinRef.current,
         start: "top top",
         end: () => "+=" + window.innerHeight * 6,
-        scrub: 1.5,
+        scrub: 1.2,
         pin: true,
         anticipatePin: 1,
         invalidateOnRefresh: true,
@@ -473,6 +473,8 @@ if (scroller) {
   const stackRef = useRef(null);
   const teamSectionRef = useRef(null);
   const gridRef = useRef(null);
+
+  
   return (
     <>
 
@@ -703,7 +705,9 @@ if (scroller) {
   </Canvas>
 
 </section> */}
-          <div
+
+
+         <div 
             ref={newSectionRef}
             className="w-screen h-screen shrink-0 relative overflow-hidden"
           >
@@ -712,6 +716,10 @@ if (scroller) {
               onMouseLeave={() => setIsFocused(false)}
               className="bg-[#000] w-screen h-screen grid grid-cols-3 text-[#333] font-neuehaas45 text-[14px] leading-relaxed"
             >
+              <div className="absolute inset-0">
+                      <JanusFace />
+              </div>
+        
               {/* Col 1 */}
               <div className="overflow-hidden">
                 <div
@@ -1049,4 +1057,119 @@ function SwirlTextPlane({ text }) {
             </div>
           ))}
         </div> */
+}
+
+
+function JanusFace() {
+  const [leftShapes, setLeftShapes] = useState([]);
+  const [rightShapes, setRightShapes] = useState([]);
+
+  const r = (from, to) => {
+    return Math.random() * (to - from) + from;
+  };
+
+  const ri = (from, to) => {
+    return ~~r(from, to);
+  };
+
+  const pick = (...args) => {
+    return args[ri(0, args.length - 1)];
+  };
+
+  const generateText = (times = 100) => {
+    const spans = [];
+    for (let i = 0; i < times; i++) {
+      spans.push(
+        <span key={i} className="symbol">
+          {String.fromCharCode(ri(0x25a0, 0x25FC))}
+        </span>
+      );
+    }
+    return spans;
+  };
+
+  const generateParagraphs = (isLeft = false) => {
+    const paragraphs = [];
+    for (let i = 0; i < 50; i++) {
+      const offset = r(50, 100);
+const color = pick("#8fdcff", "#6fcfff", "#b3eaff");
+      const textLength = ri(20, 100);
+      
+      paragraphs.push(
+        <div 
+          key={i}
+          className="text-line"
+          style={{
+            '--offset': offset,
+            color: color,
+            textAlign: isLeft ? 'left' : 'right',
+            mask: isLeft 
+              ? `linear-gradient(to right, #fff, transparent calc(var(--offset) * 1%))`
+              : `linear-gradient(to left, #fff, transparent calc(var(--offset) * 1%))`
+          }}
+        >
+          {generateText(textLength)}
+        </div>
+      );
+    }
+    return paragraphs;
+  };
+
+  const build = () => {
+    setLeftShapes(generateParagraphs(true));
+    setRightShapes(generateParagraphs(false));
+  };
+
+  useEffect(() => {
+    build();
+  }, []);
+
+
+  const shapePath = "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
+
+  const mirrorPolygon = (poly) => {
+    return poly
+      .split(",")
+      .map((pt) => pt.trim())
+      .map((pt) => {
+        const [xRaw, y] = pt.split(/\s+/);
+        const xPercent = parseFloat(xRaw);
+        const mirroredX = (100 - xPercent).toFixed(2) + "%";
+        return `${mirroredX} ${y}`;
+      })
+      .join(", ");
+  };
+
+
+  const leftShapePath = mirrorPolygon(shapePath);
+  const rightShapePath = shapePath;
+  return (
+   <div className="janus-main" onClick={build}>
+      <div className="janus-container">
+
+     <div className="face-container left-face">
+          <div
+            className="janus-shape left-shape"
+            style={{ 
+              shapeOutside: `polygon(${leftShapePath})`
+            }}
+          />
+          <div className="text-container left-text">{leftShapes}</div>
+        </div>
+        
+
+        <div className="face-container right-face">
+          <div 
+            className="janus-shape right-shape"
+            style={{
+              shapeOutside: `polygon(${rightShapePath})`
+            }}
+          />
+          <div className="text-container right-text">
+            {rightShapes}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

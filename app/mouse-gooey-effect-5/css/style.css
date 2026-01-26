@@ -157,19 +157,19 @@ body {
   top: 15%;
   left: 4rem;
   max-width: 420px;
-  color: white;
+  color: #F2F2F2;
   z-index: 2;
   pointer-events: none;
 }
 
 .grid-copy h3 {
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.15;
   margin-bottom: 1rem;
 }
 
 .grid-copy p {
   line-height: 1.5;
-  opacity: 0.85;
+
   letter-spacing: .05px;
 }

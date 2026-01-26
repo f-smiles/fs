@@ -22,10 +22,18 @@
   font-family: "Mantranaga";
   src: url("/fonts/Mantranaga36Daysoftype2023.ttf") format("truetype");
 }
+@font-face {
+  font-family: "UnifrakturMaguntia";
+  src: url("/fonts/UnifrakturMaguntia-Regular.ttf") format("truetype");
+}
 
 @font-face {
   font-family: "Seaword2";
   src: url("/fonts/Seaword2.ttf") format("truetype");
+}
+@font-face {
+  font-family: "InterphaseMono";
+  src: url("/fonts/TT Interphases Pro Mono Trial Regular.ttf") format("truetype");
 }
 
 @font-face {
@@ -6714,5 +6722,78 @@ body,
   60%  { opacity: 0.7; }
   80%  { opacity: 0.35; }
   100% { opacity: 0; }
+}
+
+.janus-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  cursor: pointer;
+}
+
+.janus-container {
+  display: flex;
+  width: 1800px;
+  height: 600px;
+  transform: scale(0.8);
+  justify-content: center;
+  align-items: center;
+}
+
+.face-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+}
+
+
+
+.right-face {
+  direction: ltr;
+
+}
+
+.janus-shape {
+  width: 400px;
+  height: 600px;
+  shape-margin: 10px;
+}
+
+.left-shape {
+  float: left;
+  margin-right: 200px;
+}
+
+
+.left-face {
+  direction: ltr;
+
+}
+
+.right-shape {
+  float: right;
+}
+
+.text-container {
+  width: 100%;
+  height: 100%;
+}
+
+.text-line {
+  margin: 0;
+  word-break: break-all;
+  line-height: 1.1;
+  font-size: 10px;
+  color: #F0FFF3;
+  --offset: 50;
+  
+}
+
+.symbol {
+  text-shadow:
+    10px 0 10px currentColor,
+    -10px 0 10px currentColor;
 }
 
