@@ -1,10 +1,10 @@
-export const HolidayMarquee = () => {
+export const BannerMarquee = () => {
   const text =
-    "Reserve an appointment now to experience our year end holiday courtesy of up to 700 dollars off full treatment.";
+    "Reserve an appointment now to experience our new year courtesy of up to 700 dollars off full treatment.";
   const repeatCount = 12;
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#F0EF59]">
+    <div className="relative w-full overflow-hidden bg-[#ABF926]">
       <div className="marquee">
         <div className="marqueegroup">
           {Array.from({ length: repeatCount }).map((_, i) => (
