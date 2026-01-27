@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
 import Logo from "@/components/logo";
-import { HolidayMarquee } from "@/components/holiday-banner";
+import { BannerMarquee } from "@/components/banner-marquee";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: {
@@ -25,9 +26,11 @@ export default async function RootLayout({
       <body suppressHydrationWarning>
         <Logo className="absolute top-12 left-5 h-6 w-auto fill-zinc-50/80 z-[999] xl:h-7" />
         <main>
-          <HolidayMarquee />
+          <BannerMarquee />
           {children}
         </main>
+        <div id="modal-root" />
+        <Toaster />
       </body>
     </html>
   );
