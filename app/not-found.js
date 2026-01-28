@@ -279,10 +279,102 @@ function PortalFrame({ children }) {
     </div>
   );
 }
+
+const SpiralShader = () => {
+  const containerRef = useRef();
+  const uniformsRef = useRef({});
+  const requestIdRef = useRef();
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.Camera();
+    camera.position.z = 1;
+
+    const geometry = new THREE.PlaneGeometry(2, 2);
+
+    const uniforms = {
+      time: { value: 1.0 },
+      resolution: { value: new THREE.Vector2() }
+    };
+    uniformsRef.current = uniforms;
+
+    const vertexShader = `
+      void main() {
+        gl_Position = vec4(position, 1.0);
+      }
+    `;
+
+    const fragmentShader = `
+      #define TWO_PI 6.2831853072
+      #define PI 3.14159265359
+
+      precision highp float;
+      uniform vec2 resolution;
+      uniform float time;
+
+      void main(void) {
+        vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
+        float t = time * 0.05;
+        float lineWidth = 0.002;
+
+        vec3 color = vec3(0.0);
+        for(int j = 0; j < 3; j++) {
+          for(int i = 0; i < 5; i++) {
+            color[j] += lineWidth * float(i * i) / abs(fract(t - 0.01 * float(j) + float(i) * 0.01) * 5.0 - length(uv) + mod(uv.x + uv.y, 0.2));
+          }
+        }
+
+        gl_FragColor = vec4(color[0], color[1], color[2], 1.0);
+      }
+    `;
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader,
+      fragmentShader
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const onWindowResize = () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      uniforms.resolution.value.x = renderer.domElement.width;
+      uniforms.resolution.value.y = renderer.domElement.height;
+    };
+
+    window.addEventListener('resize', onWindowResize);
+    onWindowResize();
+
+    const animate = () => {
+      uniforms.time.value += 0.05;
+      renderer.render(scene, camera);
+      requestIdRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(requestIdRef.current);
+      window.removeEventListener('resize', onWindowResize);
+      renderer.dispose();
+      container.removeChild(renderer.domElement);
+    };
+  }, []);
+
+  return <div ref={containerRef} className="w-full h-screen" />;
+};
 export default function NotFound() {
   return (
     <div className="relative min-h-screen bg-[#2B2B2B] overflow-hidden">
     {/* <PortalShader /> */}
+    {/* <SpiralShader /> */}
       <PortalFrame>
     
             <PortalBackgroundShader />

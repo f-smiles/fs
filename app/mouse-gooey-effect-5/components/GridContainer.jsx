@@ -205,9 +205,11 @@ const fragmentShader = `
   }
 `
 
-const ImageCanvas = ({ className, member, imgSrc, hoverSrc }) => {
+const ImageCanvas = ({ className, member, imgSrc, hoverSrc ,  src,       
+  hover, }) => {
   const containerRef = useRef(null)
-
+const baseSrc = imgSrc || src;
+const baseHoverSrc = hoverSrc || hover || baseSrc;
   const config = {
     maskRadius: 0.35,
     maskSpeed: 0.75,
@@ -268,10 +270,10 @@ const ImageCanvas = ({ className, member, imgSrc, hoverSrc }) => {
       activeContainers.add(container)
 
       const loader = new TextureLoader()
-      Promise.all([
-        loader.loadAsync(imgSrc),
-        loader.loadAsync(hoverSrc),
-      ]).then(([baseTexture, hoverTexture]) => {
+Promise.all([
+  loader.loadAsync(baseSrc),
+  loader.loadAsync(baseHoverSrc),
+]).then(([baseTexture, hoverTexture]) => {
         setupScene(baseTexture, hoverTexture)
         setupEventListeners()
       })
@@ -393,15 +395,15 @@ const ImageCanvas = ({ className, member, imgSrc, hoverSrc }) => {
     }
 
     initHoverEffect(containerRef.current)
-  }, [imgSrc, hoverSrc])
+}, [baseSrc, baseHoverSrc])
 
   return (
     <div ref={containerRef} className={`inversion-lens ${className}`}>
-      <img src={imgSrc} data-hover={hoverSrc} alt={member} />
+<img src={baseSrc} data-hover={baseHoverSrc} alt={member || ""} />
     </div>
   )
 }
-
+export { ImageCanvas };
 const MemberCard = ({ member, className = '' }) => {
   return (
     <div className={`member-slot ${className} flex flex-col justify-between h-full w-full p-8`}>

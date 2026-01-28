@@ -238,8 +238,6 @@ const ScrambleText = ({
   );
 };
 
-
-
 const RaymarchingShader = () => {
   const meshRef = useRef();
   const { size, viewport } = useThree();
@@ -548,39 +546,8 @@ export default function BookNow() {
     },
   };
 
-  const starRef = useRef(null);
-  const containerRef = useRef(null);
   const contentRef = useRef(null);
 
-  // useEffect(() => {
-  //   const width = window.innerWidth;
-  //   const height = window.innerHeight;
-  //   const maxSize = Math.max(width, height);
-
-  //   const starRect = starRef.current.getBoundingClientRect();
-  //   const starWidth = starRect.width;
-  //   const targetScale = (maxSize * 4) / starWidth;
-
-  //   gsap.set(contentRef.current, { opacity: 0 });
-
-  //   const tl = gsap.timeline({
-  //     defaults: { duration: 2.8, ease: "power2.inOut" },
-  //   });
-
-  //   tl.set(starRef.current, {
-  //     scale: 0.1,
-  //     transformOrigin: "50% 50%",
-  //   })
-  //   .to(starRef.current, {
-  //     scale: targetScale,
-  //     duration: 2.5,
-  //   })
-  //   .to(contentRef.current, {
-  //     opacity: 1,
-  //     duration: 1.8,
-  //   }, "-=2.6")
-  //   .set(containerRef.current, { zIndex: -1 });
-  // }, []);
 
   const cardsectionRef = useRef(null);
   const [linesComplete, setLinesComplete] = useState(false);
@@ -594,26 +561,7 @@ export default function BookNow() {
     }
   }, []);
 
-  const sectionRef = useRef(null);
-  const panelRef = useRef(null);
 
-  // useEffect(() => {
-  //   const ctx = gsap.context(() => {
-  //     gsap.to(panelRef.current, {
-  //       rotate: 7,
-  //       ease: "none",
-  //       scrollTrigger: {
-  //         trigger: sectionRef.current,
-  //         start: "top top",
-  //         end: "+=1000",
-  //         scrub: true,
-  //         pin: true,
-  //       },
-  //     })
-  //   }, sectionRef)
-
-  //   return () => ctx.revert()
-  // }, [])
 const containerOneRef = useRef(null);
   const h1Ref = useRef(null);
 
@@ -684,7 +632,9 @@ const [resumeName, setResumeName] = useState("");
   return (
     <>
 
- <div className="absolute inset-0 -z-10">
+<App />
+
+ {/* <div className="absolute inset-0 -z-10">
     <Canvas
       orthographic
       camera={{ zoom: 1, position: [0, 0, 1] }}
@@ -754,6 +704,23 @@ const [resumeName, setResumeName] = useState("");
                 </div>
               </div>
             </div>
+
+
+
+<div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center">
+  <div className="w-full h-full p-[5vh]">
+    <div className="w-full h-full rounded-2xl overflow-hidden">
+      <iframe
+        src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
+        title="Schedule Appointment"
+        className="w-full h-full"
+        frameBorder="0"
+        allow="payment"
+      />
+    </div>
+  </div>
+</div>
+</div> */}
 
 {/* <section
   className="relative z-10 w-full lg:w-1/2 h-[50vh] lg:h-full 
@@ -1273,21 +1240,6 @@ transition={{
 </div>
 
 </section> */}
-
-<div className="acuity-font w-full lg:w-1/2 h-[50vh] lg:h-full flex items-center justify-center">
-  <div className="w-full h-full p-[5vh]">
-    <div className="w-full h-full rounded-2xl overflow-hidden">
-      <iframe
-        src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
-        title="Schedule Appointment"
-        className="w-full h-full"
-        frameBorder="0"
-        allow="payment"
-      />
-    </div>
-  </div>
-</div>
-</div>
 <section  className="relative w-full">
   {/* <div style={{ 
     position: 'fixed', 
@@ -1305,119 +1257,17 @@ transition={{
         <div className="relative z-10 ">
           
           <div
- 
-            className="flex justify-between w-full p-10 lg:p-20"
-          >
+            className="flex justify-between w-full p-10 lg:p-20">
 
-            {/* <div className="acuity-font flex items-center justify-center w-1/2">
-            <iframe src="https://app.acuityscheduling.com/schedule.php?owner=37685601&ref=embedded_csp" title="Schedule Appointment" width="100%" height="800" frameBorder="0" allow="payment"></iframe>
-            
-              <iframe
-                src="https://app.acuityscheduling.com/schedule.php?owner=35912720"
-                title="Schedule Appointment"
-                className="w-full max-w-[820px] min-h-[90vh] "
-              />
-            </div> */}
+
           </div>
         </div>
       </section>
 
-      {/* <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-<svg ref={starRef} width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"> <g clip-path="url(#clip0_116_153)"> <path d="M100 0C103.395 53.7596 146.24 96.6052 200 100C146.24 103.395 103.395 146.24 100 200C96.6052 146.24 53.7596 103.395 0 100C53.7596 96.6052 96.6052 53.7596 100 0Z" fill="url(#paint0_linear_116_153)"/> </g> <defs> <linearGradient id="paint0_linear_116_153" x1="100" y1="0" x2="100" y2="200" gradientUnits="userSpaceOnUse"> <stop stop-color="#DF99F7"/> <stop offset="1" stop-color="#FFDBB0"/> </linearGradient> <clipPath id="clip0_116_153"> <rect width="200" height="200" fill="white"/> </clipPath> </defs> </svg>
-</div> */}
     </>
   );
 }
-const SpiralShader = () => {
-  const containerRef = useRef();
-  const uniformsRef = useRef({});
-  const requestIdRef = useRef();
 
-  useEffect(() => {
-    const container = containerRef.current;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.Camera();
-    camera.position.z = 1;
-
-    const geometry = new THREE.PlaneGeometry(2, 2);
-
-    const uniforms = {
-      time: { value: 1.0 },
-      resolution: { value: new THREE.Vector2() }
-    };
-    uniformsRef.current = uniforms;
-
-    const vertexShader = `
-      void main() {
-        gl_Position = vec4(position, 1.0);
-      }
-    `;
-
-    const fragmentShader = `
-      #define TWO_PI 6.2831853072
-      #define PI 3.14159265359
-
-      precision highp float;
-      uniform vec2 resolution;
-      uniform float time;
-
-      void main(void) {
-        vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-        float t = time * 0.05;
-        float lineWidth = 0.002;
-
-        vec3 color = vec3(0.0);
-        for(int j = 0; j < 3; j++) {
-          for(int i = 0; i < 5; i++) {
-            color[j] += lineWidth * float(i * i) / abs(fract(t - 0.01 * float(j) + float(i) * 0.01) * 5.0 - length(uv) + mod(uv.x + uv.y, 0.2));
-          }
-        }
-
-        gl_FragColor = vec4(color[0], color[1], color[2], 1.0);
-      }
-    `;
-
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader,
-      fragmentShader
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
-
-    const onWindowResize = () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      uniforms.resolution.value.x = renderer.domElement.width;
-      uniforms.resolution.value.y = renderer.domElement.height;
-    };
-
-    window.addEventListener('resize', onWindowResize);
-    onWindowResize();
-
-    const animate = () => {
-      uniforms.time.value += 0.05;
-      renderer.render(scene, camera);
-      requestIdRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      cancelAnimationFrame(requestIdRef.current);
-      window.removeEventListener('resize', onWindowResize);
-      renderer.dispose();
-      container.removeChild(renderer.domElement);
-    };
-  }, []);
-
-  return <div ref={containerRef} className="w-full h-screen" />;
-};
 
 const CanvasBallsAnimation = () => {
   const canvasRef = useRef(null);
@@ -1560,3 +1410,345 @@ const ballColor = { r: 254, g: 180, b: 74 };
     />
   );
 };
+
+
+function App() {
+  const footerRef = useRef(null);
+  const mainRef = useRef(null);
+  const svgPathsRef = useRef([]);
+  const marqueeContentRef = useRef(null);
+
+
+  const updateFooterMargin = () => {
+    if (footerRef.current && mainRef.current) {
+      const footerHeight = footerRef.current.offsetHeight;
+      mainRef.current.style.marginBottom = `${footerHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    updateFooterMargin();
+    if (svgPathsRef.current.length > 0 && marqueeContentRef.current) {
+ 
+      const svgTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: mainRef.current,
+          start: "bottom 80%",
+          end: "bottom top",
+          scrub: true,
+          toggleActions: "play none none reverse",
+          markers: false
+        }
+      });
+
+      svgPathsRef.current.forEach((path, i) => {
+        svgTimeline.fromTo(
+          path,
+          { opacity: 0, y: 75 },
+          { opacity: 1, y: 0, ease: "power3.out" },
+          i * 0.25
+        );
+      });
+      ScrollTrigger.refresh();
+    }
+
+
+    const handleResize = () => {
+      updateFooterMargin();
+      ScrollTrigger.refresh();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
+  }, []);
+
+
+  const addToSvgPathsRef = (el) => {
+    if (el && !svgPathsRef.current.includes(el)) {
+      svgPathsRef.current.push(el);
+    }
+  };
+
+  return (
+    <>
+      <div className="creativity-main-wrapper" ref={mainRef}>
+<ContactHero />
+      </div>
+
+
+      <footer className="creativity-footer" ref={footerRef}>
+
+           
+                <div className="absolute inset-0">
+  <Canvas
+      orthographic
+      camera={{ zoom: 1, position: [0, 0, 1] }}
+      className="w-full h-full"
+    >
+      <ShaderBackground />
+    </Canvas>
+
+        </div>
+
+          <div className="scene-layer">
+    <Canvas
+      camera={{ position: [0, 0, 1000], fov: 75 }}
+      gl={{ alpha: true }}
+    >
+      <Scene />
+    </Canvas>
+  </div>
+        
+<div className="creativity-footer__marquee">
+  <div className="creativity-footer__marquee-track" ref={marqueeContentRef}>
+  <div className="creativity-footer__marquee-group">
+      <span className="creativity-marquee-item">The</span>
+      <span className="creativity-marquee-item">Future</span>
+      <span className="creativity-marquee-item">Looks</span>
+      <span className="creativity-marquee-item">Good</span>
+      <span className="creativity-marquee-item">On</span>
+        <span className="creativity-marquee-item">You</span>
+    </div>
+
+  <div className="creativity-footer__marquee-group">
+      <span className="creativity-marquee-item">The</span>
+      <span className="creativity-marquee-item">Future</span>
+      <span className="creativity-marquee-item">Looks</span>
+      <span className="creativity-marquee-item">Good</span>
+      <span className="creativity-marquee-item">On</span>
+        <span className="creativity-marquee-item">You</span>
+    </div>
+  <div className="creativity-footer__marquee-group">
+      <span className="creativity-marquee-item">The</span>
+      <span className="creativity-marquee-item">Future</span>
+      <span className="creativity-marquee-item">Looks</span>
+      <span className="creativity-marquee-item">Good</span>
+      <span className="creativity-marquee-item">On</span>
+        <span className="creativity-marquee-item">You</span>
+    </div>
+  </div>
+</div>
+        <div className="creativity-footer__center">
+          
+          <div className="creativity-footer__center-content">
+      
+            <p className="creativity-footer-text">
+              
+            <div className="relative z-10 flex flex-col justify-center h-full items-center">
+        <div className="flex flex-col gap-6 text-sm uppercase">
+                  <p className="text-[11px] text-white  uppercase font-ibmplex">
+                    // Contact Us
+                  </p>
+                  <div>
+<p className="text-[11px] text-white mb-1 font-ibmplex uppercase">
+  <span className="block">
+    <ScrambleText text="GENERAL" />
+  </span>
+</p>
+                    <p className="text-[11px] text-white leading-[1.6] font-ibmplex">
+                       <span className="block">
+                      <ScrambleText text="info@freysmiles.com" />
+                   </span>
+                    </p>
+                   <p className="text-[11px] text-white leading-[1.6] font-ibmplex">
+                     <span className="block">
+                                    <ScrambleText text="(610)437-4748" charsType="numbers" />
+                     </span>
+             
+                           </p>
+              
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] text-white mb-1 font-ibmplex uppercase">
+                      <ScrambleText text="BOOKING" className="mr-10" />
+                    </p>
+                    <p className="text-[11px] text-white leading-[1.5] font-ibmplex">
+                      <ScrambleText text="booking@freysmiles.com" charsType="numbers" />
+                      <br />
+                      <ScrambleText
+                        text="FreySmiles"
+                        charsType="numbers"
+                      />
+                      <br />
+                      <ScrambleText text="Allentown PA" charsType="numbers" />
+                    </p>
+                  </div>
+                </div>
+      
+              </div>
+            </p>
+          </div>
+          
+          <div className="creativity-footer__svg-animation">
+<svg 
+  width="100%" 
+  viewBox="0 0 242 94" 
+  fill="none" 
+  xmlns="http://www.w3.org/2000/svg" 
+  className="creativity-svg-animation"
+>
+  <g
+    ref={addToSvgPathsRef}
+    className="creativity-svg-path"
+    transform="translate(6, 10) scale(2.5)"
+  >
+    <defs>
+      <linearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#A3A8F0" stopOpacity="0.4" />
+        <stop offset="50%" stopColor="#C6B5F7" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#A0EACF" stopOpacity="0.2" />
+      </linearGradient>
+
+    </defs>
+
+<g fill="url(#glassGradient)">
+      <path d="M0 8H8V34H0V24H8V16H0V8Z" />
+      <rect x="8" width="20" height="8" />
+      <rect x="8" y="16" width="16" height="8" />
+    </g>
+  </g>
+
+ 
+  <image
+    ref={addToSvgPathsRef}
+    href="/images/sshape.svg"
+    x="80"
+    y="0"
+    width="80"
+    height="94"
+    className="creativity-svg-path"
+  />
+
+  <image
+    ref={addToSvgPathsRef}
+    href="/images/oshape.svg"
+    x="160"
+    y="0"
+    width="80"
+    height="94"
+    className="creativity-svg-path"
+  />
+
+</svg>
+          </div>
+        </div>
+        
+<div className="creativity-footer__bottom">
+  <div className="creativity-footer__bottom-links">
+    <a href="#" className="creativity-footer__link"> Allentown</a>
+    <span className="creativity-footer__separator">/</span>
+    <a href="#" className="creativity-footer__link">Bethlehem </a>
+    <span className="creativity-footer__separator">/</span>
+    <a href="#" className="creativity-footer__link"> Schnecksville </a>
+    <span className="creativity-footer__separator">/</span>
+    <a href="#" className="creativity-footer__link"> Lehighton </a>
+  </div>
+</div>
+      </footer>
+
+    </>
+  );
+}
+
+
+function ContactHero() {
+  return (
+    <section className="relative h-screen overflow-hidden">
+
+<div className="relative h-full rounded-2xl border border-white/30 overflow-hidden flex flex-col">
+
+<div className="relative flex-1  flex">
+  <div className="absolute inset-0 -z-10">
+             <Canvas>
+                      <RaymarchingShader />
+          </Canvas>
+  
+  </div>
+
+  <div className="relative w-1/2 p-12 flex flex-col justify-center">
+
+<p className="text-white/70 mt-4 font-neuehaas45">Have a question? Send us a message or book a visit.</p>
+
+<div className="grid grid-cols-2 gap-6 max-w-xl">
+
+<div className="font-neuehaas45 flex flex-col gap-2">
+
+
+  <span className="text-[10px] tracking-widest text-white/80 uppercase ml-1">
+    Name
+  </span>
+
+
+  <div className="relative h-18 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-xl px-6 flex items-center">
+<input
+  className="bg-transparent w-full text-lg text-black placeholder-black/60 outline-none border-none ring-0 focus:ring-0 focus:outline-none appearance-none"
+/>
+  </div>
+
+</div>
+
+<div className="font-neuehaas45 flex flex-col gap-2">
+
+
+  <span className="text-[10px] tracking-widest text-white/80 uppercase ml-1">
+    Email
+  </span>
+
+  <div className="relative h-18 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-xl px-6 flex items-center">
+<input
+
+  className="bg-transparent w-full text-lg text-black placeholder-black/60 outline-none border-none ring-0 focus:ring-0 focus:outline-none appearance-none"
+/>
+  </div>
+
+</div>
+
+
+<div className="font-neuehaas45 flex flex-col gap-2 col-span-2">
+
+
+  <span className="text-[10px] tracking-widest text-white/80 uppercase ml-1">
+    Message
+  </span>
+
+  <div className="relative h-32 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-xl px-6 flex items-center">
+<input
+  className="bg-transparent w-full text-lg text-black placeholder-black/60 outline-none border-none ring-0 focus:ring-0 focus:outline-none appearance-none"
+/>
+  </div>
+
+</div>
+
+</div>
+
+    {/* Submit button */}
+    <div className="mt-10">
+      <button className="w-20 h-20 rounded-full border border-white/50 flex items-center justify-center text-white text-3xl hover:bg-white/10 transition">
+        ↗
+      </button>
+    </div>
+  </div>
+
+  {/* RIGHT SIDE: Acuity */}
+  <div className="w-1/2 h-full p-10 flex items-center justify-center acuity-font">
+    <div className="w-full h-full rounded-2xl overflow-hidden backdrop-blur-xl border border-white/20 shadow-lg">
+      <iframe
+        src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
+        title="Schedule Appointment"
+        className="w-full h-full"
+        frameBorder="0"
+        allow="payment"
+      />
+    </div>
+  </div>
+
+</div>
+      </div>
+    </section>
+  );
+}

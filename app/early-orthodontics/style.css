@@ -1,20 +1,23 @@
 :root {
-  --terra: #B7391E;
-  --brown:   #755958;
+  --terra: #9C7C7B ;
+  --brown: #755958 ;
 
   --purple: #C7C6FE;
   --white:#FFFAF1;
   --black: #0e0e0e;
-  --green: #86CEF2;
-  --grey: #CA801E;
+  --green: #909A50;
+  --grey: #E7EEE8;
   --91c5acce: 5;
   --sbw: 0px;
 }
+
+/* #AEBCBB */
+/* #ADB684 */
 /* #DFE8E6 */
  /* #CEC1DA */
-/* #6D423E */
+
 /* #87381C */
-/* #909A50 */
+
 @media screen and (max-width:768px) {
   html {
     font-size: 2.6666666667vw;

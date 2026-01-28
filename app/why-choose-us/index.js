@@ -1387,9 +1387,6 @@ function LivingLine() {
   const pointsRef = useRef([]);
   const mouseRef = useRef({ x: 0, y: 0 });
 
-  /* ----------------------------------
-     Geometry helpers
-  ---------------------------------- */
 
   function sCurve(t) {
     if (t < 0.5) {
@@ -1434,9 +1431,6 @@ function LivingLine() {
     });
   }
 
-  /* ----------------------------------
-     Interaction forces
-  ---------------------------------- */
 
   function applyHover(points) {
     const mouse = mouseRef.current;
@@ -1508,9 +1502,6 @@ function LivingLine() {
     });
   }
 
-  /* ----------------------------------
-     Path builder
-  ---------------------------------- */
 
   function buildPath(points) {
     let d = `M -40 ${points[0].current.y}`;
@@ -1518,9 +1509,7 @@ function LivingLine() {
     return d;
   }
 
-  /* ----------------------------------
-     Animation loop
-  ---------------------------------- */
+
 
   useEffect(() => {
     pointsRef.current = generateBasePoints();
@@ -1540,9 +1529,7 @@ function LivingLine() {
     animate();
   }, []);
 
-  /* ----------------------------------
-     Mouse + scroll reveal
-  ---------------------------------- */
+
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -1577,7 +1564,6 @@ function LivingLine() {
     };
   }, []);
 
-  /* ---------------------------------- */
 
   return (
 <svg
@@ -1611,6 +1597,8 @@ export default function WhyChooseUs() {
     <>
 
       <div className="relative ">
+        <Hero />
+{/* <MoreThanSmiles /> */}
 
 <LivingLine />
              {/* <FluidSimulation /> */}
@@ -1636,8 +1624,6 @@ export default function WhyChooseUs() {
               <ScrollPanels />
             </div>
 
-
-     
            <StackCards />
          
           <CardStack />
@@ -1653,198 +1639,536 @@ export default function WhyChooseUs() {
   );
 }
 
-function CircleReveal() {
-useLayoutEffect(() => {
-  const ctx = gsap.context(() => {
-    const section = document.querySelector(".circle-section");
-    const circle = document.querySelector(".circle.yellow");
-    const panels = gsap.utils.toArray(".panel");
-    const panelTrack = document.querySelector(".panel-track");
-    const numPanels = panels.length;
 
-    if (!circle || !panelTrack) return;
+const vertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+ uniform float uProgress;
+uniform vec2 uResolution;
+uniform vec3 uColor;
+uniform float uSpread;
+varying vec2 vUv;
+
+float Hash(vec2 p) {
+  vec3 p2 = vec3(p.xy, 1.0);
+  return fract(sin(dot(p2, vec3(37.1, 61.7, 12.4))) * 3758.5453123);
+}
+
+float noise(in vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f *= f * (3.0 - 2.0 * f);
+  return mix(
+    mix(Hash(i + vec2(0.0, 0.0)), Hash(i + vec2(1.0, 0.0)), f.x),
+    mix(Hash(i + vec2(0.0, 1.0)), Hash(i + vec2(1.0, 1.0)), f.x),
+    f.y
+  );
+}
+
+float fbm(vec2 p) {
+  float v = 0.0;
+  v += noise(p * 1.0) * 0.5;
+  v += noise(p * 2.0) * 0.25;
+  v += noise(p * 4.0) * 0.125;
+  v += noise(p * 8.0) * 0.0625;
+  v += noise(p * 16.0) * 0.03125;
+  return v / 0.96875;
+}
+
+void main() {
+  vec2 uv = vUv;
+  float aspect = uResolution.x / uResolution.y;
+  vec2 centeredUv = (uv - 0.5) * vec2(aspect, 1.0);
+
+  float fineNoise = fbm(centeredUv * 30.0);
+  float mediumNoise = fbm(centeredUv * 15.0);
+  float largeNoise = fbm(centeredUv * 5.0);
+  
+  float creamyTexture = largeNoise * 0.4 + mediumNoise * 0.3 + fineNoise * 0.3;
+
+  float wave = sin(centeredUv.x * 12.0 + uProgress * 8.0) * 0.08;
+  wave += cos(centeredUv.y * 7.0 + uProgress * 5.0) * 0.05;
+  
+  float dissolveEdge = uv.y - uProgress * 1.1 + wave;
+
+  float textureInfluence = creamyTexture * uSpread * 0.8;
 
 
-    const scrollTween = gsap.to(panelTrack, {
-      xPercent: -100 * (numPanels - 1),
-      ease: "none",
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: "+=6000",
-        scrub: 1,
-        pin: true,
-      },
-    });
+  float d = dissolveEdge + textureInfluence;
 
-    // circle color transitions
-    const circleWidth = circle.offsetWidth;
-    const colors = [".circle.red", ".circle.blue", ".circle.purple", ".circle.green", ".circle.pink"];
+  float softEdge = smoothstep(-0.1, 0.1, d);
+  float hardEdge = step(0.0, d + creamyTexture * 0.1);
+  
+  // Blend between edge types
+  float edgeBlend = mix(softEdge, hardEdge, 0.3);
+  float alpha = 1.0 - edgeBlend;
 
-    colors.forEach((selector, i) => {
-      const colorCircle = document.querySelector(selector);
-      const triggerPanel = panels[i];
-      if (!colorCircle || !triggerPanel) return;
+  alpha = pow(alpha, 0.7);
+  
 
-      ScrollTrigger.create({
-        trigger: triggerPanel,
-        containerAnimation: scrollTween,
-        scrub: true,
-        start: () => `left center+=${circleWidth / 2}`,
-        end: () => `left center-=${circleWidth / 2}`,
-        onUpdate: (self) => {
-          const pct = 100 - self.progress * 100;
-          gsap.set(colorCircle, { clipPath: `inset(0% 0% 0% ${pct}%)` });
-        },
-      });
-    });
+  vec3 baseMilk = uColor;
+  
+
+  float colorVariation = 0.9 + creamyTexture * 0.1;
+  vec3 milkColor = baseMilk * colorVariation;
+  
+
+  milkColor.r *= 1.02;
+  milkColor.g *= 1.01;
+  
+  gl_FragColor = vec4(milkColor, alpha);
+}
+`;
 
 
-    panels.forEach((panel) => {
-      const el = panel.querySelector("h2");
-      if (!el) return;
+const CONFIG = {
+  color: "#000", 
+  spread: 0.5,
+  speed: 2,
+};
 
-      const split = new SplitText(el, { type: "chars, words", charsClass: "chars" });
-
-      gsap.from(split.chars, {
-        scrollTrigger: {
-          trigger: el,
-          containerAnimation: scrollTween, 
-          start: "left 80%",
-          end: "left 20%",
-          toggleActions: "play none none none",
-          markers: false,
-        },
-        y: 15,
-        opacity: 0,
-        stagger: 0.06,
-        duration: 1.2,
-        ease: "power3.out",
-      });
-    });
-  });
-
-  return () => ctx.revert();
-}, []);
-    const panelsRef = useRef(null);
-const hexToRgb = (hex) => {
+function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
-    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : null;
-};
+    ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255,
+      }
+    : { r: 0.89, g: 0.89, b: 0.89 };
+}
 
-const rgbToHex = (r, g, b) => {
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-};
+function Hero() {
+  const canvasRef = useRef(null);
+  const heroRef = useRef(null);
+  const heroContentRef = useRef(null);
+  const heroH2Ref = useRef(null);
+  
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const rendererRef = useRef(null);
+  const materialRef = useRef(null);
+  const meshRef = useRef(null);
+  const lenisRef = useRef(null);
+  const scrollProgressRef = useRef(0);
+  const animationIdRef = useRef(null);
+  const splitTextRef = useRef(null);
+  const resizeTimeoutRef = useRef(null);
 
-const colorLerp = (color1, color2, amount) => {
-  const [r1, g1, b1] = hexToRgb(color1);
-  const [r2, g2, b2] = hexToRgb(color2);
-  const r = Math.round(r1 + (r2 - r1) * amount);
-  const g = Math.round(g1 + (g2 - g1) * amount);
-  const b = Math.round(b1 + (b2 - b1) * amount);
-  return rgbToHex(r, g, b);
-};
+  useEffect(() => {
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    });
+    lenisRef.current = lenis;
+
+    function raf(time) {
+      lenis.raf(time);
+      ScrollTrigger.update();
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+    
+    lenis.on("scroll", ScrollTrigger.update);
+
+    const initThreeJS = () => {
+      const canvas = canvasRef.current;
+      const hero = heroRef.current;
+      
+      if (!canvas || !hero) {
+        console.warn('Canvas or hero element not found');
+        return;
+      }
+
+      try {
+        const scene = new THREE.Scene();
+        sceneRef.current = scene;
+
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        cameraRef.current = camera;
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          alpha: true,
+          antialias: false,
+        });
+        rendererRef.current = renderer;
+
+        const resize = () => {
+          if (!hero || !renderer) return;
+          const width = hero.offsetWidth;
+          const height = hero.offsetHeight;
+          
+          if (width === 0 || height === 0) return;
+          
+          renderer.setSize(width, height);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          
+          if (materialRef.current) {
+            materialRef.current.uniforms.uResolution.value.set(width, height);
+          }
+        };
+
+        resize();
+        
+        const handleResize = () => {
+          if (resizeTimeoutRef.current) {
+            clearTimeout(resizeTimeoutRef.current);
+          }
+          resizeTimeoutRef.current = setTimeout(resize, 100);
+        };
+        
+        window.addEventListener("resize", handleResize);
+
+        const rgb = hexToRgb(CONFIG.color);
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.ShaderMaterial({
+          vertexShader: vertexShader,
+          fragmentShader: fragmentShader,
+          uniforms: {
+            uProgress: { value: 0 },
+            uResolution: {
+              value: new THREE.Vector2(hero.offsetWidth, hero.offsetHeight),
+            },
+            uColor: { value: new THREE.Vector3(rgb.r, rgb.g, rgb.b) },
+            uSpread: { value: CONFIG.spread },
+          },
+          transparent: true,
+        });
+        materialRef.current = material;
+
+        const mesh = new THREE.Mesh(geometry, material);
+        meshRef.current = mesh;
+        scene.add(mesh);
+
+        const animate = () => {
+          if (materialRef.current) {
+            materialRef.current.uniforms.uProgress.value = scrollProgressRef.current;
+          }
+          if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+          }
+          animationIdRef.current = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        lenis.on("scroll", ({ scroll }) => {
+          if (!hero) return;
+          const heroHeight = hero.offsetHeight;
+          const windowHeight = window.innerHeight;
+          const maxScroll = heroHeight - windowHeight;
+          
+          if (maxScroll > 0) {
+            scrollProgressRef.current = Math.min((scroll / maxScroll) * CONFIG.speed, 1.1);
+          } else {
+            scrollProgressRef.current = Math.min((scroll / heroHeight) * CONFIG.speed, 1.1);
+          }
+        });
+
+        return () => {
+          if (animationIdRef.current) {
+            cancelAnimationFrame(animationIdRef.current);
+          }
+          
+          if (material) {
+            material.dispose();
+          }
+          
+          if (mesh) {
+            geometry.dispose();
+            if (scene && mesh.parent) {
+              scene.remove(mesh);
+            }
+          }
+          
+          if (renderer) {
+            renderer.dispose();
+            renderer.forceContextLoss();
+          }
+          
+          window.removeEventListener("resize", handleResize);
+        };
+
+      } catch (error) {
+        console.error('Error initializing Three.js:', error);
+        return () => {};
+      }
+    };
+
+    // Initialize Three.js after a short delay
+    const threeJSTimeout = setTimeout(initThreeJS, 100);
+
+    // Initialize text animation - KEEPING THE ORIGINAL LOGIC
+    const initTextAnimation = () => {
+      if (!heroContentRef.current || !heroH2Ref.current) {
+        console.warn('Hero content elements not found');
+        return;
+      }
+
+      try {
+        const split = new SplitText(heroH2Ref.current, { 
+          type: "words",
+          wordsClass: "word"
+        });
+        splitTextRef.current = split;
+        const words = split.words;
+
+        gsap.set(words, { opacity: 0 });
+
+        ScrollTrigger.create({
+          trigger: heroContentRef.current,
+          start: "top 25%",
+          end: "bottom 100%",
+          onUpdate: (self) => {
+            const progress = self.progress;
+            const totalWords = words.length;
+
+            words.forEach((word, index) => {
+              const wordProgress = index / totalWords;
+              const nextWordProgress = (index + 1) / totalWords;
+
+              let opacity = 0;
+
+              if (progress >= nextWordProgress) {
+                opacity = 1;
+              } else if (progress >= wordProgress) {
+                const fadeProgress =
+                  (progress - wordProgress) / (nextWordProgress - wordProgress);
+                opacity = fadeProgress;
+              }
+
+              gsap.to(word, {
+                opacity: opacity,
+                duration: 0.1,
+                overwrite: true,
+              });
+            });
+          },
+        });
+      } catch (error) {
+        console.warn('SplitText initialization error:', error);
+      }
+    };
+
+    const textTimeout = setTimeout(initTextAnimation, 200);
+
+    return () => {
+      clearTimeout(threeJSTimeout);
+      clearTimeout(textTimeout);
+      
+      if (lenis) {
+        lenis.destroy();
+      }
+      
+      if (splitTextRef.current) {
+        try {
+          splitTextRef.current.revert();
+        } catch (e) {
+          console.warn('Error reverting SplitText:', e);
+        }
+      }
+      
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <section className="circle-section">
-      <div className="pinned-content">
-     
+    <>
+         <section className="morphsection" ref={heroRef}>
 
+      <div className="morph-split-container">
+
+        <div className="hero-left">
+          <div className="hero-header">
+            <h1>Morphogenesis</h1>
+            <p>Solid form gives way to liquid movement.</p>
+          </div>
+        </div>
+        
+
+        <div className="hero-right">
+          <div className="hero-img">
+            <img src="/images/aafe.png" alt="" />
+          </div>
+        </div>
+      </div>
+
+
+      <canvas className="hero-canvas" ref={canvasRef}></canvas>
+
+      <div className="hero-content" ref={heroContentRef}>
+        <h2 ref={heroH2Ref}>
+          An underlying field of motion pushes and pulls the image across its
+          surface, redistributing pixels in a way that feels organic and
+          constantly in flux.
+        </h2>
+      </div>
+    </section>
+    </>
+  );
+}
+function CircleReveal() {
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const section = document.querySelector(".circle-reveal-section");
+      const circle = document.querySelector(".circle-reveal.yellow");
+      const panels = gsap.utils.toArray(".panel");
+      const panelTrack = document.querySelector(".panel-track");
+      const numPanels = panels.length;
+
+      if (!circle || !panelTrack) return;
+
+      const scrollTween = gsap.to(panelTrack, {
+        xPercent: -100 * (numPanels - 1),
+        ease: "none",
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "+=6000",
+          scrub: 1,
+          pin: true,
+        },
+      });
+
+      // circle-reveal color transitions
+      const circleWidth = circle.offsetWidth;
+      const colors = [".circle-reveal.red", ".circle-reveal.blue", ".circle-reveal.purple", ".circle-reveal.green", ".circle-reveal.pink"];
+
+      colors.forEach((selector, i) => {
+        const colorCircle = document.querySelector(selector);
+        const triggerPanel = panels[i];
+        if (!colorCircle || !triggerPanel) return;
+
+        ScrollTrigger.create({
+          trigger: triggerPanel,
+          containerAnimation: scrollTween,
+          scrub: true,
+          start: () => `left center+=${circleWidth / 2}`,
+          end: () => `left center-=${circleWidth / 2}`,
+          onUpdate: (self) => {
+            const pct = 100 - self.progress * 100;
+            gsap.set(colorCircle, { clipPath: `inset(0% 0% 0% ${pct}%)` });
+          },
+        });
+      });
+
+      panels.forEach((panel) => {
+        const el = panel.querySelector("h2");
+        if (!el) return;
+
+        const split = new SplitText(el, { type: "chars, words", charsClass: "chars" });
+
+        gsap.from(split.chars, {
+          scrollTrigger: {
+            trigger: el,
+            containerAnimation: scrollTween,
+            start: "left 80%",
+            end: "left 20%",
+            toggleActions: "play none none none",
+            markers: false,
+          },
+          y: 15,
+          opacity: 0,
+          stagger: 0.06,
+          duration: 1.2,
+          ease: "power3.out",
+        });
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  const panelsRef = useRef(null);
+  
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+      : null;
+  };
+
+  const rgbToHex = (r, g, b) => {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  };
+
+  const colorLerp = (color1, color2, amount) => {
+    const [r1, g1, b1] = hexToRgb(color1);
+    const [r2, g2, b2] = hexToRgb(color2);
+    const r = Math.round(r1 + (r2 - r1) * amount);
+    const g = Math.round(g1 + (g2 - g1) * amount);
+    const b = Math.round(b1 + (b2 - b1) * amount);
+    return rgbToHex(r, g, b);
+  };
+
+  return (
+    <section className="circle-reveal-section">
+      <div className="pinned-content">
         <div className="left-text">
           Your glow-up deserves better than basic. 
         </div>
 
-        <div className="circle-wrapper">
-          <div className="circle yellow" > 
-
-            
+        <div className="circle-reveal-wrapper">
+          <div className="circle-reveal yellow"></div>
+          <div className="circle-reveal red">
+         
           </div>
-          <div className="circle red" > 
-            <VennDiagram1 /> 
-            </div>
-          <div className="circle blue" >
-             <RightFloatingCircle /> 
-               
-             </div>
-<div className="circle purple">
-            <svg
-              viewBox="0 0 400 400"
-              className="ring-svg"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {Array.from({ length: 40 }).map((_, i) => {
-                const r = 200 - i * 4;
-                const t = i / 39;
-                const colors = ["#B8E3E9", "#E6E6FA", "#FFDAB9"]; // blue, lavender, peach
-                const segment = Math.floor(t * 3);
-                const localT = (t * 3) % 1;
-                const startColor = colors[segment % 3];
-                const endColor = colors[(segment + 1) % 3];
-                const stroke = colorLerp(startColor, endColor, localT);
-
-                return (
-                  <circle
-                    key={i}
-                    cx="200"
-                    cy="200"
-                    r={r}
-                    stroke={stroke}
-                    strokeWidth="1.3"
-                    fill="none"
-                    opacity={1 - t * 0.1}
-                    style={{ filter: `drop-shadow(0 0 ${1 + t * 2}px rgba(255, 182, 193, 0.2))` }} // subtle pinkish glow for inner spiral vibe
-                  />
-                );
-              })}
-            </svg>
+          <div className="circle-reveal blue">
+            <RightFloatingCircle />
           </div>
-          <div className="circle green" />
-          <div className="circle pink" />
+          <div className="circle-reveal purple">
+
+          </div>
+          <div className="circle-reveal green" />
+          <div className="circle-reveal pink" />
         </div>
 
- <div className="panel-track" ref={panelsRef}>
-      <div className="panel">
-        <h2>Our office never takes shortcuts when it comes to patient care. </h2>
-       
-      </div>
-      <div className="panel">
-        <h2>We can't guarantee whether you'll get that transparency elsewhere.</h2>
-     
-      </div>
-      <div className="panel">
-        <h2>Total Flexibility</h2>
-
-      </div>
-      <div className="panel">
-        <h2>Transparency</h2>
-   
-      </div>
-      <div className="panel">
-        <h2>Support</h2>
-
-      </div>
-    </div>
+        <div className="panel-track" ref={panelsRef}>
+          <div className="panel">
+            <h2>Our office never takes shortcuts when it comes to patient care.</h2>
+          </div>
+          <div className="panel">
+            <h2>We can't guarantee whether you'll get that transparency elsewhere.</h2>
+          </div>
+          <div className="panel">
+            <h2>Total Flexibility</h2>
+          </div>
+          <div className="panel">
+            <h2>Transparency</h2>
+          </div>
+          <div className="panel">
+            <h2>Support</h2>
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
-        .circle-section {
+        .circle-reveal-section {
           position: relative;
           height: 300vh;
-   background: #FEF9F8;
+          background: #FEF9F8;
           overflow: hidden;
         }
-.ring-svg {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 100%;
-  height: 100%;
-  // filter: drop-shadow(0 0 10px rgba(170, 130, 255, 0.3))
-  //         drop-shadow(0 0 20px rgba(60, 214, 210, 0.2));
-
-}
+        
+        .ring-svg {
+          position: absolute;
+          inset: 0;
+          margin: auto;
+          width: 100%;
+          height: 100%;
+        }
 
         .pinned-content {
           position: relative;
@@ -1853,9 +2177,6 @@ const colorLerp = (color1, color2, amount) => {
           overflow: hidden;
           z-index: 0;
         }
-
-     
-
 
         .left-text {
           position: absolute;
@@ -1867,12 +2188,10 @@ const colorLerp = (color1, color2, amount) => {
           font-family: "NeueHaasGroteskDisplayPro45Light";
           font-size: 16px;
           line-height: 1.2;
-          letter-spacing: .1rem
+         
         }
 
-    
-
-        .circle-wrapper {
+        .circle-reveal-wrapper {
           position: sticky;
           top: 0;
           height: 100vh;
@@ -1882,7 +2201,7 @@ const colorLerp = (color1, color2, amount) => {
           overflow: hidden;
         }
 
-        .circle {
+        .circle-reveal {
           position: absolute;
           width: 560px;
           height: 560px;
@@ -1890,46 +2209,48 @@ const colorLerp = (color1, color2, amount) => {
           clip-path: inset(0% 0% 0% 100%);
         }
 
-        .circle.yellow {
+        .circle-reveal.yellow {
           background: #ff4d4d;
           z-index: 1;
           clip-path: inset(0% 0% 0% 0%);
         }
 
-        .circle.red {
+        .circle-reveal.red {
           background: #ff4d4d;
           z-index: 2;
         }
 
-        .circle.blue {
+        .circle-reveal.blue {
           background: #4d7dff;
           z-index: 3;
         }
 
-        .circle.purple {
+        .circle-reveal.purple {
           width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+          height: 400px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           background: #FEF9F8;
-  z-index: 4;
+          z-index: 4;
         }
 
-        .circle.green {
+        .circle-reveal.green {
           background: #91ff91;
           z-index: 5;
         }
 
-        .circle.pink {
+        .circle-reveal.pink {
           background: #ff7fbf;
           z-index: 6;
         }
-.panel-track,
-.panel {
-  pointer-events: none;
-}
+        
+        .panel-track,
+        .panel {
+          pointer-events: none;
+        }
+        
         .panel-track {
           position: absolute;
           top: 0;
@@ -1951,35 +2272,29 @@ const colorLerp = (color1, color2, amount) => {
           padding: 3rem;
           border-left: 1px solid rgba(0, 0, 0, 0.15);
           flex-shrink: 0;
-      // background: rgba(255, 255, 255, 0.3); 
           justify-content: flex-start;
           padding-top: calc(33vh);
         }
 
-.panel h2 {
-  font-size: 1rem;
-  font-family: "NeueHaasGroteskDisplayPro45Light";
-  margin-top: 0.5rem;
-  color: #111;
-  padding: 0.8rem .2rem;
-  // border-radius: 12px;
-  // background: rgba(255, 255, 255, 0.35);
-  // backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
+        .panel h2 {
+          font-size: 1rem;
+          font-family: "NeueHaasGroteskDisplayPro45Light";
+          margin-top: 0.5rem;
+          color: #111;
+          padding: 0.8rem .2rem;
+          -webkit-backdrop-filter: blur(14px) saturate(140%);
+          transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
 
-.panel h2:hover {
-  background: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
-
-
+        .panel h2:hover {
+          background: rgba(255, 255, 255, 0.5);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
       `}</style>
     </section>
   );
 }
+
 function WorkGrid() {
   const workRef = useRef(null);
 
@@ -2261,65 +2576,7 @@ void main(void) {
   }
 }
 
-function FeaturedWorkSection() {
-  const items = [
-    "/images/excellence.png",
-    "/images/signonmetalrack.png",
-    "/images/table_mockup.jpg",
-  ];
 
-  return (
-    <section className="relative w-full min-h-screen bg-[#FAFAF7] px-16 py-24">
-      {/* Header pill */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
-        <div className="px-4 py-2 rounded-md bg-black text-white text-sm font-medium shadow-sm">
-          Estrela Studio™
-        </div>
-        <button className="w-9 h-9 rounded-md bg-black text-white flex items-center justify-center">
-          …
-        </button>
-      </div>
-
-      {/* Main layout */}
-      <div className="grid grid-cols-[420px_1fr] gap-16 items-start">
-        {/* Featured Card */}
-        <div className="relative h-[520px] rounded-lg overflow-hidden bg-black text-white flex flex-col justify-between p-10">
-          <div>
-            <h2 className="text-4xl font-serif tracking-tight">
-              Featured Work
-            </h2>
-            <p className="mt-4 text-white/60 max-w-sm leading-relaxed">
-              Design without compromise. Explore our blend of digital product
-              design, website design, and branding.
-            </p>
-          </div>
-
-          <button className="relative w-full h-[110px] rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center text-sm">
-            All Work <span className="ml-2">•</span>
-          </button>
-        </div>
-
-        {/* Horizontal Gallery */}
-        <div className="relative overflow-hidden">
-          <div className="flex gap-6">
-            {items.map((src, i) => (
-              <div
-                key={i}
-                className="w-[260px] h-[380px] rounded-lg overflow-hidden bg-[#E5E5E0] shrink-0"
-              >
-                <img
-                  src={src}
-                  className="w-full h-full object-cover"
-                  alt=""
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 function ScrollPanels() {
   useEffect(() => {
     gsap.to(".textslide", {
@@ -2363,7 +2620,67 @@ function ScrollPanels() {
 
 
   return (
-    <div ref={sectionRef} className="bg-[#F9F9F9]">
+    <div ref={sectionRef} className="bg-[#F9F9F9] w-full overflow-x-hidden">
+
+ <div className="min-h-screen bg-[#ECECEC] text-[#222] font-light">
+
+
+      <main className="grid grid-cols-2 gap-16 px-12 pt-10 pb-16">
+
+
+        <div className="flex flex-col justify-between">
+
+
+          <div className="mt-12 max-w-sm">
+            <p className="text-lg leading-relaxed">
+             <h1 className="text-xs tracking-widest text-gray-600 uppercase font-neuehaas45">
+                  Backed By over 60 Years Of <br /> Combined Orthodontic Experience
+                </h1>
+            </p>
+          </div>
+
+          {/* Info Row */}
+          <div className="flex justify-between text-xs tracking-wider uppercase text-black/70 mt-24">
+            <div>
+           
+     
+            </div>
+            <div>
+           
+           
+            </div>
+            <div className="self-end">
+              <p>Invisalign since 2005</p>
+            </div>
+          </div>
+
+          {/* Bottom image */}
+          <div className="mt-16 relative">
+            <img
+              src="/images/table_mockup.jpg"
+              className="w-full object-cover rounded-sm"
+            />
+            <button className="absolute bottom-4 left-4 px-5 py-2 rounded-full bg-white text-xs shadow-sm">
+              Our projects ↗
+            </button>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="relative">
+          <img
+            src="/images/excellence.png"
+            className="w-full h-full object-cover"
+          />
+          <button className="absolute bottom-4 left-4 px-5 py-2 rounded-full bg-white text-xs shadow-sm">
+            Explore products ↗
+          </button>
+        </div>
+
+      </main>
+    </div>
+
 
       <div className="relative">
         <section ref={heroRef} className="w-full h-screen text-black flex flex-col justify-between font-neuehaas35 relative ">
@@ -2403,22 +2720,7 @@ Our doctors rank in the top 1% nationally and have completed thousands of Invisa
 
 
 
-   <section className="relative w-full min-h-screen bg-[#FAFAF7] px-16 py-24">
-  {/* Header pill */}
-  <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
-    <div className="px-4 py-2 rounded-md bg-black text-white text-sm font-medium shadow-sm">
-      Estrela Studio™
-    </div>
-    <button className="w-9 h-9 rounded-md bg-black text-white flex items-center justify-center">
-      …
-    </button>
-  </div>
 
-  <div className="grid grid-cols-[420px_1fr] gap-16 items-start">
-    <FeaturedWorkSection />
-
-  </div>
-</section>
         {/* <div className="image-grid px-16 grid grid-cols-1 md:grid-cols-2 ">
   {images.map((img, i) => (
     <div
@@ -2841,170 +3143,7 @@ const shuffle = (accent = 0) => [
   { color: accents[accent], roughness: 0.1, accent: true },
 ];
 
-function Scene(props) {
-  const [accent, click] = useReducer((state) => ++state % accents.length, 0);
-  const connectors = useMemo(() => shuffle(accent), [accent]);
-  return (
-    <Canvas
-      onClick={click}
-      shadows
-      dpr={[1, 1.5]}
-      gl={{ antialias: false }}
-      camera={{ position: [0, 0, 15], fov: 17.5, near: 1, far: 20 }}
-      {...props}
-    >
-      <color attach="background" args={["#000"]} />
-      <ambientLight intensity={0.4} />
-      <spotLight
-        position={[10, 10, 10]}
-        angle={0.15}
-        penumbra={1}
-        intensity={1}
-        castShadow
-      />
-      <Physics gravity={[0, 0, 0]}>
-        <Pointer />
-        {connectors.map((props, i) => (
-          <Connector key={i} {...props} />
-        ))}
-        <Connector position={[10, 10, 5]}>
-          <Model>
-            <MeshTransmissionMaterial
-              clearcoat={1}
-              thickness={0.1}
-              anisotropicBlur={0.1}
-              chromaticAberration={0.1}
-              samples={8}
-              resolution={512}
-            />
-          </Model>
-        </Connector>
-      </Physics>
-      <EffectComposer disableNormalPass multisampling={8}>
-        <N8AO distanceFalloff={1} aoRadius={1} intensity={4} />
-      </EffectComposer>
-      <Environment resolution={256}>
-        <group rotation={[-Math.PI / 3, 0, 1]}>
-          <Lightformer
-            form="circle"
-            intensity={4}
-            rotation-x={Math.PI / 2}
-            position={[0, 5, -9]}
-            scale={2}
-          />
-          <Lightformer
-            form="circle"
-            intensity={2}
-            rotation-y={Math.PI / 2}
-            position={[-5, 1, -1]}
-            scale={2}
-          />
-          <Lightformer
-            form="circle"
-            intensity={2}
-            rotation-y={Math.PI / 2}
-            position={[-5, -1, -1]}
-            scale={2}
-          />
-          <Lightformer
-            form="circle"
-            intensity={2}
-            rotation-y={-Math.PI / 2}
-            position={[10, 1, 0]}
-            scale={8}
-          />
-        </group>
-      </Environment>
-    </Canvas>
-  );
-}
 
-function Connector({
-  position,
-  children,
-  vec = new THREE.Vector3(),
-  scale,
-  r = THREE.MathUtils.randFloatSpread,
-  accent,
-  ...props
-}) {
-  const api = useRef();
-  const pos = useMemo(() => position || [r(10), r(10), r(10)], []);
-  useFrame((state, delta) => {
-    delta = Math.min(0.1, delta);
-    api.current?.applyImpulse(
-      vec.copy(api.current.translation()).negate().multiplyScalar(0.2)
-    );
-  });
-  return (
-    <RigidBody
-      linearDamping={4}
-      angularDamping={1}
-      friction={0.1}
-      position={pos}
-      ref={api}
-      colliders={false}
-    >
-      <BallCollider args={[0.38, 1.27, 0.38]} />
-      <BallCollider args={[1.27, 0.38, 0.38]} />
-      <BallCollider args={[0.38, 0.38, 1.27]} />
-      {children ? children : <Model {...props} />}
-      {accent && (
-        <pointLight intensity={4} distance={2.5} color={props.color} />
-      )}
-    </RigidBody>
-  );
-}
-
-function Pointer({ vec = new THREE.Vector3() }) {
-  const ref = useRef();
-  useFrame(({ mouse, viewport }) => {
-    ref.current?.setNextKinematicTranslation(
-      vec.set(
-        (mouse.x * viewport.width) / 2,
-        (mouse.y * viewport.height) / 2,
-        0
-      )
-    );
-  });
-  return (
-    <RigidBody
-      position={[0, 0, 0]}
-      type="kinematicPosition"
-      colliders={false}
-      ref={ref}
-    >
-      <BallCollider args={[1]} />
-    </RigidBody>
-  );
-}
-
-function Model({ children, color = "white", roughness = 0, ...props }) {
-  const ref = useRef();
-
-  const { nodes, materials } = useGLTF("/models/lego_head.glb");
-  console.log(Object.keys(nodes));
-
-  useFrame((state, delta) => {
-    easing.dampC(ref.current.material.color, color, 0.2, delta);
-  });
-  return (
-    <mesh
-      ref={ref}
-      castShadow
-      receiveShadow
-      scale={1}
-      geometry={nodes.defaultMaterial.geometry}
-    >
-      <meshStandardMaterial
-        metalness={0.2}
-        roughness={roughness}
-        map={materials.base?.map}
-      />
-      {children}
-    </mesh>
-  );
-}
 
 const ImageShaderMaterial = shaderMaterial(
   {
@@ -3570,7 +3709,7 @@ function StackCards() {
       attr: {
         r: (i) => [4, 1.5][i],
 
-        fill: (i) => ["#FF98FB", "#1C7412"][i],
+        fill: (i) => ["#C8BC40", "#6D423E "][i],
       },
     });
 
@@ -3667,7 +3806,7 @@ function StackCards() {
                 margin: 0,
                 padding: 0,
                 overflow: "hidden",
-                background: "#1C7412",
+                background: "#6D423E",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
@@ -4091,161 +4230,8 @@ const ProjectImage = ({
 };
 
 function MoreThanSmiles() {
-  // const imagesContainerRef = useRef(null);
-
-  // const [images, setImages] = useState([
-  //   "../images/morethansmiles1.png",
-  //   "../images/morethansmiles2.png",
-  //   "../images/morethansmiles3.png",
-  //   "../images/morethansmiles4.png",
-  //   "../images/morethansmiles5.png",
-  //   "../images/morethansmiles6.png",
-  // ]);
-
-  // useEffect(() => {
-  //   if (!imagesContainerRef.current) return;
-
-  //   const imageElements =
-  //     imagesContainerRef.current.querySelectorAll(".gallery-img");
-  //   const timeline = gsap.timeline({ ease: "none" });
-
-  //   let z = 100000000000;
-  //   let moveLeft = true;
-
-  //   // last image=highest z-index
-  //   const observer = new IntersectionObserver(
-  //     (entries) => {
-  //       entries.forEach((entry) => {
-  //         if (entry.isIntersecting) {
-  //           imageElements.forEach((image, index) => {
-  //             gsap.set(image, { zIndex: z - index });
-  //           });
-
-  //           timeline.fromTo(
-  //             imageElements,
-  //             {
-  //               x: (i) => (i % 2 === 0 ? -400 : 400),
-  //               y: "300%",
-  //             },
-  //             {
-  //               x: 0,
-  //               y: 0,
-  //               duration: 1.5,
-  //               stagger: -0.4,
-  //               rotation: () => 20 * Math.random() - 10,
-  //             }
-  //           );
-
-  //           timeline.play();
-  //           observer.disconnect();
-  //         }
-  //       });
-  //     },
-  //     { threshold: 0.2 } // Trigger when 20% of the container is visible
-  //   );
-
-  //   observer.observe(imagesContainerRef.current);
-
-  //   // Move clicked image to the back of the stack
-  //   imageElements.forEach((image) => {
-  //     image.addEventListener("click", () => {
-  //       const moveDirection = moveLeft ? "-125%" : "125%";
-  //       moveLeft = !moveLeft; // alternate direction each click
-
-  //       // lowest index in stack
-  //       let minZIndex = Infinity;
-  //       imageElements.forEach((img) => {
-  //         let zIndex = parseInt(img.style.zIndex, 10);
-  //         if (zIndex < minZIndex) {
-  //           minZIndex = zIndex;
-  //         }
-  //       });
-
-  //       // the clicked image becomes the lowest index
-  //       z = minZIndex - 1;
-
-  //       timeline
-  //         .to(image, { x: moveDirection, duration: 0.5 }) // move out
-  //         .to(image, { zIndex: z, duration: 0.01 }) // update z-index when it's away from stack
-  //         .to(image, { x: 0, duration: 0.5 }); // move back under the stack
-  //     });
-  //   });
-
-  //   return () => {
-  //     imageElements.forEach((image) =>
-  //       image.removeEventListener("click", () => {})
-  //     );
-  //   };
-  // }, [images]);
-
-  const cardRefs = useRef([]);
-
-  useEffect(() => {
-    const updateScales = () => {
-      const centerX = window.innerWidth / 2;
-
-      cardRefs.current.forEach((el) => {
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const cardCenter = rect.left + rect.width / 2;
-        const distance = Math.abs(centerX - cardCenter);
-
-        const scale = gsap.utils.clamp(0.9, 1.2, 1.2 - distance / 600);
-        gsap.to(el, {
-          scale,
-          duration: 0.3,
-          ease: "power2.out",
-        });
-      });
-    };
-
-    window.addEventListener("scroll", updateScales);
-    window.addEventListener("resize", updateScales);
-    updateScales();
-
-    return () => {
-      window.removeEventListener("scroll", updateScales);
-      window.removeEventListener("resize", updateScales);
-    };
-  }, []);
-
-  const itemsRef = useRef([]);
-  const [scrollY, setScrollY] = useState(0);
-
-  const textRef = useRef(null);
-  const blockRef = useRef(null);
-
-  useEffect(() => {
-    if (!textRef.current) return;
-
-    const split = new SplitText(textRef.current, { type: "words, chars" });
-
-    const tl = gsap.fromTo(
-      split.chars,
-      { color: "#d4d4d4" },
-      {
-        color: "#000000",
-        stagger: 0.03,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: textRef.current,
-          start: "top center",
-          end: "bottom bottom",
-          scrub: true,
-        },
-      }
-    );
-
-    return () => {
-      tl.scrollTrigger?.kill();
-      split.revert();
-    };
-  }, []);
 
   const canvasContainerRef = useRef();
-
-  const sectionRef = useRef(null);
-  const imageRefs = useRef([]);
   const images = [
     "/images/morethansmiles1.png",
     "/images/morethansmiles2.png",
@@ -4255,178 +4241,6 @@ function MoreThanSmiles() {
     "/images/morethansmiles6.png",
   ];
 
-  useEffect(() => {
-    if (!sectionRef.current || imageRefs.current.length === 0) return;
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: "top top",
-        end: "+=1500",
-        scrub: true,
-        pin: true,
-      },
-    });
-
-    const customOrder = [0, 4, 1, 5, 2, 3];
-
-    customOrder.forEach((index, i) => {
-      const img = imageRefs.current[index];
-      if (!img) return;
-
-      tl.fromTo(
-        img,
-        { yPercent: 100 },
-        {
-          yPercent: -200,
-
-          ease: "power2.out",
-          duration: 1,
-        },
-        i * 0.2
-      );
-    });
-
-    return () => {
-      tl.scrollTrigger?.kill();
-      tl.kill();
-    };
-  }, []);
-
-  const cardsRef = useRef([]);
-
-  useEffect(() => {
-    const cards = cardsRef.current;
-
-    cards.forEach((card, index) => {
-      gsap.set(card, {
-        y: window.innerHeight,
-        rotate: rotations[index] || 0,
-      });
-    });
-
-    ScrollTrigger.create({
-      trigger: ".sticky-cards",
-      start: "top top",
-      end: `+=${window.innerHeight * 8}`,
-      pin: true,
-      pinSpacing: true,
-      scrub: 1,
-      onUpdate: (self) => {
-        const progress = self.progress;
-        const totalCards = cards.length;
-        const progressPerCard = 1 / totalCards;
-
-        cards.forEach((card, index) => {
-          const cardStart = index * progressPerCard;
-          let cardProgress = (progress - cardStart) / progressPerCard;
-          cardProgress = Math.min(Math.max(cardProgress, 0), 1);
-
-          let yPos = window.innerHeight * (1 - cardProgress);
-          let xPos = 0;
-
-          if (cardProgress === 1 && index < totalCards - 1) {
-            const remainingProgress =
-              (progress - (cardStart + progressPerCard)) /
-              (1 - (cardStart + progressPerCard));
-            if (remainingProgress > 0) {
-              const distanceMultiplier = 1 - index * 0.15;
-              xPos =
-                -window.innerWidth *
-                0.3 *
-                distanceMultiplier *
-                remainingProgress;
-              yPos =
-                -window.innerHeight *
-                0.3 *
-                distanceMultiplier *
-                remainingProgress;
-            }
-          }
-
-          gsap.to(card, {
-            y: yPos,
-            x: xPos,
-            duration: 0,
-            ease: "none",
-          });
-        });
-      },
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
-  }, []);
-
-  const colors = [
-    "#f6b12d",
-    "#eb4f2f",
-    "#b26e5e",
-    "#c588bb",
-    "#699ef6",
-    "#858B3F",
-  ];
-  const sectionStyle = {
-    position: "relative",
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
-  };
-
-  const centerTextStyle = {
-    position: "relative",
-    height: "100%",
-    width: "100%",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "2vw",
-    padding: "0 3vw",
-  };
-
-  const stickyStyle = {
-    ...sectionStyle,
-    backgroundColor: "#f9f9f9",
-  };
-
-  const cardStyle = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    willChange: "transform",
-    width: "330px",
-    height: "460px",
-    padding: "1.5em",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    borderRadius: "20px",
-    color: "#000",
-  };
-  const cardImgStyle = {
-    width: "100%",
-    height: "66%",
-    borderRadius: "16px",
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-  const imgStyle = {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block",
-  };
-
-  const cardContentStyle = {
-    flex: "0 0 12px",
-    display: "flex",
-    alignItems: "center",
-  };
-  const rotations = [-12, 10, -5, 5, -5, -2];
 
   return (
     <>
@@ -4444,26 +4258,12 @@ function MoreThanSmiles() {
                   <span className="text-[3.5rem]">Smiles</span>
                 </div>
               </h1>
-                            {/* <a
+                            <a
   href="https://morethansmiles.org/"
   target="_blank"
   rel="noopener noreferrer"
   className="relative w-32 h-32 flex items-center justify-center"
 >
-
-  <svg
-    className="absolute inset-0 w-full h-full"
-    viewBox="0 0 100 100"
-  >
-    <circle
-      cx="50"
-      cy="50"
-      r="48"
-      fill="none"
-      stroke="black"
-      strokeWidth=".5"
-    />
-  </svg>
 
 
   <div className="w-24 h-24 bg-[#F8FC00] rounded-full flex items-center justify-center">
@@ -4471,7 +4271,7 @@ function MoreThanSmiles() {
       NOMINATE
     </span>
   </div>
-</a> */}
+</a>
             </div>
 
             <div className="border-t border-black mt-8 pt-4">
@@ -4492,52 +4292,9 @@ function MoreThanSmiles() {
             </div>
           </div>
 
-          <div className="col-span-7 grid grid-cols-3 gap-4 relative">
-            {Array(6)
-              .fill()
-              .map((_, i) => (
-                <div>
-                  <img
-                    src="/images/mtscard1.png"
-                    alt="Card back"
-                    className="h-full"
-                  />
-                  {i === 2 && <div className="absolute pointer-events-none" />}
-                </div>
-              ))}
-          </div>
+   
         </div>
-        <section className="sticky-cards" style={stickyStyle}>
-          {images.map((src, i) => (
-            <div
-              key={i}
-              ref={(el) => (cardsRef.current[i] = el)}
-              style={{
-                ...cardStyle,
-                backgroundColor: colors[i % colors.length],
-              }}
-            >
-              <div style={cardImgStyle}>
-                <img src={src} alt={`card-${i}`} style={imgStyle} />
-              </div>
-              <div style={cardContentStyle}>
-                <p className="font-khteka">Card {i + 1}</p>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "26px",
-                    height: "26px",
-                    marginLeft: "0.5em",
-                  }}
-                >
-                  <img src="/images/fspetallogo.png" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
+ 
       </div>
 
       <div
@@ -4557,24 +4314,7 @@ function MoreThanSmiles() {
           />
         </Canvas>
       </div>
-      {/* <section className="px-20 py-20 bg-[#FEF9F8] text-black flex flex-col justify-between">
-        <div className="flex justify-between items-end text-[14px]">
-          <div className="space-y-2">
-            <section className="morethansmiles">
-              <div ref={imagesContainerRef} className="imagestack">
-                {images.map((url, index) => (
-                  <img
-                    key={index}
-                    src={url}
-                    className="gallery-img"
-                    alt="gallery"
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
-      </section> */}
+
     </>
   );
 }
@@ -4751,97 +4491,9 @@ const Marquee = ({ texts = [], onFinished }) => {
   }, [onFinished]);
 
   return (
-    <main ref={wrapperRef} className="relative w-full h-screen overflow-hidden">
-<footer className="w-full bg-white text-black px-8 md:px-24 py-20 grid md:grid-cols-2 gap-16">
-      {/* Left column */}
-      <div className="flex flex-col justify-between">
-      
-      </div>
-
-      {/* Right column */}
-      <div className="flex flex-col justify-between text-gray-700 font-neuehaas35">
-
-        <div className="grid grid-cols-2 gap-12">
-          <div>
-            <h3 className="text-black text-lg">Schnecksville</h3>
-            <p className="mt-2 text-gray-700 font-neuehaas35">
-              4155 Independence Dr<br />
-              PA 18078
-            </p>
-          </div>
-          <div>
-           <h3 className="text-black text-lg">Schnecksville</h3>
-            <p className="mt-2 text-gray-700 font-neuehaas35">
-              4155 Independence Dr<br />
-              PA 18078
-            </p>
-          </div>
-        </div>
-
-    
-        <div className="mt-10 grid grid-cols-2 gap-12">
-      
-          <div>
-            <h3 className="text-black text-lg">Schnecksville</h3>
-            <p className="mt-2 text-gray-700 font-neuehaas35">
-              4155 Independence Dr<br />
-              PA 18078
-            </p>
-            <a
-              href="#"
-              className="mt-4 inline-flex items-center gap-2 text-black hover:opacity-70 transition"
-            >
-              <span className="text-xl">→</span> Learn more
-            </a>
-          </div>
-
-         
-          <div>
-            <h3 className="text-black text-lg">Schnecksville</h3>
-            <p className="mt-2 text-gray-700 font-neuehaas35">
-              4155 Independence Dr<br />
-              PA 18078
-            </p>
-            <a
-              href="#"
-              className="mt-4 inline-flex items-center gap-2 text-black hover:opacity-70 transition"
-            >
-              <span className="text-xl">→</span> Explore work
-            </a>
-          </div>
-        </div>
-
-
-        <div className="mt-10 flex flex-wrap gap-8 text-black">
-          <a href="#" className="flex items-center gap-2 hover:opacity-70">
-            <span className="text-lg">↗</span> Twitter
-          </a>
-          <a href="#" className="flex items-center gap-2 hover:opacity-70">
-            <span className="text-lg">↗</span> Instagram
-          </a>
-          <a href="#" className="flex items-center gap-2 hover:opacity-70">
-            <span className="text-lg">↗</span> Linkedin
-          </a>
-        </div>
-
-    
-        <div className="mt-16 flex items-center justify-between">
-          <a href="#" className="text-sm text-gray-600 hover:text-black transition">
-            Terms
-          </a>
-          <button className="flex items-center gap-2 bg-white border border-gray-300 rounded-full px-4 py-2 shadow-sm hover:shadow-md transition">
-            <span className="text-gray-800">Chat with us</span>
-            <div className="relative w-8 h-8 flex items-center justify-center bg-black rounded-full">
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                1
-              </span>
-              💬
-            </div>
-          </button>
-        </div>
-      </div>
-    </footer>
-      <svg className="w-full h-full circles" viewBox="0 0 1400 1400">
+    <main ref={wrapperRef}   className="relative w-full h-screen overflow-hidden flex">
+  <div className="w-1/2 h-full relative">
+        <svg className="w-full h-full circles" viewBox="0 0 1400 1400">
         <defs>
           <path
             id="circle-0"
@@ -4921,78 +4573,14 @@ const Marquee = ({ texts = [], onFinished }) => {
           </textPath>
         </text>
       </svg>
+  </div>
+
+      <div className="w-1/2 h-full flex items-center justify-center">
+    <VennDiagram1 />
+  </div>
     </main>
   );
 };
-function Rays() {
-  const numRays = 10;
-  const rays = Array.from({ length: numRays });
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      const minHeight = 0.5;
-      const maxHeight = 110;
-      const spacing = 36;
-
-      Array.from({ length: numRays }).forEach((_, i) => {
-        const baseHeight = maxHeight;
-        const shrinkRatio = 0.85;
-        const finalHeight = baseHeight * Math.pow(shrinkRatio, i);
-
-        const offset = 24;
-        const initialTop = offset + i * minHeight;
-        const finalTop = Array.from({ length: i }).reduce((sum, _, j) => {
-          const prevHeight = baseHeight * Math.pow(shrinkRatio, j);
-          const spread = spacing * 1.25;
-          return sum + prevHeight + spread;
-        }, 0);
-
-        gsap.fromTo(
-          `.ray-${i}`,
-          {
-            height: minHeight,
-            top: initialTop,
-          },
-          {
-            height: finalHeight,
-            top: finalTop,
-            scrollTrigger: {
-              trigger: ".sun-section",
-              start: "top+=70% bottom",
-              end: "+=160%",
-              scrub: true,
-            },
-            ease: "none",
-          }
-        );
-      });
-    });
-
-    return () => ctx.revert();
-  }, []);
-  return (
-    <section className="bg-[#F1F1F1] sun-section">
-      <div className="sun-wrapper">
-        <div className="sun-content leading-none">
-          <div className="frame-line line-1">Benefits</div>
-
-          <div className="frame-connector connector-1" />
-          <div className="frame-line line-2">of working</div>
-          <div className="frame-connector connector-2" />
-          <div className="frame-line line-3">with us</div>
-        </div>
-
-        <div className="sun-mask">
-          <div className="rays">
-            {rays.map((_, i) => (
-              <div className={`ray ray-${i}`} key={i} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 {
   /* <div className="mt-10 w-full flex justify-center flex-row gap-6">

@@ -29,6 +29,7 @@ import {
 import GridContainer, {
   MemberCard,
   items,
+  ImageCanvas
 } from "../mouse-gooey-effect-5/components/GridContainer";
 
 if (typeof window !== "undefined") {
@@ -527,6 +528,7 @@ if (scroller) {
                   </svg>
 
                   <div className="max-w-[400px] ml-10 my-10 flex flex-col overflow-hidden">
+                    
                     <div className="inline-block overflow-hidden">
                       <div className="text-[12px] leading-[1.1] font-neuehaas35 tracking-wider text-black">
                         {lines.map((line, index) => (
@@ -542,12 +544,22 @@ if (scroller) {
                           </div>
                         ))}
                       </div>
+
                     </div>
+
                   </div>
+                   
                   <section>
                     <div className="flex justify-center gap-6 overflow-hidden ">
+                      
                       <div className="w-[275px] mr-10">
+                         {/* <ImageCanvas 
+    src="/images/team_members/GreggFrey.jpg"
+    hover="/images/team_members/greggfrey_halftone5.jpg"
+    className="absolute inset-0"
+  /> */}
                         <figure className="relative w-full aspect-[3/4] overflow-hidden">
+                        
                           <img
                             ref={largeGreggRef}
                             src="../../images/team_members/GreggFrey.png"
@@ -581,6 +593,7 @@ if (scroller) {
                       </div>
 
                       <div className="w-[200px]">
+                        
                         <figure className="relative grayscale w-full aspect-[3/4] overflow-hidden">
                           <img
                             ref={smallGreggRef}
@@ -718,6 +731,7 @@ if (scroller) {
             >
               <div className="absolute inset-0">
                       <JanusFace />
+
               </div>
         
               {/* Col 1 */}
@@ -735,7 +749,7 @@ if (scroller) {
                     </div>
                   </div>
                   <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
+
                   </div>
                   <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
                     <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
