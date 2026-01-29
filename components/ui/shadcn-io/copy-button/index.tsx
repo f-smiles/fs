@@ -46,6 +46,7 @@ type CopyButtonProps = Omit<HTMLMotionProps<'button'>, 'children' | 'onCopy'> &
     onCopy?: (content: string) => void | boolean;
     isCopied?: boolean;
     onCopyChange?: (isCopied: boolean) => void;
+    children: React.ReactNode;
   };
 
 function CopyButton({
@@ -58,6 +59,7 @@ function CopyButton({
   onCopy,
   isCopied,
   onCopyChange,
+  children,
   ...props
 }: CopyButtonProps) {
   const [localIsCopied, setLocalIsCopied] = React.useState(isCopied ?? false);
@@ -113,12 +115,18 @@ function CopyButton({
         <motion.span
           key={localIsCopied ? 'check' : 'copy'}
           data-slot="copy-button-icon"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          // initial={{ scale: 0 }}
+          // animate={{ scale: 1 }}
+          // exit={{ scale: 0 }}
           transition={{ duration: 0.15 }}
+          className='flex items-baseline gap-2'
         >
-          <Icon />
+          {/* <Icon /> */}
+          {localIsCopied ? "copied" : "copy"}
+          {children}
         </motion.span>
       </AnimatePresence>
     </motion.button>
