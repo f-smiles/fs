@@ -100,6 +100,48 @@ body {
   filter: contrast(120%) brightness(110%);
 }
 
+.MenuItem {
+  position: relative;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.MenuItem-text {
+  display: block;
+  line-height: 1;
+  pointer-events: none;
+  position: relative;
+}
+
+.MenuItem > div:nth-child(1) span {
+  will-change: transform;
+  transform-style: preserve-3d;
+  transition: 0.5s;
+  /* UNCOMMENT TO ADD DELAY BETWEEN EACH LETTER */
+  /* transition-delay: calc(0.05s * var(--index)); */
+  transform-origin: bottom;
+  display: inline-block;
+}
+
+.MenuItem > div:nth-child(2) span {
+  will-change: transform;
+  transform-style: preserve-3d;
+  transition: 0.5s;
+  /* UNCOMMENT TO ADD DELAY BETWEEN EACH LETTER */
+  /* transition-delay: calc(0.05s * var(--index)); */
+  transform-origin: top;
+  display: inline-block;
+  transform: translate3d(0, 100%, 0) rotateX(-90deg);
+}
+
+.MenuItem:hover > div:nth-child(1) span {
+  transform: translate3d(0, -100%, 0) rotateX(-90deg);
+}
+
+.MenuItem:hover > div:nth-child(2) span {
+  transform: translate3d(0, 0%, 0) rotateX(0deg);
+}
+
 .BookNow-button {
   padding: 0.5rem 1.5rem;
   border-radius: 10rem;
@@ -113,15 +155,13 @@ body {
 .BookNow-button::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 2rem;
-  height: 2rem;
-  background-color: #FF33CC;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  animation: button-spotlight 3s infinite;
-  animation-timing-function: linear;
+  inset: 0;
+  background: #FF33CC;
+  clip-path: circle(1rem at 50% 50%);
+  offset-path: ellipse(50% 50% at 50% 50%);
+  offset-distance: 0%;
+  animation: button-spotlight 3s infinite linear;
+  pointer-events: none;
   z-index: -20;
 }
 .BookNow-button::after {
@@ -136,25 +176,11 @@ body {
   z-index: -10;
 }
 @keyframes button-spotlight {
-  0% {
-    top: 0%;
-    left: 0%;
+  from {
+    offset-distance: 0%;
   }
-  25% {
-    top: 0%;
-    left: 100%;
-  }
-  50% {
-    top: 100%;
-    left: 100%;
-  }
-  75% {
-    top: 100%;
-    left: 0%;
-  }
-  100% {
-    top: 0%;
-    left: 0%;
+  to {
+    offset-distance: 100%;
   }
 }
 

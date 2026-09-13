@@ -7,14 +7,18 @@ import * as THREE from "three";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { motion } from "motion/react";
 import { MoveRightIcon } from "lucide-react";
 import HomePageLogo from "../logo/home-page-logo";
-// import { JoinOurTeam } from "./join-our-team";
+import CartComponent from "../cart/cart-component";
+import { useCartStore } from "@/lib/cart-store";
 
 gsap.registerPlugin(SplitText, ScrambleTextPlugin);
 
 
 export default function BookNow() {
+  const navbarRef = useRef(null)
+  
   const [time, setTime] = useState("");
   const [showScheduler, setShowScheduler] = useState(false);
 
@@ -28,6 +32,53 @@ export default function BookNow() {
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const { cart } = useCartStore()
+
+  useEffect(() => {
+    if (!navbarRef.current) return
+
+    gsap.set(navbarRef.current, {
+      width: "46px",
+      opacity: 0,
+    })
+    
+    const tl = gsap.timeline()
+    tl.to(navbarRef.current, {
+      width: "auto",
+      opacity: 1,
+      duration: 2,
+      delay: 0.8,
+      ease: "power2.inOut"
+    })
+
+  }, [])
+
+  useEffect(() => {
+    const menuItems = [...document.querySelectorAll('.MenuItem')]
+
+    menuItems.forEach((item) => {
+      // console.log("ITEM", item)
+      
+      if (item.dataset.split) return
+      item.dataset.split = "1"
+      
+      let word = item.children[0].children[0].innerText.split('')
+      // console.log("WORD", word)
+
+      item.children[0].innerHTML = ''
+
+      word.forEach((letter, index) => {
+        item.children[0].innerHTML += `<span style="--index: ${index};">${letter}</span>`
+      })
+
+      let cloneDiv = item.children[0].cloneNode(true)
+      cloneDiv.style.position = "absolute"
+      cloneDiv.style.left = 0
+      cloneDiv.style.top = 0
+      item.appendChild(cloneDiv)
+    })
+  }, [])
 
   return (
     <section 
@@ -90,7 +141,7 @@ export default function BookNow() {
       </div>
 
       {/* Overlay */}
-      <motiondiv
+      <div
         className={`
           fixed inset-0 bg-black/20 backdrop-blur-sm z-[99]
           transition-all duration-500 ease-in-out
@@ -155,33 +206,57 @@ export default function BookNow() {
             }}
           />
 
-          <AnimatedText
-            onClick={() => setShowScheduler(true)}
-            text="Book Now"
-            className="text-[11px] tracking-wider uppercase leading-none block"
-          />
-
-          <div className="w-px h-4 bg-white/20" />
-
-          <a href="/early-orthodontics">
-            <AnimatedText 
-              text="Early Ortho"
-              className="text-[11px] tracking-wider uppercase leading-none block"
-            />
+          {/* MOBILE NAV LINKS */}
+          <a
+            href="/shop/products"
+            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
+          >
+            <div>
+              <span className="MenuItem-Text">Shop</span>
+            </div>
           </a>
 
           <div className="w-px h-4 bg-white/20" />
 
-          <a href="/adult-orthodontics">
-            <AnimatedText 
-              text="Adult Ortho"
-              className="text-[11px] tracking-wider uppercase leading-none block"
-            />
+          <a
+            href="/early-orthodontics"
+            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
+          >
+            <div>
+              <span className="MenuItem-Text">Early Orthodontics</span>
+            </div>
           </a>
+
+          <div className="w-px h-4 bg-white/20" />
+
+          <a
+            href="/adult-orthodontics"
+            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
+          >
+            <div>
+              <span className="MenuItem-Text">Adult Orthodontics</span>
+            </div>
+          </a>
+
+          <a
+            href="/testimonials"
+            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
+          >
+            <div>
+              <span className="MenuItem-Text">Testimonials</span>
+            </div>
+          </a>
+
+          {cart.length > 0 && <CartComponent />}
         </div>
       </div>
 
-      <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-0">
+      <motion.div
+        className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        // transition={{ duration: 0.5 }}
+      >
         <div className="relative w-full h-full xl:w-auto xl:h-auto">
           <Canvas
             camera={{ position: [0, 0, 1000], fov: 75 }}
@@ -205,7 +280,7 @@ export default function BookNow() {
             <ParticleScene />
           </Canvas>
         </div>
-      </div>
+      </motion.div>
       
       <div className="flex items-center justify-between px-12 pt-6 text-xs tracking-wide relative">
       </div>
@@ -215,31 +290,63 @@ export default function BookNow() {
           <div className="w-[150px] h-[80px] hidden xl:block">
             <HomePageLogo />
           </div>
-          <h1 className="text-[24px] font-neuehaas35 tracking-[.02em] xl:text-[24px] text-center xl:text-left">
+          <motion.h1
+            className="text-[24px] font-neuehaas35 tracking-[.02em] xl:text-[24px] text-center xl:text-left"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 3.0 }}
+          >
             please explore our new site
-          </h1>
-          <div className="py-2 text-[13px] font-neuehaas35 tracking-[0.07em]">
+          </motion.h1>
+          <motion.p
+            className="py-2 text-[13px] font-neuehaas35 tracking-[0.07em]"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 3.5 }}
+          >
             ...more upgrades in the works
-          </div>
+          </motion.p>
         </div>
 
-        <div className="flex justify-center items-center order-1 xl:order-2 h-[300px] xl:h-auto relative">
+        <div className="flex flex-col justify-center items-center gap-4 order-1 xl:order-2 h-[300px] xl:h-auto relative">
           <div className="flex flex-col xl:flex-row justify-center xl:justify-start gap-4 xl:gap-12 font-neuehaas35 tracking-[0.07em] items-center xl:items-start">
             <p className="text-[14px] text-black leading-[1.5] font-ibmplex-extralight">
-              <a href="mailto:info@freysmiles.com" className="block">
+              <motion.a
+                href="mailto:info@freysmiles.com"
+                className="block"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+              >
                 <ScrambleText text="info@freysmiles.com" />
-              </a>
+              </motion.a>
             </p>
             <p className="text-[14px] text-black leading-[1.5] font-ibmplex-extralight">
-              <a href="tel:+16104374748" className="block">
+              <motion.a
+                href="tel:+16104374748"
+                className="block"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+              >
                 <ScrambleText text="(610)437-4748" charsType="numbers" />
-              </a>
+              </motion.a>
             </p>
           </div>
+          <motion.button
+            className="BookNow-button"
+            onClick={() => setShowScheduler(true)}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 1.8, type: "tween", damping: 10, stiffness: 100 }}
+          >
+            <ScrambleText className="font-ibmplex-extralight uppercase text-xs tracking-wide" text="Book Now" />
+          </motion.button>
         </div>
 
         <div className="hidden xl:flex justify-end order-3">
           <div
+            ref={navbarRef}
             className="
               relative
               flex items-center gap-6
@@ -287,58 +394,110 @@ export default function BookNow() {
                 `,
               }}
             />
-
-            <AnimatedText
-              onClick={() => setShowScheduler(true)}
-              text="Book Now"
-              className="relative text-[11px] tracking-wider uppercase leading-none block cursor-pointer"
-            />
             
-            <div className="w-px h-4 bg-white/20" />
+            {/* DESKTOP NAV LINKS */}
+            <motion.a
+              href="/shop/products"
+              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+            >
+              <div>
+                <span className="MenuItem-Text">Shop</span>
+              </div>
+            </motion.a>
+            
+            <motion.a
+              href="/early-orthodontics"
+              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+            >
+              <div>
+                <span className="MenuItem-Text">Early Orthodontics</span>
+              </div>
+            </motion.a>
 
-            <a href="/early-orthodontics">
-              <AnimatedText 
-                text="Early Orthodontics"
-                className="text-[11px] tracking-wider uppercase leading-none block"
-              />
-            </a>
+            <motion.a
+              href="/adult-orthodontics"
+              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+            >
+              <div>
+                <span className="MenuItem-Text">Adult Orthodontics</span>
+              </div>
+            </motion.a>
 
-            <div className="w-px h-4 bg-white/20" />
+            <motion.a
+              href="/testimonials"
+              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+            >
+              <div>
+                <span className="MenuItem-Text">Testimonials</span>              
+              </div>
+            </motion.a>
 
-            <a href="/adult-orthodontics">
-              <AnimatedText 
-                text="Adult Orthodontics"
-                className="text-[11px] tracking-wider uppercase leading-none block"
-              />
-            </a>
+            {cart.length > 0 && 
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+              >
+                <CartComponent />
+              </motion.div>
+            }
           </div>
         </div>
       </div>
 
-      {/* <div className="flex flex-col items-center justify-center z-10 pb-20 xl:pb-14">
-        <JoinOurTeam />
-      </div> */}
-
       <a href="/careers" className="group flex flex-col items-center justify-center z-10 pb-20 xl:pb-14">
-        <div className="flex flex-row items-center gap-3">
+        <motion.div
+          className="flex flex-row items-center gap-3"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3.8 }}  
+        >
           <span className="font-neuehaas45 tracking-wide">Join Our Team</span>
           <span className="font-canela italic tracking-wide flex items-center gap-3">
             <MoveRightIcon className="size-4 transition-all duration-150 group-hover:animate-left-right" />
             We're Hiring
           </span>
-        </div>
+        </motion.div>
       </a>
 
       <div
         className="flex flex-col xl:flex-row justify-center gap-4 xl:gap-8 pb-16 text-xs font-neuehaas35 tracking-widest items-center relative"
         style={{ fontVariantNumeric: "tabular-nums" }}
       >
-        <div>40° 36' N 75° 29' W</div>
-        <div className="hidden xl:block">•</div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 4.0 }}
+        >
+          40° 36' N 75° 29' W
+        </motion.div>
+        <motion.div
+          className="hidden xl:block"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 4.1 }}  
+        >•</motion.div>
 
-        <div className="w-[90px] text-center">
+        <motion.div
+          className="w-[90px] text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 4.2 }}
+        >
           {time}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
