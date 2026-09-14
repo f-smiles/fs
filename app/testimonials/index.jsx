@@ -1605,6 +1605,7 @@ const List = ({ onInteractionChange }) => {
       }
     }
   };
+
   const stackImage = (index, source = "scroll") => {
     const container = testimonialPreviewRef.current;
     const data = testimonials[index];
@@ -1626,27 +1627,27 @@ const List = ({ onInteractionChange }) => {
     img.style.zIndex = zCounter.current++;
 
     img.style.clipPath = `
-  polygon(
-    16px 0%,
-    calc(100% - 16px) 0%,
-    calc(100% - 16px) 16px,
-    calc(100% - 16px) 32px,
-    100% 32px,
-    100% calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 32px),
-    100% calc(100% - 32px),
-    100% calc(100% - 16px),
-    calc(100% - 16px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 32px),
-    calc(100% - 16px) calc(100% - 32px),
-    calc(100% - 16px) 100%,
-    0% 100%,
-    0% 16px,
-    16px 16px
-  )
-`;
+      polygon(
+        16px 0%,
+        calc(100% - 16px) 0%,
+        calc(100% - 16px) 16px,
+        calc(100% - 16px) 32px,
+        100% 32px,
+        100% calc(100% - 48px),
+        calc(100% - 16px) calc(100% - 48px),
+        calc(100% - 16px) calc(100% - 32px),
+        100% calc(100% - 32px),
+        100% calc(100% - 16px),
+        calc(100% - 16px) calc(100% - 16px),
+        calc(100% - 32px) calc(100% - 16px),
+        calc(100% - 32px) calc(100% - 32px),
+        calc(100% - 16px) calc(100% - 32px),
+        calc(100% - 16px) 100%,
+        0% 100%,
+        0% 16px,
+        16px 16px
+      )
+    `;
     mask.appendChild(img);
     container.appendChild(mask);
 
@@ -1661,22 +1662,24 @@ const List = ({ onInteractionChange }) => {
 
     lastStackedIndex.current = index;
   };
+
   const isTestimonialsListActive = () => {
-  const list = testimonialsListRef.current;
-  if (!list) return false;
+    const list = testimonialsListRef.current;
+    if (!list) return false;
 
-  const rect = list.getBoundingClientRect();
+    const rect = list.getBoundingClientRect();
 
-  const activeTop = window.innerHeight * 0.75;
-  const activeBottom = window.innerHeight * 0.25;
+    const activeTop = window.innerHeight * 0.75;
+    const activeBottom = window.innerHeight * 0.25;
 
-  return rect.top < activeTop && rect.bottom > activeBottom;
-};
+    return rect.top < activeTop && rect.bottom > activeBottom;
+  };
+
   const updatePreviewOnScroll = () => {
-  if (!isTestimonialsListActive()) {
-    clearPreview();
-    return;
-  }
+    if (!isTestimonialsListActive()) {
+      clearPreview();
+      return;
+    }
     if (isHovering.current) return;
 
     const sectionTop = testimonialsSectionRef.current.offsetTop;
@@ -1825,46 +1828,48 @@ const List = ({ onInteractionChange }) => {
 
     return rect.bottom > 0 && rect.top < window.innerHeight;
   };
-const clearPreview = () => {
-  const images =
-    testimonialPreviewRef.current?.querySelectorAll("img");
 
-  images?.forEach((img) => {
-    gsap.killTweensOf(img);
+  const clearPreview = () => {
+    const images =
+      testimonialPreviewRef.current?.querySelectorAll("img");
 
-    gsap.to(img, {
-      scale: 0.8,
-      opacity: 0,
-      duration: 0.18,
-      ease: "power2.in",
-      overwrite: true,
-      onComplete: () => img.remove(),
+    images?.forEach((img) => {
+      gsap.killTweensOf(img);
+
+      gsap.to(img, {
+        scale: 0.8,
+        opacity: 0,
+        duration: 0.18,
+        ease: "power2.in",
+        overwrite: true,
+        onComplete: () => img.remove(),
+      });
     });
-  });
 
-  lastStackedIndex.current = null;
-  lastScrollActive.current = null;
-  zCounter.current = 1;
-};
+    lastStackedIndex.current = null;
+    lastScrollActive.current = null;
+    zCounter.current = 1;
+  };
 
-useEffect(() => {
-  const list = testimonialsListRef.current;
-  if (!list) return;
+  useEffect(() => {
+    const list = testimonialsListRef.current;
+    if (!list) return;
 
-  const trigger = ScrollTrigger.create({
-    trigger: list,
-    start: "top 75%",
-    end: "bottom 25%",
+    const trigger = ScrollTrigger.create({
+      trigger: list,
+      start: "top 75%",
+      end: "bottom 25%",
 
-    onLeave: clearPreview,
-    onLeaveBack: clearPreview,
+      onLeave: clearPreview,
+      onLeaveBack: clearPreview,
 
-    onEnter: updatePreviewOnScroll,
-    onEnterBack: updatePreviewOnScroll,
-  });
+      onEnter: updatePreviewOnScroll,
+      onEnterBack: updatePreviewOnScroll,
+    });
 
-  return () => trigger.kill();
-}, []);
+    return () => trigger.kill();
+  }, []);
+
   useEffect(() => {
     if (!testimonialsSectionRef.current || !onInteractionChange) return;
 
@@ -1881,6 +1886,49 @@ useEffect(() => {
 
     return () => observer.disconnect();
   }, [onInteractionChange]);
+
+  useEffect(() => {
+    const quotes = gsap.utils.toArray(".SplitText-Reveal")
+
+    function setupSplits() {
+      quotes.forEach((quote) => {
+        if (quote.anim) {
+          quote.anim.progress(1).kill()
+          quote.split.revert()
+        }
+
+        quote.split = SplitText.create(quote, {
+          type: "words, chars",
+          linesClass: "split-line",
+        })
+
+        quote.anim = gsap.from(quote.split.chars, {
+          scrollTrigger: {
+            trigger: quote,
+            toggleActions: "restart pause resume reverse",
+            start: "center center",
+          },
+          duration: 0.6,
+          ease: "power2.in",
+          y: 10,
+          opacity: 0.3,
+          stagger: 0.02,
+        })
+      })
+    }
+
+    setupSplits()
+    ScrollTrigger.addEventListener("refresh", setupSplits)
+    
+    return () => {
+      ScrollTrigger.removeEventListener("refresh", setupSplits)
+      quotes.forEach((quote) => {
+        quote.anim?.kill()
+        quote.split?.revert()
+      })
+      ScrollTrigger.refresh()
+    }
+  }, [])
 
   return (
     <div className="testimonialsPage">
@@ -1903,11 +1951,11 @@ useEffect(() => {
       </section>
       <section className="testimonials" ref={testimonialsSectionRef}>
         <div className="flex flex-col items-center text-center mb-10 gap-1">
-          <div className="flex font-neuehaas35 text-[22px] gap-2 text-[#e30ad8]">
-Select Cases
+          <div className="SplitText-Reveal flex font-neuehaas35 text-[22px] gap-2 text-[#e30ad8]">
+            Select Cases
           </div>
 
-          <span className="text-[18px] font-canela text-[#e30ad8] opacity-60">
+          <span className="SplitText-Reveal text-[18px] font-canela italic text-[#e30ad8] opacity-60">
             A visual archive of selected treatment outcomes
           </span>
         </div>
