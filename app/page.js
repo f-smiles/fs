@@ -1,4 +1,7 @@
 "use client";
+import {
+  KernelSize,
+} from "postprocessing"
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import {
   Line2,
@@ -60,6 +63,9 @@ import {
   useFBO,
   Line,
   useTexture,
+  Edges,
+  CubeCamera,
+  RoundedBox
 } from "@react-three/drei";
 import { Canvas, useFrame, useThree, extend, useLoader } from "@react-three/fiber";
 
@@ -220,92 +226,79 @@ function InfiniteCorridor() {
   const scroll = useThreeScroll()
 
   const segmentCount = 30
-  const segmentDepth = 24
-  const yOffset = 8
-  const depthOffset = -segmentDepth * 0.3
+  const segmentSpacing = 34
+  const panelDepth = 21
+
+  const panelOffset = 13
+  const corridorWidth = panelOffset * 2
+
+  const floorY = -6
+  const corridorHeight = 26
+  const ceilingY = floorY + corridorHeight
+  const wallCenterY = floorY + corridorHeight / 2
+  const corridorY = 4.6
+
+  const panelPalette = [
+    "#4a4a55", 
+    "#756d72", 
+    "#aaa39c", 
+    "#d4a5a5", 
+  ]
 
   useFrame(() => {
-    if (group.current) {
-      const progress = scroll.offset * segmentCount * segmentDepth
-      group.current.position.z = progress * 0.8
-    }
+    if (!group.current) return
+
+    const progress =
+      scroll.offset *
+      segmentCount *
+      segmentSpacing
+
+    group.current.position.z = progress * 0.8
   })
 
   return (
-    <group ref={group} position={[0, yOffset, 0]}>
+    <group
+      ref={group}
+      position={[0, corridorY, 0]}
+    >
       {Array.from({ length: segmentCount }).map((_, i) => {
-        const z = -i * segmentDepth
-        const opacity = Math.max(0, 1 - (i / segmentCount) * 1.2)
-        
+        const z = -i * segmentSpacing
 
-        let panelOffset = 15
-        
-        // Segment 1 
-        if (i === 1) {
-          panelOffset = 20
-        }
-        
-        // Segment 2 
-        if (i === 2) {
-          panelOffset = 13
-        }
-                if (i === 3) {
-          panelOffset = 22
+        const opacity = Math.max(
+          0,
+          1 - (i / segmentCount) * 1.2
+        )
+
+        // Each new rectangle rotates the complete
+        // lighting arrangement clockwise by 90 degrees.
+        const getPanelColor = (sideIndex) => {
+          const paletteIndex =
+            (sideIndex - i + 4) % 4
+
+          return panelPalette[paletteIndex]
         }
 
-        let segmentZOffset = 0
-        
-        if (i === 2) {
-
-          segmentZOffset = 6 
-        }
-        
-
-        let bottomYOffset = -8.5 
-        
-        if (i === 1) {
-          bottomYOffset = -9 
-        } else if (i === 2) {
-          bottomYOffset = -9.5 
-        }
-        
         return (
-          <group key={i} position={[0, 0, z]}>
-            
-            {/* left panel */}
-            <mesh position={[-panelOffset, -3, segmentZOffset]} rotation={[0, Math.PI/2, 0]}>
-              <planeGeometry args={[20, 18]} />
-              <meshStandardMaterial 
-                color="#d4a5a5"
-                emissive="#222222"   
-                roughness={0.15} 
-                metalness={0.95}
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
+          <group
+            key={i}
+            position={[0, 0, z]}
+          >
+            {/* Left: side index 3 */}
+            <mesh
+              position={[
+                -panelOffset,
+                wallCenterY,
+                0,
+              ]}
+              rotation={[0, Math.PI / 2, 0]}
+            >
+              <planeGeometry
+                args={[panelDepth, corridorHeight]}
               />
-            </mesh>
 
-            {/* Right panel */}
-            <mesh position={[panelOffset, -3, segmentZOffset]} rotation={[0, -Math.PI/2, 0]}> 
-              <planeGeometry args={[20, 18]} />
-              <meshStandardMaterial 
-                color="#4a4a55"
-                emissive="#222222" 
-                roughness={0.15}
-                metalness={0.95} 
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-
-            {/* Top panel  */}
-            <mesh position={[0, 5.5, segmentZOffset]} rotation={[Math.PI/2, 0, 0]}> 
-              <planeGeometry args={[16, 18]} /> 
-              <meshStandardMaterial 
-                color="#4a4a55"
-                emissive="#222222" 
+              <meshStandardMaterial
+                color={getPanelColor(3)}
+                emissive="#222222"
                 roughness={0.15}
                 metalness={0.95}
                 transparent
@@ -314,13 +307,23 @@ function InfiniteCorridor() {
               />
             </mesh>
 
-            {/* Bottom Panel */}
-            <mesh position={[0, bottomYOffset, segmentZOffset]} rotation={[-Math.PI/2, 0, 0]}>
-              <planeGeometry args={[20, 18]} /> 
-              <meshStandardMaterial 
-                color="#4a4a55"
-                emissive="#222222" 
-                roughness={0.15} 
+            {/* Right: side index 1 */}
+            <mesh
+              position={[
+                panelOffset,
+                wallCenterY,
+                0,
+              ]}
+              rotation={[0, -Math.PI / 2, 0]}
+            >
+              <planeGeometry
+                args={[panelDepth, corridorHeight]}
+              />
+
+              <meshStandardMaterial
+                color={getPanelColor(1)}
+                emissive="#222222"
+                roughness={0.15}
                 metalness={0.95}
                 transparent
                 opacity={opacity}
@@ -328,144 +331,879 @@ function InfiniteCorridor() {
               />
             </mesh>
 
+            {/* Top: side index 0 */}
+            <mesh
+              position={[0, ceilingY, 0]}
+              rotation={[Math.PI / 2, 0, 0]}
+            >
+              <planeGeometry
+                args={[corridorWidth, panelDepth]}
+              />
+
+              <meshStandardMaterial
+                color={getPanelColor(0)}
+                emissive="#222222"
+                roughness={0.15}
+                metalness={0.95}
+                transparent
+                opacity={opacity}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+
+            {/* Bottom: side index 2 */}
+            <mesh
+              position={[0, floorY, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+            >
+              <planeGeometry
+                args={[corridorWidth, panelDepth]}
+              />
+
+              <meshStandardMaterial
+                color={getPanelColor(2)}
+                emissive="#222222"
+                roughness={0.15}
+                metalness={0.95}
+                transparent
+                opacity={opacity}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           </group>
         )
       })}
     </group>
   )
 }
-const OceanScene = () => {
-  useFrame((state) => {
-    state.gl.setClearColor(0x000000, 0);
-  });
 
-  const scroll = useThreeScroll();
-  const { scene, gl, camera } = useThree();
-  const waterRef = useRef();
-  const meshRef = useRef();
-  const [enteredPortal, setEnteredPortal] = useState(false);
+const WATER_Y = -2
+const RING_RADIUS = 10
+const RING_SUBMERSION = 2.75
 
-  const tunnelStart = new THREE.Vector3(
-    (68.5 - 150) * 0.05,
-    8, 
-    (185.5 - 150) * 0.05 - 5
-  );
-  const tunnelNext = new THREE.Vector3(
-    (1 - 150) * 0.05,
-    8, 
-    (262.5 - 150) * 0.05 - 5
-  );
+const RING_CENTER_Y =
+  WATER_Y +
+  RING_RADIUS -
+  RING_SUBMERSION
+function NeonRing({
+  waterY = -2,
+  submersion = 0.75,
+}) {
+  const group = useRef()
+  const shaderRef = useRef()
+  const scroll = useThreeScroll()
+
+  const ringRadius = 10
+
+  const ringCenterY =
+    waterY +
+    ringRadius -
+    submersion
+
+  const ringMaterial = useMemo(() => {
+    const material =
+      new THREE.MeshStandardMaterial({
+        color: "#ff5b9d",
+        emissive: "#ff146f",
+        emissiveIntensity: 4.1,
+
+        roughness: 0.25,
+        metalness: 0.03,
+
+        transparent: true,
+        opacity: 0.98,
+
+        toneMapped: false,
+      })
+
+    material.onBeforeCompile = (
+      shader
+    ) => {
+      shader.uniforms.uTime = {
+        value: 0,
+      }
+
+      shader.vertexShader = `
+        uniform float uTime;
+        ${shader.vertexShader}
+      `
+
+      shader.vertexShader =
+        shader.vertexShader.replace(
+          "#include <begin_vertex>",
+          `
+            vec3 transformed =
+              vec3(position);
+
+            float ringAngle = atan(
+              position.y,
+              position.x
+            );
+
+            float slowWave =
+              sin(
+                ringAngle * 5.0 +
+                uTime * 0.48
+              ) * 0.032;
+
+            float middleWave =
+              sin(
+                ringAngle * 13.0 -
+                uTime * 0.9
+              ) * 0.022;
+
+            float fineWave =
+              sin(
+                ringAngle * 31.0 +
+                uTime * 1.5
+              ) * 0.01;
+
+            float liquidPeak =
+              pow(
+                max(
+                  0.0,
+                  sin(
+                    ringAngle * 4.0 -
+                    uTime * 0.62
+                  )
+                ),
+                12.0
+              );
+
+            vec2 radialDirection =
+              normalize(position.xy);
+
+            float radialMovement =
+              slowWave +
+              middleWave +
+              fineWave +
+              liquidPeak * 0.095;
+
+            transformed.xy +=
+              radialDirection *
+              radialMovement;
+
+            transformed +=
+              normal *
+              liquidPeak *
+              0.035;
+          `
+        )
+
+      shaderRef.current = shader
+    }
+
+    material.customProgramCacheKey =
+      () =>
+        "animated-neon-ring-v2"
+
+    return material
+  }, [])
 
   useEffect(() => {
-    gl.outputEncoding = THREE.sRGBEncoding;
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 0.95;
+    return () => {
+      ringMaterial.dispose()
+    }
+  }, [ringMaterial])
 
-    const waterNormals = new THREE.TextureLoader().load(
-      'https://threejs.org/examples/textures/waternormals.jpg'
-    );
-    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
-    RectAreaLightUniformsLib.init()
-const rectLight = new THREE.RectAreaLight(0xffd4a8, 5, 40, 40)
-rectLight.position.set(-20, 12, 10)
-rectLight.lookAt(0, 8, 0)
-scene.add(rectLight)
-    const water = new Water(new THREE.PlaneGeometry(10000, 10000), {
-      textureWidth: 512,
-      textureHeight: 512,
-      waterNormals,
-      sunDirection: new THREE.Vector3(),
-     sunColor: 0xffe6c0,
-      waterColor: 0x001e0f,
-      distortionScale: 3.7,
-      fog: scene.fog !== undefined,
-    });
+  useFrame(({ clock }) => {
+    const time =
+      clock.getElapsedTime()
 
-    water.rotation.x = -Math.PI / 2;
-    water.position.y = -2;
-    scene.add(water);
-    waterRef.current = water;
-
-    const sky = new Sky();
-    sky.scale.setScalar(10000);
-    scene.add(sky);
-
-    const U = sky.material.uniforms;
-    U['turbidity'].value = 10;
-    U['rayleigh'].value = 2;
-    U['mieCoefficient'].value = 0.005;
-    U['mieDirectionalG'].value = 0.8;
-
-    const pmrem = new THREE.PMREMGenerator(gl);
-    const sun = new THREE.Vector3();
-
-    const updateSun = () => {
-      const theta = Math.PI * (0.48 - 0.5);
-      const phi = 2 * Math.PI * (0.205 - 0.5);
-
-      sun.x = Math.cos(phi);
-      sun.y = Math.sin(phi) * Math.sin(theta);
-      sun.z = Math.sin(phi) * Math.cos(theta);
-
-      U['sunPosition'].value.copy(sun);
-      water.material.uniforms['sunDirection'].value.copy(sun).normalize();
-
-      scene.environment = pmrem.fromScene(sky).texture;
-    };
-    updateSun();
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.15);
-    const point = new THREE.PointLight(0xffffff, 0.25);
-    point.position.set(5, 5, 10);
-    scene.add(ambient, point);
-
-return () => {
-  scene.remove(water, sky, ambient, point, rectLight)
-  water.geometry.dispose()
-  water.material.dispose()
-};
-  }, [scene, gl]);
-
-  useFrame(() => {
-    const t = scroll.offset;
-    const camY = 12; 
-
-    if (t < 0.4) {
-      const ease = Math.pow(t / 0.4, 0.85);
-      const targetZ = THREE.MathUtils.lerp(35, 5, ease);
-      const targetY = THREE.MathUtils.lerp(5, camY, ease); 
-      const lookY = THREE.MathUtils.lerp(5, camY, ease);
-
-      camera.position.set(0, targetY, targetZ);
-      camera.lookAt(0, lookY, 0);
+    if (shaderRef.current) {
+      shaderRef.current.uniforms.uTime.value =
+        time * 2.9
     }
 
-    if (t >= 0.3 && !enteredPortal) setEnteredPortal(true);
+    if (!group.current) return
 
-    if (t >= 0.4 && t < 0.45) {
-      const ease = (t - 0.4) / 0.05;
-      const from = new THREE.Vector3(0, camY, 1); 
-      camera.position.lerpVectors(from, tunnelStart, ease);
-      camera.lookAt(tunnelStart.clone().lerp(tunnelNext, ease));
+    group.current.rotation.z =
+      scroll.offset * 0.22 +
+      Math.sin(time * 0.13) *
+        0.008
+
+    const breath =
+      1 +
+      Math.sin(time * 0.8) *
+        0.0015
+
+    group.current.scale.setScalar(
+      breath
+    )
+  })
+
+  return (
+    <group
+      ref={group}
+      position={[
+        0,
+        ringCenterY,
+        -8,
+      ]}
+    >
+      <mesh>
+        <torusGeometry
+          args={[
+            ringRadius,
+            0.028,
+            12,
+            512,
+          ]}
+        />
+
+        <primitive
+          object={ringMaterial}
+          attach="material"
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function ReflectionCard({
+  position,
+  rotation,
+  size,
+  color,
+  intensity = 1,
+}) {
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: intensity },
+    }),
+    [color, intensity]
+  )
+
+  return (
+    <mesh
+      position={position}
+      rotation={rotation}
+      onUpdate={(mesh) => mesh.layers.set(1)}
+    >
+      <planeGeometry args={[size, size]} />
+      <shaderMaterial
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        vertexShader={`
+          varying vec2 vUv;
+
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix
+              * modelViewMatrix
+              * vec4(position, 1.0);
+          }
+        `}
+        fragmentShader={`
+          uniform vec3 uColor;
+          uniform float uIntensity;
+          varying vec2 vUv;
+
+          void main() {
+            vec2 p = vUv * 2.0 - 1.0;
+            float softness =
+              1.0 - smoothstep(0.15, 0.95, length(p));
+
+            gl_FragColor = vec4(
+              uColor * uIntensity,
+              softness * 0.85
+            );
+          }
+        `}
+      />
+    </mesh>
+  )
+}
+function FloatingCube({
+  waterY = WATER_Y,
+  position = [-5, 0, 2],
+  size = 2.4,
+}) {
+  const floatRef = useRef()
+  const cubeRef = useRef()
+  const cameraRef = useRef()
+
+  const restingY =
+    waterY + size * 0.42
+
+
+
+  useEffect(() => {
+    if (!cameraRef.current) return
+
+    cameraRef.current.traverse(
+      (object) => {
+        if (object.isCamera) {
+          object.layers.enable(1)
+        }
+      }
+    )
+  }, [])
+
+  useFrame(({ clock }, delta) => {
+    if (
+      !floatRef.current ||
+      !cubeRef.current
+    ) {
+      return
     }
 
-    if (t >= 0.45) {
+    const time =
+      clock.getElapsedTime()
 
-      camera.position.y = camY;
+    const targetY =
+      restingY +
+      Math.sin(time * 0.85) *
+        0.16 +
+      Math.sin(time * 1.7) *
+        0.035
+
+    floatRef.current.position.y =
+      THREE.MathUtils.damp(
+        floatRef.current.position.y,
+        targetY,
+        3.5,
+        delta
+      )
+
+    cubeRef.current.rotation.x =
+      Math.sin(time * 0.72) *
+      0.075
+
+    cubeRef.current.rotation.z =
+      Math.sin(
+        time * 0.58 + 1.2
+      ) * 0.095
+
+    cubeRef.current.rotation.y +=
+      delta * 0.035
+  })
+
+  return (
+    <group
+      ref={floatRef}
+      position={[
+        position[0],
+        restingY,
+        position[2],
+      ]}
+    >
+{/* Mauve frontal reflection */}
+<ReflectionCard
+  position={[
+    0,
+    size * 0.45,
+    size * 2,
+  ]}
+  rotation={[
+    0,
+    Math.PI,
+    0,
+  ]}
+  size={size * 2.7}
+  color="#e2bfd2"
+  intensity={2.0}
+/>
+
+{/* Pale lilac highlight */}
+<ReflectionCard
+  position={[
+    -size * 1.8,
+    size * 0.25,
+    0,
+  ]}
+  rotation={[
+    0,
+    Math.PI / 2,
+    0,
+  ]}
+  size={size * 2.2}
+  color="#f5e3ed"
+  intensity={2.6}
+/>
+
+{/* Deeper purple-rose overhead reflection */}
+<ReflectionCard
+  position={[
+    0,
+    size * 1.9,
+    0,
+  ]}
+  rotation={[
+    Math.PI / 2,
+    0,
+    0,
+  ]}
+  size={size * 2.5}
+  color="#c696b2"
+  intensity={1.6}
+/>
+<CubeCamera
+  ref={cameraRef}
+  resolution={256}
+  near={0.1}
+  far={20000}
+  frames={Infinity}
+>
+  {(cubeEnvironment) => (
+    <RoundedBox
+      ref={cubeRef}
+      args={[
+        size,
+        size,
+        size,
+      ]}
+      radius={size * 0.008}
+      smoothness={4}
+    >
+<meshPhysicalMaterial
+  color="#d9b4c7"
+
+  envMap={cubeEnvironment}
+  envMapIntensity={3.0}
+
+  // Still convincingly metallic, but permits
+  // a little more illuminated surface color.
+  metalness={0.9}
+  roughness={0.12}
+
+  clearcoat={1}
+  clearcoatRoughness={0.025}
+
+  // Stable purple floor during dark rotations.
+  emissive="#684b65"
+  emissiveIntensity={0.1}
+
+  transparent={false}
+  transmission={0}
+/>
+    </RoundedBox>
+  )}
+</CubeCamera>
+    </group>
+  )
+}
+const OceanScene = () => {
+  const scroll = useThreeScroll()
+  const { scene, gl, camera } =
+    useThree()
+
+  const waterRef = useRef()
+  const smoothedScroll = useRef(0)
+  const enteredPortalRef =
+    useRef(false)
+
+  const [
+    enteredPortal,
+    setEnteredPortal,
+  ] = useState(false)
+
+  useEffect(() => {
+    const previousFog = scene.fog
+
+    const previousEnvironment =
+      scene.environment
+
+    const previousToneMapping =
+      gl.toneMapping
+
+    const previousExposure =
+      gl.toneMappingExposure
+
+    const previousClearColor =
+      new THREE.Color()
+
+    gl.getClearColor(
+      previousClearColor
+    )
+
+    const previousClearAlpha =
+      gl.getClearAlpha()
+
+    const horizonColor =
+      0x66545c
+
+    scene.fog =
+      new THREE.FogExp2(
+        horizonColor,
+        0.0016
+      )
+
+    gl.setClearColor(
+      0x000000,
+      0
+    )
+
+    gl.outputEncoding =
+      THREE.sRGBEncoding
+
+    gl.toneMapping =
+      THREE.ACESFilmicToneMapping
+
+    gl.toneMappingExposure =
+      0.95
+
+    const waterNormals =
+      new THREE.TextureLoader().load(
+        "https://threejs.org/examples/textures/waternormals.jpg"
+      )
+
+    waterNormals.wrapS =
+      THREE.RepeatWrapping
+
+    waterNormals.wrapT =
+      THREE.RepeatWrapping
+
+    const water = new Water(
+      new THREE.PlaneGeometry(
+        10000,
+        10000
+      ),
+      {
+        textureWidth: 512,
+        textureHeight: 512,
+
+        waterNormals,
+
+        sunDirection:
+          new THREE.Vector3(),
+
+        sunColor: 0xffbdcc,
+        waterColor: 0x242126,
+
+        distortionScale: 3.2,
+        fog: true,
+      }
+    )
+
+    water.rotation.x =
+      -Math.PI / 2
+
+    water.position.y =
+      WATER_Y
+
+    scene.add(water)
+    waterRef.current = water
+
+    const sky = new Sky()
+
+    sky.scale.setScalar(10000)
+
+    const skyUniforms =
+      sky.material.uniforms
+
+    skyUniforms.turbidity.value =
+      12
+
+    skyUniforms.rayleigh.value =
+      1.25
+
+    skyUniforms.mieCoefficient.value =
+      0.012
+
+    skyUniforms.mieDirectionalG.value =
+      0.86
+
+    sky.material.onBeforeCompile = (
+      shader
+    ) => {
+      shader.fragmentShader =
+        shader.fragmentShader.replace(
+          "#include <tonemapping_fragment>",
+          `
+            float skyHeight = clamp(
+              normalize(
+                vWorldPosition
+              ).y,
+              0.0,
+              1.0
+            );
+
+            float horizonInfluence =
+              1.0 -
+              smoothstep(
+                0.0,
+                0.38,
+                skyHeight
+              );
+
+            float middleInfluence =
+              1.0 -
+              smoothstep(
+                0.18,
+                0.72,
+                skyHeight
+              );
+
+            vec3 upperGray = vec3(
+              0.245,
+              0.235,
+              0.240
+            );
+
+            vec3 middleGrayMauve =
+              vec3(
+                0.315,
+                0.270,
+                0.285
+              );
+
+            vec3 horizonPink = vec3(
+              0.470,
+              0.300,
+              0.355
+            );
+
+            vec3 grayPinkSky = mix(
+              upperGray,
+              middleGrayMauve,
+              middleInfluence
+            );
+
+            grayPinkSky = mix(
+              grayPinkSky,
+              horizonPink,
+              horizonInfluence * 0.72
+            );
+
+            gl_FragColor.rgb = mix(
+              gl_FragColor.rgb,
+              grayPinkSky,
+              0.88
+            );
+
+            #include <tonemapping_fragment>
+          `
+        )
+    }
+
+    sky.material.needsUpdate =
+      true
+
+    scene.add(sky)
+
+    const sun =
+      new THREE.Vector3()
+
+    const theta =
+      Math.PI *
+      (0.495 - 0.47)
+
+    const phi =
+      2 *
+      Math.PI *
+      (0.205 - 0.5)
+
+    sun.x = Math.cos(phi)
+
+    sun.y =
+      Math.sin(phi) *
+      Math.sin(theta)
+
+    sun.z =
+      Math.sin(phi) *
+      Math.cos(theta)
+
+    skyUniforms.sunPosition.value.copy(
+      sun
+    )
+RectAreaLightUniformsLib.init()
+
+const cubeCenter = new THREE.Vector3(
+  -26.5,
+  WATER_Y + 7.4 * 0.42,
+  -27
+)
+
+const cubeKeyLight =
+  new THREE.RectAreaLight(
+    0xe1b4ca,
+    7.5,
+    18,
+    22
+  )
+
+cubeKeyLight.position.set(
+  -14,
+  11,
+  -12
+)
+
+cubeKeyLight.lookAt(cubeCenter)
+
+const cubeFillLight =
+  new THREE.RectAreaLight(
+    0x9f899f,
+    2.2,
+    14,
+    18
+  )
+
+cubeFillLight.position.set(
+  -39,
+  5,
+  -19
+)
+
+cubeFillLight.lookAt(cubeCenter)
+
+const cubeGlintLight =
+  new THREE.PointLight(
+    0xf6becf,
+    1.8,
+    35,
+    2
+  )
+cubeGlintLight.position.set(
+  -21,
+  WATER_Y + 5,
+  -19
+)
+
+scene.add(
+  cubeKeyLight,
+  cubeFillLight,
+  cubeGlintLight
+)
+    water.material.uniforms.sunDirection.value
+      .copy(sun)
+      .normalize()
+
+    const pmrem =
+      new THREE.PMREMGenerator(gl)
+
+    const environmentTarget =
+      pmrem.fromScene(sky)
+
+    scene.environment =
+      environmentTarget.texture
+
+    return () => {
+scene.remove(
+  water,
+  sky,
+  cubeKeyLight,
+  cubeFillLight,
+  cubeGlintLight
+)
+
+      scene.fog = previousFog
+
+      scene.environment =
+        previousEnvironment
+
+      gl.toneMapping =
+        previousToneMapping
+
+      gl.toneMappingExposure =
+        previousExposure
+
+      gl.setClearColor(
+        previousClearColor,
+        previousClearAlpha
+      )
+
+      waterRef.current = null
+
+      water.geometry.dispose()
+      water.material.dispose()
+      waterNormals.dispose()
+
+      sky.geometry.dispose()
+      sky.material.dispose()
+
+      environmentTarget.dispose()
+      pmrem.dispose()
+    }
+  }, [scene, gl])
+
+  useFrame((_, delta) => {
+    smoothedScroll.current =
+      THREE.MathUtils.damp(
+        smoothedScroll.current,
+        scroll.offset,
+        6,
+        delta
+      )
+
+    const t =
+      THREE.MathUtils.smoothstep(
+        smoothedScroll.current,
+        0,
+        1
+      )
+
+    const cameraZ =
+      THREE.MathUtils.lerp(
+        35,
+        -70,
+        t
+      )
+
+    camera.position.set(
+      0,
+      RING_CENTER_Y,
+      cameraZ
+    )
+
+    camera.lookAt(
+      0,
+      RING_CENTER_Y,
+      cameraZ - 100
+    )
+
+    const shouldEnterPortal =
+      cameraZ <= -5
+
+    if (
+      shouldEnterPortal !==
+      enteredPortalRef.current
+    ) {
+      enteredPortalRef.current =
+        shouldEnterPortal
+
+      setEnteredPortal(
+        shouldEnterPortal
+      )
     }
 
     if (waterRef.current) {
-    waterRef.current.material.uniforms.time.value += 0.003; 
+      waterRef.current.material.uniforms
+        .time.value +=
+        delta * 0.18
     }
-  });
+  })
 
   return (
     <>
-      <PortalScene active={enteredPortal} intensity={enteredPortal ? 1 : 0} />
-      <InfiniteCorridor />
+    <NeonRing
+  waterY={WATER_Y}
+  submersion={RING_SUBMERSION}
+/>
+
+<FloatingCube
+  waterY={WATER_Y}
+  position={[-26.5, 0, -27]}
+  size={7.4}
+/>
+
+<EffectComposer multisampling={8}>
+  <Bloom
+    mipmapBlur
+    intensity={2.9}
+    luminanceThreshold={0.62}
+    luminanceSmoothing={0.9}
+    resolutionX={1024}
+    resolutionY={1024}
+  />
+</EffectComposer>
     </>
-  );
-};
+  )
+}
 const ScrollTracker = ({ onScrollChange }) => {
   const scroll = useThreeScroll();
 
@@ -526,12 +1264,12 @@ export default function LandingComponent() {
           style={{
             position: "fixed",
             top: "40%",
-            right: "10%",
+            right: "37%",
             transform: `translateY(${topTextTranslateY}px)`,
             opacity,
             zIndex: 10,
             color: "white",
-            maxWidth: "400px",
+            maxWidth: "350px",
             textAlign: "left",
             // textTransform: "uppercase",
             pointerEvents: "none",
@@ -541,10 +1279,10 @@ export default function LandingComponent() {
         >
           <p
             style={{
-              fontSize: "15px",
+              fontSize: "16px",
               lineHeight: "1.4",
               marginBottom: "20px",
-              fontFamily: "NeueHaasGroteskDisplayPro45Light",
+              fontFamily: "Canela-ThinItalic",
             }}
           >
             Every smile is a story. At our office, we guide
@@ -553,7 +1291,7 @@ export default function LandingComponent() {
             ordinary.
           </p>
 <div className="flex items-center gap-3">
-  <div className="text-[17px] font-neuehaas45">
+  <div className="text-[17px] font-canelathin">
     Scroll To Discover
   </div>
   <div
@@ -567,7 +1305,7 @@ export default function LandingComponent() {
       alignItems: "center",
     }}
   >
-    <video
+    {/* <video
       id="holovideo"
       loop
       muted
@@ -587,7 +1325,7 @@ export default function LandingComponent() {
         type="video/mp4"
       />
       Your browser does not support the video tag.
-    </video>
+    </video> */}
   </div>
 </div>
         </div>
