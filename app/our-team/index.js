@@ -500,6 +500,913 @@ lines.forEach((line, i) => {
     />
   );
 }
+const ASCII_CHARS =
+  " .:-=+*xX#%@0369B&";
+
+const ASCII_COLUMNS = 48;
+const ASCII_COLOR = "#ff591f";
+const MIN_OPACITY = 0.1;
+const ASCII_WAVE_DELAY = 0.015;
+
+function waitForImage(image) {
+
+  if (image.complete) {
+    return Promise.resolve(
+      image.naturalWidth > 0
+    )
+  }
+
+  return new Promise((resolve) => {
+    image.addEventListener(
+      "load",
+      () => resolve(true),
+      { once: true }
+    )
+
+    image.addEventListener(
+      "error",
+      () => resolve(false),
+      { once: true }
+    )
+  })
+}
+
+function buildAscii(image) {
+  const rows = Math.round(
+    ASCII_COLUMNS /
+      (
+        image.naturalWidth /
+        image.naturalHeight
+      )
+  );
+
+  const sampler =
+    document.createElement("canvas");
+
+  sampler.width = ASCII_COLUMNS;
+  sampler.height = rows;
+
+  const context =
+    sampler.getContext("2d", {
+      willReadFrequently: true,
+    });
+
+  if (!context) {
+    return null;
+  }
+
+  context.drawImage(
+    image,
+    0,
+    0,
+    ASCII_COLUMNS,
+    rows
+  );
+
+  const pixels =
+    context.getImageData(
+      0,
+      0,
+      ASCII_COLUMNS,
+      rows
+    ).data;
+
+  const grid =
+    document.createElement("div");
+
+  grid.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  grid.className = [
+    "pointer-events-none",
+    "absolute",
+    "inset-0",
+    "grid",
+    "select-none",
+    "overflow-hidden",
+    "whitespace-pre",
+    "font-['JetBrains_Mono']",
+    "leading-[0.8]",
+  ].join(" ");
+
+  grid.style.gridTemplateColumns =
+    `repeat(${ASCII_COLUMNS}, 1fr)`;
+
+  grid.style.gridTemplateRows =
+    `repeat(${rows}, 1fr)`;
+const cellWidth =
+  image.clientWidth /
+  ASCII_COLUMNS
+
+grid.style.fontSize =
+  `${Math.max(7, cellWidth * 1.15)}px`
+
+  const chars = [];
+  const distances = [];
+  const opacities = [];
+
+  const centerX =
+    (ASCII_COLUMNS - 1) / 2;
+
+  const centerY =
+    (rows - 1) / 2;
+
+  for (
+    let row = 0;
+    row < rows;
+    row += 1
+  ) {
+    for (
+      let column = 0;
+      column < ASCII_COLUMNS;
+      column += 1
+    ) {
+      const offset =
+        (
+          row * ASCII_COLUMNS +
+          column
+        ) * 4;
+
+      const brightness =
+        (
+          pixels[offset] * 0.299 +
+          pixels[offset + 1] *
+            0.587 +
+          pixels[offset + 2] *
+            0.114
+        ) / 255;
+
+      const characterIndex =
+        Math.floor(
+          brightness *
+            (
+              ASCII_CHARS.length -
+              1
+            )
+        );
+
+      const span =
+        document.createElement("span");
+
+      span.className = [
+        "flex",
+        "items-center",
+        "justify-center",
+        "text-white",
+        "opacity-0",
+        "will-change-[opacity,color]",
+      ].join(" ");
+
+      span.textContent =
+        brightness < 0.1
+          ? ""
+          : ASCII_CHARS[
+              characterIndex
+            ];
+
+      grid.appendChild(span);
+      chars.push(span);
+
+      const dx =
+        column - centerX;
+
+      const dy =
+        row - centerY;
+
+      distances.push(
+        Math.sqrt(
+          dx * dx + dy * dy
+        )
+      );
+
+      opacities.push(
+        brightness < 0.1
+          ? 0
+          : MIN_OPACITY +
+              brightness *
+                (
+                  1 -
+                  MIN_OPACITY
+                )
+      );
+    }
+  }
+
+  return {
+    grid,
+    chars,
+    distances,
+    opacities,
+  };
+}
+
+function addRevealBlock(
+  wrapper,
+  color
+) {
+  const block =
+    document.createElement("div");
+
+  block.className = [
+    "pointer-events-none",
+    "absolute",
+    "left-0",
+    "top-0",
+    "h-[101%]",
+    "w-[101%]",
+    "will-change-transform",
+    color,
+  ].join(" ");
+
+  wrapper.appendChild(block);
+
+  return block;
+}
+
+const buttonClasses = [
+  "block",
+  "w-max",
+  "rounded-[2px]",
+  "bg-[#ff591f]",
+  "px-6",
+  "py-4",
+  "font-['JetBrains_Mono']",
+  "text-[0.85rem]",
+  "font-medium",
+  "uppercase",
+  "leading-none",
+  "text-[#171717]",
+  "no-underline",
+
+  "max-[1000px]:px-4",
+  "max-[1000px]:py-3",
+  "max-[1000px]:text-[0.65rem]",
+].join(" ");
+
+function GoodFellaHero() {
+  const rootRef = useRef(null);
+  const imageRef = useRef(null);
+  const imageContainerRef =
+    useRef(null);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const image = imageRef.current;
+    const imageContainer =
+      imageContainerRef.current;
+
+    if (
+      !root ||
+      !image ||
+      !imageContainer
+    ) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let context;
+let loaderContext
+let contentContext
+let loaderTimeline
+let asciiResult
+
+    const splitInstances = [];
+let resolveLoader
+
+const loaderFinished = new Promise(
+  (resolve) => {
+    resolveLoader = resolve
+  }
+)
+
+loaderContext = gsap.context(() => {
+  const preloaderSplit =
+    SplitText.create(
+      ".preloader-copy p",
+      {
+        type: "chars",
+        charsClass: "char",
+      }
+    )
+
+  splitInstances.push(preloaderSplit)
+
+  // Prevent a flash before the character
+  // animation begins.
+  gsap.set(preloaderSplit.chars, {
+    opacity: 0,
+  })
+
+  // JSX starts this element with `invisible`.
+  gsap.set(".preloader-copy p", {
+    visibility: "visible",
+  })
+
+  const preloaderBlocks =
+    gsap.utils.toArray(
+      ".preloader-block"
+    )
+
+  const nestedBlocks =
+    preloaderBlocks.slice(1)
+
+loaderTimeline = gsap.timeline({
+  delay: 0,
+  onComplete: resolveLoader,
+})
+
+loaderTimeline.to(
+  preloaderSplit.chars,
+  {
+    opacity: 1,
+    duration: 0.15,
+    stagger: 0.1,
+  }
+)
+
+loaderTimeline.to(
+  ".preloader",
+  {
+    scale: 1,
+    duration: 0.35,
+    ease: "back.out(1.8)",
+  },
+  "<"
+)
+
+loaderTimeline.to(
+  nestedBlocks,
+  {
+    delay: 0.25,
+    rotation: 0,
+    duration: 0.65,
+    ease: "power3.inOut",
+    stagger: 0.75,
+  },
+  "<"
+)
+}, root)
+
+async function initialize() {
+  const fontReady =
+    document.fonts?.ready
+      ? Promise.race([
+          document.fonts.ready,
+          new Promise((resolve) => {
+            window.setTimeout(
+              resolve,
+              1500
+            )
+          }),
+        ])
+      : Promise.resolve()
+
+const [imageLoaded] =
+  await Promise.all([
+    waitForImage(image),
+    fontReady,
+    loaderFinished,
+  ])
+
+  if (cancelled) return
+
+  if (imageLoaded) {
+    asciiResult =
+      buildAscii(image)
+
+    if (asciiResult) {
+      imageContainer.appendChild(
+        asciiResult.grid
+      )
+    }
+  }
+
+  contentContext =
+    gsap.context(() => {
+      /*
+       * Prepare the hero after the
+       * fonts and image are ready.
+       */
+      const heroSplit =
+        SplitText.create(
+          ".hero-copy h1",
+          {
+            type: "lines",
+            linesClass:
+              "block-line",
+            mask: "lines",
+          }
+        )
+
+      /*
+       * The footer is optional because
+       * its JSX may be commented out.
+       */
+      const footerElement =
+        root.querySelector(
+          ".hero-footer p"
+        )
+
+      const footerSplit =
+        footerElement
+          ? SplitText.create(
+              footerElement,
+              {
+                type: "words",
+                wordsClass: "word",
+                mask: "words",
+              }
+            )
+          : null
+
+      splitInstances.push(
+        heroSplit
+      )
+
+      if (footerSplit) {
+        splitInstances.push(
+          footerSplit
+        )
+      }
+
+      const heroLines = []
+      const heroReveals = []
+
+      heroSplit.lines.forEach(
+        (line) => {
+          const wrapper =
+            line.parentElement
+
+          if (!wrapper) return
+
+          wrapper.classList.add(
+            "relative",
+            "block",
+            "w-max"
+          )
+
+          line.classList.add(
+            "relative",
+            "block"
+          )
+
+          const orange =
+            addRevealBlock(
+              wrapper,
+              "bg-[#ff591f]"
+            )
+
+          const white =
+            addRevealBlock(
+              wrapper,
+              "bg-white"
+            )
+
+          heroLines.push(line)
+
+          heroReveals.push({
+            orange,
+            white,
+          })
+        }
+      )
+
+      const revealerBlocks =
+        heroReveals.flatMap(
+          ({ orange, white }) => [
+            orange,
+            white,
+          ]
+        )
+
+      gsap.set(heroLines, {
+        opacity: 0,
+      })
+
+      gsap.set(
+        revealerBlocks,
+        {
+          scaleX: 0,
+          transformOrigin:
+            "left center",
+        }
+      )
+
+      if (footerSplit) {
+        gsap.set(
+          footerSplit.words,
+          {
+            yPercent: 100,
+          }
+        )
+      }
+
+      /*
+       * This timeline starts only after
+       * the loader entrance and assets
+       * are ready.
+       */
+      const timeline =
+        gsap.timeline({
+          delay: 0,
+        })
+
+      /*
+       * Fade out the loader contents.
+       */
+      timeline.to(
+        [
+          ".preloader-copy",
+          ".preloader-block",
+        ],
+        {
+          opacity: 0,
+          duration: 0.4,
+          ease: "power2.out",
+        }
+      )
+
+      /*
+       * Remove the orange overlay with
+       * the diagonal clip-path wipe.
+       */
+      const finishedWipe =
+        "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)"
+
+      timeline.to(
+        ".preloader-overlay",
+        {
+          clipPath:
+            finishedWipe,
+          WebkitClipPath:
+            finishedWipe,
+          duration: 1.1,
+          ease: "power3.inOut",
+        }
+      )
+
+      timeline.set(
+        ".preloader-overlay",
+        {
+          display: "none",
+        }
+      )
+
+      /*
+       * Bring in navigation while the
+       * wipe is finishing.
+       */
+      timeline.to(
+        "nav",
+        {
+          y: 0,
+          duration: 1,
+          ease: "power3.out",
+        },
+        "-=0.65"
+      )
+
+      /*
+       * Reveal each hero heading line.
+       */
+      heroReveals.forEach(
+        (reveal, index) => {
+          const line =
+            heroLines[index]
+
+          const position =
+            index === 0
+              ? "-=0.65"
+              : "-=0.75"
+
+          const lineTimeline =
+            gsap.timeline()
+
+          ;[
+            reveal.orange,
+            reveal.white,
+          ].forEach(
+            (
+              block,
+              blockIndex
+            ) => {
+              const blockTimeline =
+                gsap.timeline({
+                  delay:
+                    blockIndex *
+                    0.15,
+                })
+
+              blockTimeline.to(
+                block,
+                {
+                  scaleX: 1,
+                  duration: 0.5,
+                  ease:
+                    "power4.inOut",
+                }
+              )
+
+              blockTimeline.set(
+                block,
+                {
+                  transformOrigin:
+                    "right center",
+                }
+              )
+
+              blockTimeline.to(
+                block,
+                {
+                  scaleX: 0,
+                  duration: 0.5,
+                  ease:
+                    "power4.inOut",
+                }
+              )
+
+              lineTimeline.add(
+                blockTimeline,
+                0
+              )
+            }
+          )
+
+          lineTimeline.set(
+            line,
+            {
+              opacity: 1,
+            },
+            0.5
+          )
+
+          timeline.add(
+            lineTimeline,
+            position
+          )
+        }
+      )
+
+      /*
+       * Hero button.
+       */
+      timeline.to(
+        ".hero-button",
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1,
+          ease: "power3.out",
+        },
+        "-=0.5"
+      )
+
+      /*
+       * Optional footer.
+       */
+      if (
+        footerSplit?.words?.length
+      ) {
+        timeline.to(
+          footerSplit.words,
+          {
+            yPercent: 0,
+            duration: 0.75,
+            stagger: 0.075,
+            ease: "power3.out",
+          },
+          "-=0.85"
+        )
+      }
+
+      /*
+       * Optional ASCII portrait.
+       */
+      if (
+        asciiResult?.chars?.length
+      ) {
+        const getCharDelay =
+          (index) =>
+            asciiResult
+              .distances[index] *
+            ASCII_WAVE_DELAY
+
+        timeline.to(
+          asciiResult.chars,
+          {
+            opacity: (index) =>
+              asciiResult
+                .opacities[index],
+            duration: 0.01,
+            ease: "power1.out",
+            stagger:
+              getCharDelay,
+          },
+          "-=2.5"
+        )
+
+        timeline.to(
+          asciiResult.chars,
+          {
+            color:
+              ASCII_COLOR,
+            duration: 0.01,
+            ease: "power1.out",
+            stagger:
+              getCharDelay,
+          },
+          "-=2"
+        )
+      }
+    }, root)
+}
+
+initialize()
+
+return () => {
+  cancelled = true
+
+  loaderContext?.revert()
+  contentContext?.revert()
+
+  splitInstances
+    .reverse()
+    .forEach((split) => {
+      split.revert()
+    })
+
+  asciiResult?.grid.remove()
+}
+}, [])
+
+  return (
+   <main
+  ref={rootRef}
+  className="min-h-svh bg-[#171717]"
+>
+  <div
+    className="preloader-overlay fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 overflow-hidden bg-[#fff] will-change-[clip-path]"
+    style={{
+      clipPath:
+        "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      WebkitClipPath:
+        "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+    }}
+  >
+<div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
+<div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
+  <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
+    <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
+      <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
+    </div>
+  </div>
+</div>
+        </div>
+
+<div className="preloader-copy w-40 text-center">
+  <p className="invisible whitespace-nowrap text-[1.05rem] font-neuehaas35 leading-none text-[#171717]">
+    Meet the Team
+  </p>
+</div>
+      </div>
+
+      <nav
+        className={[
+          "fixed",
+          "left-0",
+          "top-0",
+          "z-10",
+          "flex",
+          "w-full",
+          "-translate-y-[300px]",
+          "items-center",
+          "gap-8",
+          "p-8",
+          "will-change-transform",
+        ].join(" ")}
+      >
+        <div className="flex-1">
+          <img
+            src="/logo.svg"
+            alt="GoodFella"
+            className="h-auto w-24"
+          />
+        </div>
+
+        <div className="flex flex-1 justify-center">
+          <button
+            type="button"
+            className={`${buttonClasses} bg-[#171717] text-white`}
+          >
+            Menu
+          </button>
+        </div>
+
+        <div className="flex flex-1 justify-end">
+          <a
+            href="#contact"
+            className={
+              buttonClasses
+            }
+          >
+            {/* Get in touch */}
+          </a>
+        </div>
+      </nav>
+
+      <section
+        className={[
+          "hero",
+          "relative",
+          "z-[1]",
+          "flex",
+          "h-svh",
+          "w-full",
+          "gap-8",
+          "overflow-hidden",
+          "bg-[#171717]",
+
+          "max-[1000px]:flex-col",
+          "max-[1000px]:pt-[10svh]",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "hero-copy",
+            "flex",
+            "h-full",
+            "min-w-0",
+            "flex-1",
+            "flex-col",
+            "justify-center",
+            "gap-8",
+            "p-8",
+            "text-white",
+          ].join(" ")}
+        >
+     <h1 className="font-neuehaas35 text-[clamp(2rem,4vw,5rem)] font-medium leading-[1.25]">
+  LOREM IPSUM
+</h1>
+
+          <a
+            href="#work"
+            className={[
+              buttonClasses,
+              "hero-button",
+              "translate-y-10",
+              "opacity-0",
+              "will-change-[transform,opacity]",
+            ].join(" ")}
+          >
+            {/* See our work */}
+          </a>
+        </div>
+
+        <div
+          className={[
+            "hero-media",
+            "flex",
+            "min-w-0",
+            "flex-1",
+            "items-end",
+            "justify-center",
+
+            "max-[1000px]:justify-end",
+          ].join(" ")}
+        >
+          <div
+            ref={imageContainerRef}
+            className={[
+              "hero-img",
+              "relative",
+              "aspect-[5/7]",
+              "w-[85%]",
+
+              "max-[1000px]:aspect-square",
+              "max-[1000px]:w-3/4",
+            ].join(" ")}
+          >
+            <img
+              ref={imageRef}
+              src="/images/team_members/danfrey.png"
+              alt=""
+              className="h-full w-full object-cover opacity-0"
+            />
+          </div>
+        </div>
+
+        {/* <div className="hero-footer absolute bottom-8 left-8">
+          <p className="text-sm font-semibold leading-none text-[#5c5c5c] max-[1000px]:text-white">
+            Currently booking
+            projects for 2026.
+          </p>
+        </div> */}
+      </section>
+    </main>
+  );
+}
 export default function OurTeam() {
   const [showContent, setShowContent] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -904,7 +1811,7 @@ export default function OurTeam() {
   return (
     <>
       <div className="h-screen w-screen">
-        <AsciiInstanced />
+<GoodFellaHero />
       </div>
       <div
         ref={pinRef}

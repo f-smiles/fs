@@ -1055,7 +1055,12 @@ function Background() {
 
     const { gl } = renderer;
 
-    gl.clearColor(0.93, 0.94, 0.96, 1);
+gl.clearColor(
+  0.74,
+  0.745,
+  0.75,
+  1
+)
 
     const geometry = new Triangle(gl);
 
@@ -1071,49 +1076,327 @@ function Background() {
       }
     `;
 
-    const fragment = `
+const fragment = `
   precision mediump float;
 
   uniform float uTime;
   uniform float uScroll;
+  uniform vec2 uResolution;
+
+  uniform vec3 uPeach;
+  uniform vec3 uRose;
+  uniform vec3 uGray;
+  uniform vec3 uPearl;
+
   varying vec2 vUv;
+
+  float random(vec2 point) {
+    return fract(
+      sin(
+        dot(
+          point,
+          vec2(127.1, 311.7)
+        )
+      ) * 43758.5453123
+    );
+  }
+
+  float noise(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 local = fract(point);
+
+    local =
+      local *
+      local *
+      (3.0 - 2.0 * local);
+
+    float bottomLeft =
+      random(cell);
+
+    float bottomRight =
+      random(
+        cell +
+        vec2(1.0, 0.0)
+      );
+
+    float topLeft =
+      random(
+        cell +
+        vec2(0.0, 1.0)
+      );
+
+    float topRight =
+      random(
+        cell +
+        vec2(1.0, 1.0)
+      );
+
+    return mix(
+      mix(
+        bottomLeft,
+        bottomRight,
+        local.x
+      ),
+      mix(
+        topLeft,
+        topRight,
+        local.x
+      ),
+      local.y
+    );
+  }
+
+  float fbm(vec2 point) {
+    float value = 0.0;
+    float amplitude = 0.5;
+
+    for (
+      int octave = 0;
+      octave < 4;
+      octave++
+    ) {
+      value +=
+        amplitude *
+        noise(point);
+
+      point =
+        point * 2.03 +
+        vec2(4.1, 2.7);
+
+      amplitude *= 0.5;
+    }
+
+    return value;
+  }
 
   void main() {
     vec2 uv = vUv;
 
-    float wave =
-      sin(uv.x * 5.0 + uTime * 0.35) *
-      cos(uv.y * 4.0 - uTime * 0.2);
+    float aspect =
+      uResolution.x /
+      uResolution.y;
 
-    float blend = uv.y + wave * 0.06 + uScroll;
+    vec2 point =
+      uv - 0.5;
 
-    vec3 warm = vec3(0.96, 0.56, 0.25);
-    vec3 pearl = vec3(0.82, 0.84, 0.91);
-    vec3 light = vec3(0.96, 0.95, 0.94);
+    point.x *= aspect;
 
-    vec3 color = mix(warm, pearl, smoothstep(0.0, 0.8, blend));
-    color = mix(color, light, smoothstep(0.55, 1.0, uv.x + wave * 0.1));
+    float time =
+      uTime * 0.16;
 
-    gl_FragColor = vec4(color, 1.0);
+    /*
+     * Large, slowly moving field.
+     */
+    float organicField =
+      fbm(
+        point * 1.75 +
+        vec2(
+          time * 0.16,
+          -time * 0.11
+        )
+      );
+
+    /*
+     * Smaller-scale surface movement.
+     */
+    float fineField =
+      fbm(
+        point * 3.8 +
+        vec2(
+          -time * 0.12,
+          time * 0.15
+        )
+      );
+float verticalLight =
+  smoothstep(
+    -0.7,
+    0.8,
+    point.y +
+    organicField * 0.16
+  );
+
+vec3 color = mix(
+  uGray,
+  uPearl,
+  0.18 +
+  verticalLight * 0.42
+);
+
+/*
+ * Stronger white mist creates visible
+ * cloudy areas without adding saturation.
+ */
+float mist =
+  fbm(
+    point * 1.2 +
+    vec2(
+      time * 0.05,
+      time * 0.035
+    )
+  );
+
+float mistStrength =
+  smoothstep(
+    0.48,
+    0.9,
+    mist
+  );
+
+color = mix(
+  color,
+  vec3(0.94, 0.94, 0.93),
+  mistStrength * 0.28
+);
+
+/*
+ * Main flowing current.
+ */
+float peachAxis =
+  point.y +
+  0.19 *
+  sin(
+    point.x * 2.4 +
+    time +
+    organicField * 2.0
+  ) +
+  0.07 *
+  sin(
+    point.x * 6.5 -
+    time * 0.8
+  ) +
+  uScroll * 0.28;
+
+float peachRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis +
+        0.06
+      ) / 0.14,
+      2.0
+    )
+  );
+
+peachRibbon *=
+  0.62 +
+  fineField * 0.38;
+
+/*
+ * Secondary current.
+ */
+float roseAxis =
+  point.y -
+  0.22 *
+  sin(
+    point.x * 1.8 -
+    time * 0.7 +
+    organicField * 1.7
+  ) +
+  0.13 +
+  uScroll * 0.2;
+
+float roseRibbon =
+  exp(
+    -pow(
+      roseAxis / 0.085,
+      2.0
+    )
+  );
+
+/*
+ * White ribbon beside the warmer current.
+ */
+float whiteRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis -
+        0.16
+      ) / 0.075,
+      2.0
+    )
+  );
+
+color = mix(
+  color,
+  uPeach,
+  peachRibbon * 0.24
+);
+
+color = mix(
+  color,
+  uRose,
+  roseRibbon * 0.11
+);
+
+color = mix(
+  color,
+  vec3(0.97, 0.97, 0.96),
+  whiteRibbon * 0.24
+);
+
+/*
+ * More visible surface variation.
+ */
+color +=
+  (
+    fineField - 0.5
+  ) * 0.02;
+
+color = clamp(
+  color,
+  0.0,
+  1.0
+);
+
+gl_FragColor =
+  vec4(color, 1.0);
   }
 `;
 
-    const program = new Program(gl, {
-      vertex,
-      fragment,
-      uniforms: {
-        uTime: { value: 0 },
-        uScroll: { value: 0 },
-        uColor1: { value: new Color("#F68128") },
-        uColor2: { value: new Color("#AAAEC3") },
-        uColor3: { value: new Color("#CFC8BE") },
-        uColor4: { value: new Color("#E9E4DC") },
+const program = new Program(gl, {
+  vertex,
+  fragment,
+  uniforms: {
+    uTime: {
+      value: 0,
+    },
 
-        uResolution: {
-          value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight),
-        },
-      },
-    });
+    uScroll: {
+      value: 0,
+    },
+ uPeach: {
+  value: new Color(
+    "#d5b7b2"
+  ),
+},
+
+uRose: {
+  value: new Color(
+    "#e4dae0"
+  ),
+},
+
+uGray: {
+  value: new Color(
+    "#b2b7be"
+  ),
+},
+
+uPearl: {
+  value: new Color(
+    "#e5e5e3"
+  ),
+},
+
+    uResolution: {
+      value: new Vec2(
+        gl.canvas.offsetWidth,
+        gl.canvas.offsetHeight
+      ),
+    },
+  },
+})
 
     const mesh = new Mesh(gl, { geometry, program });
 
@@ -1450,25 +1733,25 @@ const testimonials = [
   {
     name: "Lainie",
     image: "../images/testimonials/lainielandscape.png",
-    type: "20 months",
+    type: "Mild deep bite and class 2 on left side and crowding corrected in 18 months with braces and elastics.",
     project: "Lainie",
   },
   {
     name: "James",
     image: "../images/testimonials/Jamescontrast.png",
-    type: "20 months",
-    project: "Sabrinas",
+    type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
+    project: "James",
   },
   {
     name: "Ron L.",
     image: "../images/testimonials/Ronlandscape.png",
-    type: "Invisalign",
+    type: "Crossbite and crowding corrected in twelve months with Invisalign. Minor aesthetic bonding performed on front tooth.",
     project: "Ron L.",
   },
   {
     name: "Elizabeth",
     image: "../images/testimonials/elizabethmask.png",
-    type: "Invisalign, Braces",
+    type: "Mandibular retrognathia corrected in 30 months with functional appliance, braces, and Invisalign",
     project: "Elizabeth",
   },
   {
@@ -1486,13 +1769,13 @@ const testimonials = [
   {
     name: "Leanne",
     image: "../images/testimonials/Leannelandscape.png",
-    type: "12 months",
+    type: "Adult crowding and arch constriction corrected in 12 months with Invisalign",
     project: "Leanne",
   },
   {
     name: "Harold",
     image: "../images/testimonials/harold.png",
-    type: "Invisalign",
+    type: "Overbite and spacing corrected in 14 months with Invisalign",
     project: "Harold",
   },
   {
@@ -1557,573 +1840,1012 @@ const testimonials = [
   },
 ];
 
-const List = ({ onInteractionChange }) => {
-  const testimonialsSectionRef = useRef(null);
-  const testimonialsListRef = useRef(null);
-  const testimonialPreviewRef = useRef(null);
-  const lastStackedIndex = useRef(null);
-  const testimonialRefs = useRef([]);
-  const nameRefs = useRef([]);
-  const typeRefs = useRef([]);
-  const nameHighlightRefs = useRef([]);
-  const typeHighlightRefs = useRef([]);
-  const outroRef = useRef(null);
-  const lastMousePosition = useRef({ x: 0, y: 0 });
-  const activeTestimonial = useRef(null);
-  const zCounter = useRef(1);
-  const ticking = useRef(false);
-  const isHovering = useRef(false);
-  const lastScrollActive = useRef(null);
-  const highlighterColors = ["neon", "pink", "green"];
-  const scrollTicking = useRef(false);
+const List = ({
+  onInteractionChange,
+}) => {
+  const [activeIndex, setActiveIndex] =
+    useState(0)
 
-  const scrambleText = (idx) => {
-    const scramble = {
-      characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-      speed: 0.8,
-      newChars: 0.3,
-      revealDelay: 0,
-      tweenLength: true,
-    };
+  const [
+    displayedIndex,
+    setDisplayedIndex,
+  ] = useState(0)
+const introSectionRef = useRef(null);
+const testimonialsSectionRef =
+  useRef(null);
 
-    const testimonialData = testimonials[idx];
+const galleryViewportRef = useRef(null)
+const thumbnailRefs = useRef([])
 
-    if (nameRefs.current[idx]) {
-      gsap.to(nameRefs.current[idx], {
-        duration: 1.5,
-        ease: "power2.out",
-        scrambleText: { text: testimonialData.name, ...scramble },
-      });
-    }
+const activeIndexRef = useRef(0)
+const requestedIndexRef = useRef(0)
 
-    if (typeRefs.current[idx] && testimonialData.type) {
-      gsap.to(typeRefs.current[idx], {
-        duration: 1.5,
-        ease: "power2.out",
-        scrambleText: { text: testimonialData.type, ...scramble },
-      });
-    }
-  };
+const galleryScrollTimeoutRef =
+  useRef(null)
+  const backgroundRefs = useRef([])
+  const titleRef = useRef(null)
+  const infoRef = useRef(null)
+  const creditsRef = useRef(null)
+  const patientRef = useRef(null)
 
-  const getRandomColorClass = () => {
-    const colors = highlighterColors;
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
+  const projectImageRef = useRef(null)
+  const projectImageElementRef =
+    useRef(null)
 
-  const highlightText = (idx, activate = true) => {
-    if (nameHighlightRefs.current[idx]) {
-      const nameEl = nameHighlightRefs.current[idx];
-      if (activate) {
-        const colorClass = getRandomColorClass();
-        nameEl.classList.add("active", colorClass);
-        nameEl.dataset.color = colorClass;
-      } else {
-        nameEl.classList.remove("active", "neon", "pink", "green");
-        delete nameEl.dataset.color;
-      }
-    }
+  const infoSplitRef = useRef(null)
+  const isAnimating = useRef(false)
+  const shouldAnimateIn =
+    useRef(false)
 
-    if (typeHighlightRefs.current[idx] && testimonials[idx].type) {
-      const typeEl = typeHighlightRefs.current[idx];
-      if (activate) {
-        const colorClass =
-          nameHighlightRefs.current[idx]?.dataset.color ||
-          getRandomColorClass();
-        typeEl.classList.add("active", colorClass);
-      } else {
-        typeEl.classList.remove("active", "neon", "pink", "green");
-      }
-    }
-  };
-  const stackImage = (index, source = "scroll") => {
-    const container = testimonialPreviewRef.current;
-    const data = testimonials[index];
-    if (!container || !data?.image) return;
+  const displayedTestimonial =
+    testimonials[displayedIndex]
 
-    if (lastStackedIndex.current === index) return;
-
-    const mask = document.createElement("div");
-    mask.className = "preview-mask";
-
-    const img = document.createElement("img");
-    img.src = data.image;
-
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    img.style.transform = "scale(0)";
-    img.style.transformOrigin = "center center";
-    img.style.zIndex = zCounter.current++;
-
-    img.style.clipPath = `
-  polygon(
-    16px 0%,
-    calc(100% - 16px) 0%,
-    calc(100% - 16px) 16px,
-    calc(100% - 16px) 32px,
-    100% 32px,
-    100% calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 32px),
-    100% calc(100% - 32px),
-    100% calc(100% - 16px),
-    calc(100% - 16px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 32px),
-    calc(100% - 16px) calc(100% - 32px),
-    calc(100% - 16px) 100%,
-    0% 100%,
-    0% 16px,
-    16px 16px
-  )
-`;
-    mask.appendChild(img);
-    container.appendChild(mask);
-
-    gsap.to(img, {
-      scale: 1,
-      duration: 0.35,
-      ease: "power2.out",
-    });
-
-    const images = container.querySelectorAll("img");
-    if (images.length > 6) images[0].remove();
-
-    lastStackedIndex.current = index;
-  };
-  const isTestimonialsListActive = () => {
-  const list = testimonialsListRef.current;
-  if (!list) return false;
-
-  const rect = list.getBoundingClientRect();
-
-  const activeTop = window.innerHeight * 0.75;
-  const activeBottom = window.innerHeight * 0.25;
-
-  return rect.top < activeTop && rect.bottom > activeBottom;
-};
-  const updatePreviewOnScroll = () => {
-  if (!isTestimonialsListActive()) {
-    clearPreview();
-    return;
+  const getTextTargets = () => {
+    return [
+      titleRef.current,
+      ...(
+        infoSplitRef.current
+          ?.lines ?? []
+      ),
+      creditsRef.current,
+      patientRef.current,
+    ].filter(Boolean)
   }
-    if (isHovering.current) return;
 
-    const sectionTop = testimonialsSectionRef.current.offsetTop;
-    const centerY = window.scrollY + window.innerHeight / 2 - sectionTop;
+useLayoutEffect(() => {
+  const intro =
+    introSectionRef.current;
 
-    let closestIndex = null;
-    let closestDistance = Infinity;
+  const main =
+    testimonialsSectionRef.current;
 
-    rowCenters.current.forEach((rowCenter, index) => {
-      if (!rowCenter) return;
-      const distance = Math.abs(rowCenter - centerY);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = index;
-      }
+  if (!intro || !main) {
+    return undefined;
+  }
+
+  const context = gsap.context(() => {
+    const timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: intro,
+
+        start: "top top",
+
+        end: () =>
+          `+=${window.innerHeight}`,
+
+        pin: intro,
+        pinSpacing: false,
+
+        /*
+         * Follow scroll position directly.
+         * Lenis already supplies smoothing.
+         */
+        scrub: true,
+
+        anticipatePin: 1,
+      },
     });
 
-    if (
-      closestIndex !== null &&
-      closestIndex !== lastScrollActive.current &&
-      closestDistance < 120
-    ) {
-      if (lastScrollActive.current !== null) {
-        highlightText(lastScrollActive.current, false);
-      }
-      highlightText(closestIndex, true);
-      stackImage(closestIndex, "scroll");
+    timeline.fromTo(
+      main,
+      {
+        rotationX: 8,
 
-      lastScrollActive.current = closestIndex;
-    }
-  };
+        transformOrigin:
+          "50% 100%",
 
-  const mouseTicking = useRef(false);
+        transformPerspective:
+          1600,
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      lastMousePosition.current.x = e.clientX;
-      lastMousePosition.current.y = e.clientY;
+        backfaceVisibility:
+          "hidden",
 
-      if (!isHovering.current) return;
-
-      if (!mouseTicking.current) {
-        requestAnimationFrame(() => {
-          mouseTicking.current = false;
-        });
-        mouseTicking.current = true;
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!isTestimonialsVisible()) {
-        const images = testimonialPreviewRef.current?.querySelectorAll("img");
-        images?.forEach((img) => {
-          gsap.killTweensOf(img);
-          gsap.to(img, {
-            scale: 0,
-            opacity: 0,
-            duration: 0.35,
-            ease: "power2.inOut",
-            onComplete: () => img.remove(),
-          });
-        });
-
-        lastStackedIndex.current = null;
-        zCounter.current = 1;
-
-        activeTestimonial.current = null;
-        isHovering.current = false;
-        lastScrollActive.current = null;
-
-        testimonials.forEach((_, index) => {
-          highlightText(index, false);
-        });
-
-        return;
-      }
-
-      if (!scrollTicking.current) {
-        requestAnimationFrame(() => {
-          updatePreviewOnScroll();
-          scrollTicking.current = false;
-        });
-        scrollTicking.current = true;
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    testimonialRefs.current.forEach((testimonial, index) => {
-      if (!testimonial) return;
-
-      const enter = () => {
-        activeTestimonial.current = index;
-        isHovering.current = true;
-
-        lastStackedIndex.current = null;
-
-        highlightText(index, true);
-        scrambleText(index);
-        stackImage(index, "hover");
-      };
-
-      const leave = () => {
-        activeTestimonial.current = null;
-        isHovering.current = false;
-
-        highlightText(index, false);
-
-        lastStackedIndex.current = null;
-      };
-      testimonial.addEventListener("mouseenter", enter);
-      testimonial.addEventListener("mouseleave", leave);
-
-      return () => {
-        testimonial.removeEventListener("mouseenter", enter);
-        testimonial.removeEventListener("mouseleave", leave);
-      };
-    });
-  }, []);
-
-  const rowCenters = useRef([]);
-  useEffect(() => {
-    const computeCenters = () => {
-      rowCenters.current = testimonialRefs.current.map((el) =>
-        el ? el.offsetTop + el.offsetHeight / 2 : null,
-      );
-    };
-
-    computeCenters();
-    window.addEventListener("resize", computeCenters);
-    return () => window.removeEventListener("resize", computeCenters);
-  }, []);
-
-  const isTestimonialsVisible = () => {
-    if (!testimonialsSectionRef.current) return false;
-
-    const rect = testimonialsSectionRef.current.getBoundingClientRect();
-
-    return rect.bottom > 0 && rect.top < window.innerHeight;
-  };
-const clearPreview = () => {
-  const images =
-    testimonialPreviewRef.current?.querySelectorAll("img");
-
-  images?.forEach((img) => {
-    gsap.killTweensOf(img);
-
-    gsap.to(img, {
-      scale: 0.8,
-      opacity: 0,
-      duration: 0.18,
-      ease: "power2.in",
-      overwrite: true,
-      onComplete: () => img.remove(),
-    });
-  });
-
-  lastStackedIndex.current = null;
-  lastScrollActive.current = null;
-  zCounter.current = 1;
-};
-
-useEffect(() => {
-  const list = testimonialsListRef.current;
-  if (!list) return;
-
-  const trigger = ScrollTrigger.create({
-    trigger: list,
-    start: "top 75%",
-    end: "bottom 25%",
-
-    onLeave: clearPreview,
-    onLeaveBack: clearPreview,
-
-    onEnter: updatePreviewOnScroll,
-    onEnterBack: updatePreviewOnScroll,
-  });
-
-  return () => trigger.kill();
-}, []);
-  useEffect(() => {
-    if (!testimonialsSectionRef.current || !onInteractionChange) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        onInteractionChange(entry.isIntersecting);
+        force3D: true,
       },
       {
-        threshold: 0.4,
+        rotationX: 0,
+
+        ease: "none",
+        force3D: true,
       },
+      0
+    );
+  });
+
+  const refreshFrame =
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+
+  return () => {
+    cancelAnimationFrame(
+      refreshFrame
     );
 
-    observer.observe(testimonialsSectionRef.current);
+    context.revert();
+  };
+}, []);
+  useLayoutEffect(() => {
+    if (!infoRef.current) {
+      return undefined
+    }
 
-    return () => observer.disconnect();
-  }, [onInteractionChange]);
+    const context = gsap.context(
+      () => {
+        infoSplitRef.current =
+          SplitText.create(
+            infoRef.current,
+            {
+              type: "lines",
+              linesClass:
+                "project-info-line",
+              mask: "lines",
+            }
+          )
+
+        const textTargets =
+          getTextTargets()
+
+        /*
+         * Establish the initial state
+         * without playing an entrance.
+         */
+        if (
+          !shouldAnimateIn.current
+        ) {
+          gsap.set(textTargets, {
+            y: 0,
+          })
+
+          gsap.set(
+            projectImageRef.current,
+            {
+              scale: 1,
+              bottom: "1em",
+            }
+          )
+
+          gsap.set(
+            projectImageElementRef.current,
+            {
+              scale: 1,
+            }
+          )
+
+          return
+        }
+
+        const timeline = gsap.timeline({
+  onComplete: () => {
+    shouldAnimateIn.current =
+      false
+
+    isAnimating.current =
+      false
+
+    const requestedIndex =
+      requestedIndexRef.current
+
+    if (
+      requestedIndex !==
+      activeIndexRef.current
+    ) {
+      requestAnimationFrame(() => {
+        handleItemClick(
+          requestedIndex
+        )
+      })
+    }
+  },
+})
+
+        timeline.fromTo(
+          textTargets,
+          {
+            y: 40,
+          },
+          {
+            y: 0,
+            duration: 1,
+            ease: "power4.out",
+            stagger: 0.05,
+          },
+          0
+        )
+
+        timeline.fromTo(
+          projectImageRef.current,
+          {
+            scale: 0,
+            bottom: "-10em",
+          },
+          {
+            scale: 1,
+            bottom: "1em",
+            duration: 1,
+            ease: "power4.out",
+          },
+          0
+        )
+
+        timeline.fromTo(
+          projectImageElementRef.current,
+          {
+            scale: 2,
+          },
+          {
+            scale: 1,
+            duration: 1,
+            ease: "power4.out",
+          },
+          0
+        )
+      },
+      testimonialsSectionRef
+    )
+
+    return () => {
+      context.revert()
+      infoSplitRef.current?.revert()
+      infoSplitRef.current = null
+    }
+  }, [displayedIndex])
+
+  /*
+   * Stop background animations if
+   * the component is removed.
+   */
+  useLayoutEffect(() => {
+    return () => {
+      gsap.killTweensOf(
+        backgroundRefs.current
+      )
+    }
+  }, [])
+
+  /*
+   * Notify the parent when this new
+   * gallery is visible.
+   */
+  useEffect(() => {
+    const section =
+      testimonialsSectionRef.current
+
+    if (
+      !section ||
+      !onInteractionChange
+    ) {
+      return undefined
+    }
+
+    const observer =
+      new IntersectionObserver(
+        ([entry]) => {
+          onInteractionChange(
+            entry.isIntersecting
+          )
+        },
+        {
+          threshold: 0.4,
+        }
+      )
+
+    observer.observe(section)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [onInteractionChange])
+useEffect(() => {
+  let isProgrammaticScroll = false
+  const viewport =
+    galleryViewportRef.current
+
+  const section =
+    testimonialsSectionRef.current
+
+  if (!viewport || !section) {
+    return undefined
+  }
+
+  let wheelAccumulator = 0
+  let wheelLocked = false
+  let wheelUnlockTimer = null
+
+  const getIsHorizontal = () =>
+    window.matchMedia(
+      "(max-width: 900px)"
+    ).matches
+
+  const selectClosestThumbnail =
+    () => {
+      const isHorizontal =
+        getIsHorizontal()
+
+      const viewportRect =
+        viewport.getBoundingClientRect()
+
+      /*
+       * Match snap-start instead of
+       * measuring from the center.
+       */
+      const viewportStart =
+        isHorizontal
+          ? viewportRect.left + 12
+          : viewportRect.top + 12
+
+      let closestIndex = 0
+      let closestDistance =
+        Infinity
+
+      thumbnailRefs.current.forEach(
+        (thumbnail, index) => {
+          if (!thumbnail) return
+
+          const rect =
+            thumbnail.getBoundingClientRect()
+
+          const thumbnailStart =
+            isHorizontal
+              ? rect.left
+              : rect.top
+
+          const distance = Math.abs(
+            thumbnailStart -
+              viewportStart
+          )
+
+          if (
+            distance <
+            closestDistance
+          ) {
+            closestDistance =
+              distance
+
+            closestIndex = index
+          }
+        }
+      )
+
+      requestedIndexRef.current =
+        closestIndex
+
+      handleItemClick(
+        closestIndex
+      )
+    }
+
+const scrollToThumbnail = (
+  index
+) => {
+  const thumbnail =
+    thumbnailRefs.current[index]
+
+  if (!thumbnail) return
+
+  const isHorizontal =
+    getIsHorizontal()
+
+  const viewportRect =
+    viewport.getBoundingClientRect()
+
+  const thumbnailRect =
+    thumbnail.getBoundingClientRect()
+
+  const targetPosition =
+    isHorizontal
+      ? viewport.scrollLeft +
+        thumbnailRect.left -
+        viewportRect.left -
+        12
+      : viewport.scrollTop +
+        thumbnailRect.top -
+        viewportRect.top -
+        12
+
+  isProgrammaticScroll = true
+
+  /*
+   * Prevent CSS snapping from fighting
+   * the controlled tween.
+   */
+  viewport.style.scrollSnapType =
+    "none"
+
+  gsap.killTweensOf(viewport)
+
+  gsap.to(viewport, {
+    ...(isHorizontal
+      ? {
+          scrollLeft:
+            targetPosition,
+        }
+      : {
+          scrollTop:
+            targetPosition,
+        }),
+
+    duration: 0.55,
+    ease: "power2.inOut",
+    overwrite: true,
+
+    onComplete: () => {
+      /*
+       * Removing the inline value lets
+       * the Tailwind snap class take over.
+       */
+      viewport.style.removeProperty(
+        "scroll-snap-type"
+      )
+
+      isProgrammaticScroll =
+        false
+
+      selectClosestThumbnail()
+    },
+  })
+}
+
+const handleGalleryScroll = () => {
+  if (isProgrammaticScroll) {
+    return
+  }
+
+  window.clearTimeout(
+    galleryScrollTimeoutRef.current
+  )
+
+  galleryScrollTimeoutRef.current =
+    window.setTimeout(
+      selectClosestThumbnail,
+      120
+    )
+}
+
+  const keepWheelLocked = () => {
+    window.clearTimeout(
+      wheelUnlockTimer
+    )
+
+    /*
+     * Unlock only after the current
+     * trackpad gesture has ended.
+     */
+    wheelUnlockTimer =
+      window.setTimeout(() => {
+        wheelLocked = false
+        wheelAccumulator = 0
+      }, 180)
+  }
+
+  const handleSectionWheel = (
+    event
+  ) => {
+    const sectionRect =
+      section.getBoundingClientRect()
+
+    const sectionIsActive =
+      sectionRect.top <= 1 &&
+      sectionRect.bottom >=
+        window.innerHeight - 1
+
+    if (!sectionIsActive) return
+
+    const delta =
+      Math.abs(event.deltaY) >=
+      Math.abs(event.deltaX)
+        ? event.deltaY
+        : event.deltaX
+
+    if (delta === 0) return
+
+    const currentIndex =
+      requestedIndexRef.current
+
+    const isFirst =
+      currentIndex === 0
+
+    const isLast =
+      currentIndex ===
+      testimonials.length - 1
+
+    /*
+     * Absorb momentum belonging to the
+     * current wheel gesture.
+     */
+    if (wheelLocked) {
+      event.preventDefault()
+      event.stopPropagation()
+
+      keepWheelLocked()
+      return
+    }
+
+    /*
+     * Allow a fresh gesture to leave the
+     * gallery at either boundary.
+     */
+    if (
+      (delta < 0 && isFirst) ||
+      (delta > 0 && isLast)
+    ) {
+      wheelAccumulator = 0
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    wheelAccumulator += delta
+
+    /*
+     * Ignore tiny trackpad noise.
+     */
+    if (
+      Math.abs(
+        wheelAccumulator
+      ) < 35
+    ) {
+      return
+    }
+
+    const direction =
+      wheelAccumulator > 0
+        ? 1
+        : -1
+
+    const nextIndex = Math.max(
+      0,
+      Math.min(
+        testimonials.length - 1,
+        currentIndex + direction
+      )
+    )
+
+    wheelAccumulator = 0
+    wheelLocked = true
+
+    requestedIndexRef.current =
+      nextIndex
+
+    scrollToThumbnail(nextIndex)
+    handleItemClick(nextIndex)
+
+    keepWheelLocked()
+  }
+
+  viewport.addEventListener(
+    "scroll",
+    handleGalleryScroll,
+    {
+      passive: true,
+    }
+  )
+
+const handleGalleryScrollEnd =
+  () => {
+    if (!isProgrammaticScroll) {
+      selectClosestThumbnail()
+    }
+  }
+
+viewport.addEventListener(
+  "scroll",
+  handleGalleryScroll,
+  {
+    passive: true,
+  }
+)
+
+viewport.addEventListener(
+  "scrollend",
+  handleGalleryScrollEnd
+)
+
+section.addEventListener(
+  "wheel",
+  handleSectionWheel,
+  {
+    passive: false,
+    capture: true,
+  }
+)
+
+return () => {
+  window.clearTimeout(
+    galleryScrollTimeoutRef.current
+  )
+
+  window.clearTimeout(
+    wheelUnlockTimer
+  )
+
+  gsap.killTweensOf(viewport)
+
+  viewport.style.removeProperty(
+    "scroll-snap-type"
+  )
+
+  viewport.removeEventListener(
+    "scroll",
+    handleGalleryScroll
+  )
+
+  viewport.removeEventListener(
+    "scrollend",
+    handleGalleryScrollEnd
+  )
+
+  section.removeEventListener(
+    "wheel",
+    handleSectionWheel,
+    true
+  )
+}
+}, [])
+const handleItemClick = (nextIndex) => {
+  requestedIndexRef.current =
+    nextIndex
+
+  if (
+    nextIndex ===
+      activeIndexRef.current ||
+    isAnimating.current
+  ) {
+    return
+  }
+
+  isAnimating.current = true
+
+  const previousIndex =
+    activeIndexRef.current
+
+  activeIndexRef.current =
+    nextIndex
+
+  const previousBackground =
+    backgroundRefs.current[
+      previousIndex
+    ]
+
+  const nextBackground =
+    backgroundRefs.current[
+      nextIndex
+    ]
+
+  setActiveIndex(nextIndex)
+
+  gsap.killTweensOf([
+    previousBackground,
+    nextBackground,
+  ])
+
+  if (nextBackground) {
+    gsap.set(nextBackground, {
+      visibility: "visible",
+    })
+
+    gsap.to(nextBackground, {
+      opacity: 1,
+      delay: 0.5,
+      duration: 1,
+      ease: "power2.inOut",
+    })
+  }
+
+  if (previousBackground) {
+    gsap.to(previousBackground, {
+      opacity: 0,
+      delay: 0.5,
+      duration: 1,
+      ease: "power2.inOut",
+
+      onComplete: () => {
+        gsap.set(
+          previousBackground,
+          {
+            visibility: "hidden",
+          }
+        )
+      },
+    })
+  }
+
+  const textTargets =
+    getTextTargets()
+
+  const outgoingTimeline =
+    gsap.timeline({
+      onComplete: () => {
+        shouldAnimateIn.current =
+          true
+
+        setDisplayedIndex(nextIndex)
+      },
+    })
+
+  outgoingTimeline.to(
+    textTargets,
+    {
+      y: -60,
+      duration: 1,
+      ease: "power4.in",
+      stagger: 0.05,
+    },
+    0
+  )
+
+  outgoingTimeline.to(
+    projectImageElementRef.current,
+    {
+      scale: 2,
+      duration: 1,
+      ease: "power4.in",
+    },
+    0
+  )
+
+  outgoingTimeline.to(
+    projectImageRef.current,
+    {
+      scale: 0,
+      bottom: "10em",
+      duration: 1,
+      ease: "power4.in",
+    },
+    0
+  )
+}
 
   return (
     <div className="testimonialsPage">
-      <section className="intro relative min-h-screen overflow-hidden">
-        <div className="absolute inset-0 z-0 pointer-events-none">
+<section
+  ref={introSectionRef}
+  className="intro relative z-0 h-screen overflow-hidden"
+>
+        <div className="pointer-events-none absolute inset-0 z-0">
           <JanusFace />
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto w-full flex flex-col md:flex-row">
-          <div className="hidden md:block md:w-1/2 min-h-screen" />
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] flex-col md:flex-row">
+          <div className="hidden min-h-screen md:block md:w-1/2" />
 
-          <div className="w-full md:w-1/2 min-h-screen flex items-center justify-center px-6 md:px-0">
-            <div className="max-w-[1200px] w-full">
-              <div>
-                <TerminalPreloader />
-              </div>
+          <div className="flex min-h-screen w-full items-center justify-center px-6 md:w-1/2 md:px-0">
+            <div className="w-full max-w-[1200px]">
+              <TerminalPreloader />
             </div>
           </div>
         </div>
       </section>
-      <section className="testimonials" ref={testimonialsSectionRef}>
-        <div className="flex flex-col items-center text-center mb-10 gap-1">
-          <div className="flex items-baseline gap-2">
-            <SlidingText text="Select Cases" effect="2" totalCells={4} />
+
+<main
+  ref={testimonialsSectionRef}
+  className="relative z-10 flex h-screen w-full origin-bottom overflow-hidden bg-[#0f0f0f] will-change-transform [backface-visibility:hidden] max-[900px]:flex-col"
+>
+      {/* Blurred background preview */}
+<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#0f0f0f]">
+  {testimonials.map(
+    (testimonial, index) => (
+      <img
+        key={`background-${testimonial.name}-${index}`}
+        ref={(element) => {
+          backgroundRefs.current[
+            index
+          ] = element
+        }}
+        src={testimonial.image}
+        alt=""
+        aria-hidden="true"
+        className="absolute -inset-[12%] h-[124%] w-[124%] scale-110 object-cover blur-[100px] will-change-opacity"
+        style={{
+          opacity:
+            index === 0 ? 1 : 0,
+        }}
+      />
+    )
+  )}
+
+  <div className="absolute inset-0 bg-white/25" />
+</div>
+
+      {/* Left information column */}
+      <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:flex-[0.5] max-[900px]:border-r-0 max-[900px]:border-b">
+
+
+        <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
+          <div className="text-[20px] font-canelathin">
+               A visual archive of
+            selected patient treatment
+            outcomes.
           </div>
-
-          <span className="text-[18px] font-canelathin opacity-60">
-            A visual archive of selected treatment outcomes
-          </span>
         </div>
-        <div className="flex items-center justify-between w-full">
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
 
-          <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
+        <div className="copy max-[900px]:hidden">
+          <p className="text-base font-canelathin text-white">
+        
+          </p>
         </div>
-        <div className="testimonials-list" ref={testimonialsListRef}>
-          {testimonials.map((testimonial, index) => (
+      </div>
+
+      {/* Active testimonial */}
+      <div className="project-preview col relative flex-[2] p-4">
+        <div
+          key={`details-${displayedIndex}`}
+          className="project-details absolute left-4 top-4 w-1/2 max-[900px]:w-[calc(100%-1rem)]"
+        >
+          <div className="title mb-2 overflow-hidden">
             <div
-              key={index}
-              className="testimonial"
-              ref={(el) => (testimonialRefs.current[index] = el)}
+              ref={titleRef}
+              className="relative translate-y-10 text-[px] font-neuehaas35 will-change-transform"
             >
-              <div className="testimonial-content">
-                <div className="testimonial-name">
-                  <span
-                    className="highlighted-text col-left"
-                    ref={(el) => (nameHighlightRefs.current[index] = el)}
-                  >
-                    <h1 ref={(el) => (nameRefs.current[index] = el)}>
-                      {testimonial.name}
-                    </h1>
-                  </span>
-                  <span
-                    className="highlighted-text col-right"
-                    ref={(el) => (typeHighlightRefs.current[index] = el)}
-                  >
-                    <h1 ref={(el) => (typeRefs.current[index] = el)}>
-                      {testimonial.type || ""}
-                    </h1>
-                  </span>
-                </div>
-              </div>
+              {
+                displayedTestimonial.project
+              }
             </div>
-          ))}
+          </div>
+
+          <div className="info mb-4 overflow-hidden">
+            <p
+              ref={infoRef}
+              className="text-base font-neuehaas35"
+            >
+              {displayedTestimonial.type ||
+                "Treatment outcome"}
+            </p>
+          </div>
+
+          <div className="credits overflow-hidden">
+            <p
+              ref={creditsRef}
+              className="relative inline-block translate-y-5 text-base font-neuehaas35 will-change-transform"
+            >
+              Patient
+            </p>
+          </div>
+
+          <div className="director overflow-hidden">
+            <p
+              ref={patientRef}
+              className="relative inline-block translate-y-5 text-base font-neuehaas35  will-change-transform"
+            >
+              {
+                displayedTestimonial.name
+              }
+            </p>
+          </div>
         </div>
-      </section>
 
-      <div ref={outroRef} className="testimonials-outro-spacer" />
-      <div className="testimonial-preview" ref={testimonialPreviewRef} />
-    </div>
-  );
-};
-const SlidingText = ({ text = "Select Cases", totalCells = 4 }) => {
-  const containerRef = useRef(null);
-  const innerRefs = useRef([]);
+        <div
+          key={`image-${displayedIndex}`}
+          ref={projectImageRef}
+          className="project-img absolute bottom-4 left-4 h-1/2 w-3/4 overflow-hidden will-change-transform max-[900px]:w-[93%]"
+        >
+          <img
+            ref={
+              projectImageElementRef
+            }
+            src={
+              displayedTestimonial.image
+            }
+            alt={`${displayedTestimonial.name} treatment outcome`}
+            className="h-full w-full object-cover will-change-transform"
+          />
+        </div>
+      </div>
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !innerRefs.current.length) return;
+{/* Scroll-snapping thumbnail gallery */}
+<div
+  ref={galleryViewportRef}
+  data-lenis-prevent
+  className="
+    relative z-20
+    h-full w-[124px] shrink-0
+    snap-y snap-mandatory
+    scroll-pt-3
+    overflow-y-auto overflow-x-hidden
+    overscroll-contain
+    border-l border-white/10
+    bg-white/30
+    p-3
+    backdrop-blur-[20px]
+    [scrollbar-width:none]
+    [&::-webkit-scrollbar]:hidden
 
-    const setLayout = () => {
-      const firstInner = innerRefs.current[0];
-      const textWidth = firstInner.scrollWidth;
+    max-[900px]:h-[112px]
+    max-[900px]:w-full
+    max-[900px]:snap-x
+    max-[900px]:scroll-pl-3
+    max-[900px]:overflow-x-auto
+    max-[900px]:overflow-y-hidden
+    max-[900px]:border-l-0
+    max-[900px]:border-t
+  "
+>
+  <div
+    className="
+      flex min-h-max w-full
+      flex-col gap-3
 
-      container.style.setProperty("--text-width", `${textWidth}px`);
-      container.style.setProperty("--gsplits", totalCells);
+      max-[900px]:h-full
+      max-[900px]:min-h-0
+      max-[900px]:w-max
+      max-[900px]:flex-row
+    "
+  >
+    {testimonials.map(
+      (testimonial, index) => {
+        const isActive =
+          index === activeIndex
 
-      const offset = textWidth / totalCells;
+        return (
+          <button
+            key={`gallery-${testimonial.name}-${index}`}
+            ref={(element) => {
+              thumbnailRefs.current[
+                index
+              ] = element
+            }}
+            type="button"
+            className={[
+              "treatment-thumbnail",
+              "relative",
+              "block",
+              "h-[150px]",
+              "w-full",
+              "shrink-0",
+              "snap-start",
+              "overflow-hidden",
+              "border-0",
+              "bg-[#aeaeae]",
+              "p-0",
 
-      innerRefs.current.forEach((inner, i) => {
-        gsap.set(inner, {
-          x: -i * offset,
-        });
-      });
-    };
+              "max-[900px]:h-full",
+              "max-[900px]:w-[120px]",
 
-    setLayout();
-    window.addEventListener("resize", setLayout);
+              "after:pointer-events-none",
+              "after:absolute",
+              "after:inset-0",
+              "after:z-10",
+              "after:content-['']",
+              "after:transition-colors",
+              "after:delay-500",
+              "after:duration-500",
 
-    return () => {
-      window.removeEventListener("resize", setLayout);
-    };
-  }, [totalCells]);
+              isActive
+                ? "after:bg-black/0"
+                : "after:bg-black/65",
+            ].join(" ")}
+            onClick={() => {
+              requestedIndexRef.current =
+                index
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !innerRefs.current.length) return;
-
-    const setLayout = () => {
-      const firstInner = innerRefs.current[0];
-      const textWidth = firstInner.scrollWidth;
-
-      el.style.setProperty("--text-width", `${textWidth}px`);
-      el.style.setProperty("--gsplits", totalCells);
-
-      const offset = textWidth / totalCells;
-
-      innerRefs.current.forEach((inner, i) => {
-        gsap.set(inner, {
-          x: -i * offset,
-        });
-      });
-    };
-
-    setLayout();
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-
-        observer.disconnect();
-        const textWidth = parseFloat(el.style.getPropertyValue("--text-width"));
-        const offset = textWidth / totalCells;
-
-        gsap.fromTo(
-          innerRefs.current,
-          {
-            x: (i) => -i * offset + (i % 2 === 0 ? -40 : 40),
-            opacity: 0,
-          },
-          {
-            x: (i) => -i * offset,
-            opacity: 1,
-            duration: 0.8,
-            stagger: 0.03,
-            ease: "power2.out",
-          },
-        );
-      },
-      { threshold: 0.7 },
-    );
-
-    gsap.set(innerRefs.current, { opacity: 0 });
-
-    observer.observe(el);
-
-    const handleResize = () => {
-      setLayout();
-
-      if (!observer) {
-        gsap.set(innerRefs.current, { opacity: 0 });
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", handleResize);
-      gsap.killTweensOf(innerRefs.current);
-    };
-  }, [totalCells]);
-
-  return (
-    <h3 ref={containerRef} className="gtext font-neuehaasdisplaythin">
-      {Array.from({ length: totalCells }).map((_, i) => (
-        <span key={i} className="gtext__box">
-          <span
-            className="gtext__box-inner"
-            ref={(el) => (innerRefs.current[i] = el)}
+              handleItemClick(index)
+            }}
+            aria-label={`View ${testimonial.name}`}
+            aria-pressed={isActive}
           >
-            {text}
-          </span>
-        </span>
-      ))}
-    </h3>
-  );
-};
+            <img
+              src={testimonial.image}
+              alt=""
+              className="absolute inset-0 block !h-full !w-full !object-cover"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          </button>
+        )
+      }
+    )}
+  </div>
+</div>
+    </main>
+    </div>
+  )
+}
+
 
 const reviews = [
   {
@@ -2211,423 +2933,7 @@ const reviews = [
   },
 ];
 
-class BentRoundedPlaneGeometry extends geometry.RoundedPlaneGeometry {
-  constructor(
-    bend = 0.1,
-    width = 1,
-    height = 1,
-    cornerRadius = 0.12,
-    segments = 20,
-  ) {
-    super(width, height, cornerRadius, segments);
 
-    const halfWidth = width * 0.5;
-
-    const a = new THREE.Vector2(-halfWidth, 0);
-    const b = new THREE.Vector2(0, bend);
-    const c = new THREE.Vector2(halfWidth, 0);
-
-    const ab = new THREE.Vector2().subVectors(a, b);
-    const bc = new THREE.Vector2().subVectors(b, c);
-    const ac = new THREE.Vector2().subVectors(a, c);
-
-    const circleRadius =
-      (ab.length() * bc.length() * ac.length()) / (2 * Math.abs(ab.cross(ac)));
-
-    const center = new THREE.Vector2(0, bend - circleRadius);
-    const baseVector = new THREE.Vector2().subVectors(a, center);
-    const baseAngle = baseVector.angle() - Math.PI * 0.5;
-    const arc = baseAngle * 2;
-
-    const position = this.attributes.position;
-    const mainVector = new THREE.Vector2();
-
-    for (let i = 0; i < position.count; i++) {
-      const originalX = position.getX(i);
-      const originalY = position.getY(i);
-
-      const ratio = 1 - (originalX + halfWidth) / width;
-
-      mainVector.copy(c).rotateAround(center, arc * ratio);
-
-      position.setXYZ(i, mainVector.x, originalY, -mainVector.y);
-    }
-
-    position.needsUpdate = true;
-
-    this.computeVertexNormals();
-    this.computeBoundingBox();
-    this.computeBoundingSphere();
-  }
-}
-class MeshSineMaterial extends THREE.MeshBasicMaterial {
-  constructor(parameters = {}) {
-    super(parameters);
-    this.setValues(parameters);
-    this.time = { value: 0 };
-  }
-  onBeforeCompile(shader) {
-    shader.uniforms.time = this.time;
-    shader.vertexShader = `
-      uniform float time;
-      ${shader.vertexShader}
-    `;
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <begin_vertex>",
-      `vec3 transformed = vec3(position.x, position.y + sin(time + uv.x * PI * 4.0) / 4.0, position.z);`,
-    );
-  }
-}
-
-extend({ MeshSineMaterial, BentRoundedPlaneGeometry });
-
-const CarouselComponent = () => (
-  <div className="carousel-canvas">
-    <Canvas camera={{ position: [0, 0, 100], fov: 15 }}>
-      <ResponsiveCamera />
-
-      <ScrollControls pages={2}>
-        <Rig rotation={[0, 0, 0.15]}>
-          <ResponsiveCarousel />
-        </Rig>
-
-        <ResponsiveBanner />
-      </ScrollControls>
-    </Canvas>
-  </div>
-);
-
-function ResponsiveCamera() {
-  const { camera, size } = useThree();
-
-  useEffect(() => {
-    const isSmallMobile = size.width < 480;
-    const isMobile = size.width < 768;
-
-    camera.fov = isSmallMobile ? 16 : isMobile ? 16 : 15;
-    camera.updateProjectionMatrix();
-  }, [camera, size.width]);
-
-  return null;
-}
-
-function Rig(props) {
-  const ref = useRef();
-  const scroll = useScroll();
-  const { size } = useThree();
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-
-    const isMobile = size.width < 768;
-
-    ref.current.rotation.y = -scroll.offset * Math.PI * 2;
-
-    state.events.update();
-
-    easing.damp3(
-      state.camera.position,
-      [
-        -state.pointer.x * (isMobile ? 0.5 : 2),
-        state.pointer.y * (isMobile ? 0.25 : 1) + (isMobile ? 1 : 1.5),
-        isMobile ? 12 : 10,
-      ],
-      0.3,
-      delta,
-    );
-
-    state.camera.lookAt(0, 0, 0);
-  });
-
-  return <group ref={ref} {...props} />;
-}
-
-function Carousel({ radius = 1.9 }) {
-  const count = reviews.length;
-
-  console.log("review count:", count);
-  console.log(
-    "review names:",
-    reviews.map((review) => review.name),
-  );
-
-  return reviews.map((review, i) => (
-    <Card
-      key={`${review.name}-${i}`}
-      url={review.image}
-      name={review.name}
-      text={review.text}
-      position={[
-        Math.sin((i / count) * Math.PI * 2) * radius,
-        0,
-        Math.cos((i / count) * Math.PI * 2) * radius,
-      ]}
-      rotation={[0, Math.PI + (i / count) * Math.PI * 2, 0]}
-    />
-  ));
-}
-function ResponsiveCarousel() {
-  const { size } = useThree();
-
-  const isMobile = size.width < 768;
-  const isSmallMobile = size.width < 480;
-
-  const radius = isSmallMobile ? 1.85 : isMobile ? 1.95 : 1.9;
-
-  return <Carousel radius={radius} />;
-}
-
-function drawTileOverlay(ctx, width, height) {
-  ctx.save();
-
-  ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-  ctx.fillRect(0, 0, width, height);
-
-  const glow = ctx.createRadialGradient(
-    width * 0.3,
-    height * 0.2,
-    0,
-    width * 0.3,
-    height * 0.2,
-    width * 0.65,
-  );
-
-  glow.addColorStop(0, "rgba(255,255,255,0.28)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, width, height);
-
-  const tileSize = 150;
-
-  for (let y = 0; y < height; y += tileSize) {
-    for (let x = 0; x < width; x += tileSize) {
-      const even = (x / tileSize + y / tileSize) % 2 === 0;
-
-      ctx.fillStyle = even
-        ? "rgba(255,255,255,0.18)"
-        : "rgba(255,255,255,0.055)";
-
-      ctx.fillRect(x, y, tileSize, tileSize);
-    }
-  }
-
-  ctx.restore();
-}
-function useCardTexture(imageUrl, name, reviewText) {
-  const [texture, setTexture] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let canvasTexture;
-
-    const createTexture = async () => {
-      await document.fonts.load('italic 44px "Canela"');
-      await document.fonts.load('italic 30px "Canela"');
-
-      const image = new window.Image();
-
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = () =>
-          reject(new Error(`Could not load image: ${imageUrl}`));
-
-        image.src = imageUrl;
-      });
-
-      if (cancelled) return;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = 2048;
-      canvas.height = 2048;
-
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        throw new Error("Could not create canvas context");
-      }
-
-      ctx.save();
-
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-
-      ctx.save();
-
-      const isMobile = window.innerWidth < 768;
-
-      ctx.save();
-
-      ctx.filter = isMobile ? "blur(32px)" : "blur(64px)";
-
-      ctx.drawImage(image, -30, -30, canvas.width + 60, canvas.height + 60);
-
-      ctx.restore();
-
-      drawTileOverlay(ctx, canvas.width, canvas.height);
-
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      ctx.fillStyle = "#000";
-      ctx.font = isMobile ? 'italic 98px "Canela"' : 'italic 88px "Canela"';
-
-      ctx.fillText(name, canvas.width / 2, isMobile ? 380 : 360);
-
-      ctx.fillStyle = "#000";
-      ctx.font = isMobile ? 'italic 84px "Canela"' : 'italic 88px "Canela"';
-
-      drawWrappedText({
-        ctx,
-        text: reviewText,
-        x: canvas.width / 2,
-        y: isMobile ? 690 : 650,
-        maxWidth: isMobile ? 1550 : 1450,
-        lineHeight: isMobile ? 94 : 86,
-        maxLines: 13,
-      });
-
-      canvasTexture = new THREE.CanvasTexture(canvas);
-      canvasTexture.colorSpace = THREE.SRGBColorSpace;
-      canvasTexture.anisotropy = 16;
-      canvasTexture.needsUpdate = true;
-
-      if (!cancelled) {
-        setTexture(canvasTexture);
-      }
-    };
-
-    createTexture().catch((error) => {
-      console.error(`Texture failed for "${name}"`, {
-        imageUrl,
-        error,
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      canvasTexture?.dispose();
-    };
-  }, [imageUrl, name, reviewText]);
-
-  return texture;
-}
-function drawWrappedText({ ctx, text, x, y, maxWidth, lineHeight, maxLines }) {
-  const words = text.split(/\s+/);
-  const lines = [];
-
-  let currentLine = "";
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-
-    const width = ctx.measureText(testLine).width;
-
-    if (width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-
-      if (lines.length === maxLines - 1) {
-        break;
-      }
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine && lines.length < maxLines) {
-    lines.push(currentLine);
-  }
-
-  const renderedText = lines.join(" ");
-  if (renderedText.length < text.length && lines.length) {
-    lines[lines.length - 1] =
-      `${lines[lines.length - 1].replace(/[.,;:!?]$/, "")}…`;
-  }
-
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * lineHeight);
-  });
-}
-function Card({ url, name, text, ...props }) {
-  const texture = useCardTexture(url, name, text);
-  const { size } = useThree();
-
-  if (!texture) return null;
-
-  const isMobile = size.width < 768;
-  const cardSize = isMobile ? 0.9 : 1;
-
-  return (
-    <group {...props}>
-      <mesh>
-        <bentRoundedPlaneGeometry args={[0.1, cardSize, cardSize, 0.12, 20]} />
-
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function Banner({ depthTest = true, depthWrite = true, ...props }) {
-  const ref = useRef();
-  const texture = useTexture("/images/fslogostrip.png");
-
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 16;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-
-  const scroll = useScroll();
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-
-    ref.current.material.time.value += Math.abs(scroll.delta) * 4;
-    ref.current.material.map.offset.x += delta / 2;
-  });
-
-  return (
-    <mesh ref={ref} {...props}>
-      <cylinderGeometry args={[2.1, 2.1, 0.18, 128, 16, true]} />
-
-      <meshSineMaterial
-        map={texture}
-        map-anisotropy={16}
-        map-repeat={[18, 1]}
-        side={THREE.DoubleSide}
-        toneMapped={false}
-        depthTest={depthTest}
-        depthWrite={depthWrite}
-      />
-    </mesh>
-  );
-}
-function ResponsiveBanner() {
-  const { size } = useThree();
-
-  const isMobile = size.width < 768;
-  const isSmallMobile = size.width < 480;
-
-  const carouselRadius = isSmallMobile ? 1.85 : isMobile ? 1.95 : 1.9;
-
-  const bannerRadius = carouselRadius + 0.2;
-
-  return (
-    <Banner
-      radius={bannerRadius}
-      position={[0, isMobile ? -0.1 : -0.15, 0]}
-      depthTest
-      depthWrite
-    />
-  );
-}
 
 function JanusFace() {
   const [leftShapes, setLeftShapes] = useState([]);
@@ -2689,7 +2995,7 @@ function JanusFace() {
 
     for (let i = 0; i < rowCount; i++) {
       const offset = r(45, 95);
-      const color = "#f3e7db";
+      const color = "#AAA6E3";
 
       const textLength = isMobile ? ri(18, 34) : ri(25, 95);
 
@@ -2958,7 +3264,7 @@ const Testimonials = () => {
 
       <Background />
 
-      <section className="w-full py-12">
+      {/* <section className="w-full py-12">
         <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
           <div className="flex items-center justify-between py-10 w-full">
             <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
@@ -2994,11 +3300,9 @@ const Testimonials = () => {
           <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
             Every smile tells a story — these are some of our favorites.
           </div>
-          <div className="w-full h-screen">
-            <CarouselComponent />
-          </div>
+
         </section>
-      </section>
+      </section> */}
     </>
   );
 };

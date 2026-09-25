@@ -6235,6 +6235,7 @@ body,
   position: absolute;
   left: 0;
   font-size: 13px;
+  color: white;
   display: flex;
   white-space: nowrap;
   font-family: "IBMPlexMono-Light";
@@ -7670,3 +7671,4 @@ font-size: clamp(1.125rem, 2.025vw, 2.25rem);
     min-height: 500px;
   }
 }
+
