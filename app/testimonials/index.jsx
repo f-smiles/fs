@@ -1755,16 +1755,22 @@ const testimonials = [
     project: "Elizabeth",
   },
   {
-    name: "Kinzie",
-    image: "../images/testimonials/kinzie.jpg",
-    type: "Braces, 24 months",
-    project: "Kinzie",
+    name: "Ashley",
+    image: "../images/freysmilepatient1.jpg",
+    type: "Posterior cross bite and upper and lower crowding corrected with braces in 22 months",
+    project: "Ashley",
+  },
+    {
+    name: "Amandeep",
+    image: "../images/IMG_9527.PNG.jpg",
+    type: "Edge to edge anterior malloclusion and lateral open bite corrected in 15 months with Invisalign",
+    project: "Amandeep",
   },
   {
-    name: "Kasprenski",
+    name: "Chase K.",
     image: "../images/testimonials/kasprenski.png",
-    type: undefined,
-    project: "Kasprenski",
+    type: "Posterior cross bite and upper arch constriction tooth size discrepancy and crowding corrected wtih self-ligating braces in two and a half years",
+    project: "Chase K.",
   },
   {
     name: "Leanne",
@@ -1793,14 +1799,14 @@ const testimonials = [
   {
     name: "Justin",
     image: "../images/testimonials/hurlburt.png",
-    type: "Invisalign, 2 years",
+    type: "Deep bite corrected with Invisalign in 2 years",
     project: "Justin",
   },
   {
-    name: "Natalia",
+    name: "Jillian",
     image: "../images/testimonials/Natalia.png",
-    type: undefined,
-    project: "Natalia",
+    type: "Cross bite and upper and loewr crowding corrected with self ligating braces in 2 years.",
+    project: "Jillian",
   },
   {
     name: "Breanna",
@@ -1840,6 +1846,258 @@ const testimonials = [
   },
 ];
 
+const WORD = "freysmiles"
+const REPEAT_COUNT = 11
+const COLUMN_COUNT = 11
+
+const characters = Array.from(
+  {
+    length: REPEAT_COUNT,
+  },
+  () => WORD
+)
+  .join("")
+  .split("")
+
+function FreySmilesGrid() {
+  const gridRef = useRef(null)
+  const characterRefs = useRef([])
+  const measurementsRef = useRef([])
+  const pointerRef = useRef({
+    x: 0,
+    y: 0,
+  })
+  const frameRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current
+
+    if (!grid) {
+      return undefined
+    }
+
+    const measureCharacters = () => {
+      measurementsRef.current =
+        characterRefs.current
+          .map((element) => {
+            if (!element) return null
+
+            const rect =
+              element.getBoundingClientRect()
+
+            return {
+              element,
+              x:
+                rect.left +
+                rect.width / 2,
+              y:
+                rect.top +
+                rect.height / 2,
+            }
+          })
+          .filter(Boolean)
+    }
+
+    const recalculateDistances = (
+      x,
+      y
+    ) => {
+      const containerRect =
+        grid.getBoundingClientRect()
+
+      const diagonal = Math.hypot(
+        containerRect.width,
+        containerRect.height
+      )
+
+      if (diagonal === 0) return
+
+      measurementsRef.current.forEach(
+        (measurement) => {
+          const distance = Math.hypot(
+            measurement.x - x,
+            measurement.y - y
+          )
+
+          const normalizedDistance =
+            1 - distance / diagonal
+
+          const intensity = Math.max(
+            Math.pow(
+              normalizedDistance,
+              3
+            ),
+            0
+          )
+
+          measurement.element.style.setProperty(
+            "--distance",
+            intensity
+          )
+        }
+      )
+    }
+
+    const updatePointerEffect = () => {
+      frameRef.current = null
+
+      recalculateDistances(
+        pointerRef.current.x,
+        pointerRef.current.y
+      )
+    }
+
+    const handlePointerMove = (
+      event
+    ) => {
+      pointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      }
+
+      if (
+        frameRef.current !== null
+      ) {
+        return
+      }
+
+      frameRef.current =
+        requestAnimationFrame(
+          updatePointerEffect
+        )
+    }
+
+    const handleLayoutChange = () => {
+      measureCharacters()
+
+      recalculateDistances(
+        pointerRef.current.x,
+        pointerRef.current.y
+      )
+    }
+
+    const resizeObserver =
+      new ResizeObserver(
+        handleLayoutChange
+      )
+
+    resizeObserver.observe(grid)
+
+    measureCharacters()
+
+
+    document.fonts?.ready.then(() => {
+      measureCharacters()
+    })
+
+    window.addEventListener(
+      "pointermove",
+      handlePointerMove,
+      {
+        passive: true,
+      }
+    )
+
+    window.addEventListener(
+      "resize",
+      handleLayoutChange
+    )
+
+    window.addEventListener(
+      "scroll",
+      handleLayoutChange,
+      {
+        passive: true,
+      }
+    )
+
+    return () => {
+      resizeObserver.disconnect()
+
+      window.removeEventListener(
+        "pointermove",
+        handlePointerMove
+      )
+
+      window.removeEventListener(
+        "resize",
+        handleLayoutChange
+      )
+
+      window.removeEventListener(
+        "scroll",
+        handleLayoutChange
+      )
+
+      if (
+        frameRef.current !== null
+      ) {
+        cancelAnimationFrame(
+          frameRef.current
+        )
+      }
+    }
+  }, [])
+
+  return (
+    <section className="grid min-h-screen cursor-crosshair place-items-center  text-white">
+      <div
+        ref={gridRef}
+        className="lowercase frey-text-grid font-ibmplex"
+        style={{
+          "--chars": COLUMN_COUNT,
+        }}
+        aria-label={Array.from(
+          {
+            length:
+              REPEAT_COUNT,
+          },
+          () => WORD
+        ).join(" ")}
+      >
+{characters.map((character, index) => {
+  const rowIndex = Math.floor(
+    index / COLUMN_COUNT
+  )
+
+  const columnIndex =
+    index % COLUMN_COUNT
+
+  const isCutout =
+    rowIndex < 3 &&
+    columnIndex >=
+      COLUMN_COUNT - 4
+
+  return (
+    <span
+      key={`${character}-${index}`}
+      ref={(element) => {
+        characterRefs.current[index] =
+          isCutout ? null : element
+      }}
+      className={[
+        "frey-text-grid__char",
+        isCutout
+          ? "invisible pointer-events-none"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-hidden="true"
+      style={{
+        "--i": index,
+        "--row": rowIndex,
+      }}
+    >
+      {character}
+    </span>
+  )
+})}
+      </div>
+    </section>
+  )
+}
+
 const List = ({
   onInteractionChange,
 }) => {
@@ -1876,95 +2134,118 @@ const galleryScrollTimeoutRef =
   const isAnimating = useRef(false)
   const shouldAnimateIn =
     useRef(false)
+const projectNumberRef =
+  useRef(null)
 
+const treatmentNumberRef =
+  useRef(null)
   const displayedTestimonial =
     testimonials[displayedIndex]
 
-  const getTextTargets = () => {
-    return [
-      titleRef.current,
-      ...(
-        infoSplitRef.current
-          ?.lines ?? []
-      ),
-      creditsRef.current,
-      patientRef.current,
-    ].filter(Boolean)
-  }
+const getTextTargets = () => {
+  return [
+    projectNumberRef.current,
+    titleRef.current,
+
+    treatmentNumberRef.current,
+
+    ...(
+      infoSplitRef.current?.lines ??
+      []
+    ),
+
+    creditsRef.current,
+    patientRef.current,
+  ].filter(Boolean)
+}
 
 useLayoutEffect(() => {
   const intro =
-    introSectionRef.current;
+    introSectionRef.current
 
   const main =
-    testimonialsSectionRef.current;
+    testimonialsSectionRef.current
 
   if (!intro || !main) {
-    return undefined;
+    return undefined
   }
 
-  const context = gsap.context(() => {
-    const timeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: intro,
+  const media = gsap.matchMedia()
 
-        start: "top top",
+  media.add(
+    "(min-width: 901px)",
+    () => {
+      const timeline =
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: intro,
+            start: "top top",
+            endTrigger: main,
+            end: "top 20%",
 
-        end: () =>
-          `+=${window.innerHeight}`,
+            pin: intro,
+            pinSpacing: false,
 
-        pin: intro,
-        pinSpacing: false,
+            scrub: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        })
 
-        /*
-         * Follow scroll position directly.
-         * Lenis already supplies smoothing.
-         */
-        scrub: true,
+      timeline.fromTo(
+        main,
+        {
+          rotationX: 8,
 
-        anticipatePin: 1,
-      },
-    });
+          transformOrigin:
+            "50% 100%",
 
-    timeline.fromTo(
-      main,
-      {
-        rotationX: 8,
+          transformPerspective:
+            1600,
 
-        transformOrigin:
-          "50% 100%",
+          backfaceVisibility:
+            "hidden",
+        },
+        {
+          rotationX: 0,
+          ease: "none",
+        },
+        0
+      )
 
-        transformPerspective:
-          1600,
+      return () => {
+        timeline.kill()
+      }
+    }
+  )
 
-        backfaceVisibility:
-          "hidden",
-
-        force3D: true,
-      },
-      {
-        rotationX: 0,
-
-        ease: "none",
-        force3D: true,
-      },
-      0
-    );
-  });
+  /*
+   * Mobile: no pin and no transformed
+   * layer. Main follows intro naturally.
+   */
+  media.add(
+    "(max-width: 900px)",
+    () => {
+      gsap.set(main, {
+        clearProps:
+          "transform,transformOrigin,transformPerspective,backfaceVisibility",
+      })
+    }
+  )
 
   const refreshFrame =
     requestAnimationFrame(() => {
-      ScrollTrigger.refresh();
-    });
+      ScrollTrigger.refresh()
+    })
 
   return () => {
     cancelAnimationFrame(
       refreshFrame
-    );
+    )
 
-    context.revert();
-  };
-}, []);
+    media.revert()
+  }
+}, [])
   useLayoutEffect(() => {
     if (!infoRef.current) {
       return undefined
@@ -1986,10 +2267,6 @@ useLayoutEffect(() => {
         const textTargets =
           getTextTargets()
 
-        /*
-         * Establish the initial state
-         * without playing an entrance.
-         */
         if (
           !shouldAnimateIn.current
         ) {
@@ -2001,7 +2278,7 @@ useLayoutEffect(() => {
             projectImageRef.current,
             {
               scale: 1,
-              bottom: "1em",
+              bottom: "12%",
             }
           )
 
@@ -2061,7 +2338,7 @@ useLayoutEffect(() => {
           },
           {
             scale: 1,
-            bottom: "1em",
+            bottom: "12%",
             duration: 1,
             ease: "power4.out",
           },
@@ -2091,10 +2368,6 @@ useLayoutEffect(() => {
     }
   }, [displayedIndex])
 
-  /*
-   * Stop background animations if
-   * the component is removed.
-   */
   useLayoutEffect(() => {
     return () => {
       gsap.killTweensOf(
@@ -2103,10 +2376,6 @@ useLayoutEffect(() => {
     }
   }, [])
 
-  /*
-   * Notify the parent when this new
-   * gallery is visible.
-   */
   useEffect(() => {
     const section =
       testimonialsSectionRef.current
@@ -2136,8 +2405,12 @@ useLayoutEffect(() => {
       observer.disconnect()
     }
   }, [onInteractionChange])
+
 useEffect(() => {
   let isProgrammaticScroll = false
+let touchStartX = 0
+let touchStartY = 0
+let touchHandled = false
   const viewport =
     galleryViewportRef.current
 
@@ -2157,6 +2430,13 @@ useEffect(() => {
       "(max-width: 900px)"
     ).matches
 
+const isSectionAligned = () => {
+  const rect =
+    section.getBoundingClientRect()
+
+  return Math.abs(rect.top) <= 3
+}
+
   const selectClosestThumbnail =
     () => {
       const isHorizontal =
@@ -2165,10 +2445,7 @@ useEffect(() => {
       const viewportRect =
         viewport.getBoundingClientRect()
 
-      /*
-       * Match snap-start instead of
-       * measuring from the center.
-       */
+
       const viewportStart =
         isHorizontal
           ? viewportRect.left + 12
@@ -2245,10 +2522,6 @@ const scrollToThumbnail = (
 
   isProgrammaticScroll = true
 
-  /*
-   * Prevent CSS snapping from fighting
-   * the controlled tween.
-   */
   viewport.style.scrollSnapType =
     "none"
 
@@ -2269,20 +2542,15 @@ const scrollToThumbnail = (
     ease: "power2.inOut",
     overwrite: true,
 
-    onComplete: () => {
-      /*
-       * Removing the inline value lets
-       * the Tailwind snap class take over.
-       */
-      viewport.style.removeProperty(
-        "scroll-snap-type"
-      )
+onComplete: () => {
+  viewport.style.removeProperty(
+    "scroll-snap-type"
+  )
 
-      isProgrammaticScroll =
-        false
-
-      selectClosestThumbnail()
-    },
+  requestAnimationFrame(() => {
+    isProgrammaticScroll = false
+  })
+},
   })
 }
 
@@ -2301,119 +2569,192 @@ const handleGalleryScroll = () => {
       120
     )
 }
+const keepWheelLocked = () => {
+  window.clearTimeout(
+    wheelUnlockTimer
+  )
 
-  const keepWheelLocked = () => {
-    window.clearTimeout(
-      wheelUnlockTimer
-    )
+  wheelUnlockTimer =
+    window.setTimeout(() => {
+      wheelLocked = false
+      wheelAccumulator = 0
+    }, 140)
+}
 
-    /*
-     * Unlock only after the current
-     * trackpad gesture has ended.
-     */
-    wheelUnlockTimer =
-      window.setTimeout(() => {
-        wheelLocked = false
-        wheelAccumulator = 0
-      }, 180)
+const handleSectionWheel = (
+  event
+) => {
+  if (!isSectionAligned()) {
+    return
   }
 
-  const handleSectionWheel = (
-    event
-  ) => {
-    const sectionRect =
-      section.getBoundingClientRect()
+  const delta =
+    Math.abs(event.deltaY) >=
+    Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX
 
-    const sectionIsActive =
-      sectionRect.top <= 1 &&
-      sectionRect.bottom >=
-        window.innerHeight - 1
+  if (delta === 0) return
 
-    if (!sectionIsActive) return
+  const currentIndex =
+    requestedIndexRef.current
 
-    const delta =
-      Math.abs(event.deltaY) >=
-      Math.abs(event.deltaX)
-        ? event.deltaY
-        : event.deltaX
+  const isFirst =
+    currentIndex === 0
 
-    if (delta === 0) return
+  const isLast =
+    currentIndex ===
+    testimonials.length - 1
 
-    const currentIndex =
-      requestedIndexRef.current
-
-    const isFirst =
-      currentIndex === 0
-
-    const isLast =
-      currentIndex ===
-      testimonials.length - 1
-
-    /*
-     * Absorb momentum belonging to the
-     * current wheel gesture.
-     */
-    if (wheelLocked) {
-      event.preventDefault()
-      event.stopPropagation()
-
-      keepWheelLocked()
-      return
-    }
-
-    /*
-     * Allow a fresh gesture to leave the
-     * gallery at either boundary.
-     */
-    if (
-      (delta < 0 && isFirst) ||
-      (delta > 0 && isLast)
-    ) {
-      wheelAccumulator = 0
-      return
-    }
-
+  if (wheelLocked) {
     event.preventDefault()
     event.stopPropagation()
 
-    wheelAccumulator += delta
-
-    /*
-     * Ignore tiny trackpad noise.
-     */
-    if (
-      Math.abs(
-        wheelAccumulator
-      ) < 35
-    ) {
-      return
-    }
-
-    const direction =
-      wheelAccumulator > 0
-        ? 1
-        : -1
-
-    const nextIndex = Math.max(
-      0,
-      Math.min(
-        testimonials.length - 1,
-        currentIndex + direction
-      )
-    )
-
-    wheelAccumulator = 0
-    wheelLocked = true
-
-    requestedIndexRef.current =
-      nextIndex
-
-    scrollToThumbnail(nextIndex)
-    handleItemClick(nextIndex)
-
     keepWheelLocked()
+    return
   }
 
+  if (
+    (delta < 0 && isFirst) ||
+    (delta > 0 && isLast)
+  ) {
+    wheelAccumulator = 0
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  wheelAccumulator += delta
+
+  if (
+    Math.abs(wheelAccumulator) <
+    35
+  ) {
+    return
+  }
+
+  const direction =
+    wheelAccumulator > 0
+      ? 1
+      : -1
+
+  const nextIndex = Math.max(
+    0,
+    Math.min(
+      testimonials.length - 1,
+      currentIndex + direction
+    )
+  )
+
+  wheelAccumulator = 0
+  wheelLocked = true
+
+  requestedIndexRef.current =
+    nextIndex
+
+  scrollToThumbnail(nextIndex)
+  handleItemClick(nextIndex)
+
+  keepWheelLocked()
+}
+const handleTouchStart = (
+  event
+) => {
+  const touch = event.touches[0]
+
+  if (!touch) return
+
+  touchStartX = touch.clientX
+  touchStartY = touch.clientY
+  touchHandled = false
+}
+const handleTouchMove = (
+  event
+) => {
+  const touch = event.touches[0]
+
+  if (!touch) return
+if (!isSectionAligned()) {
+    return
+  }
+
+  if (touchHandled) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+
+  const deltaX =
+    touchStartX - touch.clientX
+
+  const deltaY =
+    touchStartY - touch.clientY
+
+  const absoluteX =
+    Math.abs(deltaX)
+
+  const absoluteY =
+    Math.abs(deltaY)
+
+  if (
+    absoluteX < 4 &&
+    absoluteY < 4
+  ) {
+    return
+  }
+  if (absoluteX > absoluteY) {
+    return
+  }
+
+  const currentIndex =
+    requestedIndexRef.current
+
+  const direction =
+    deltaY > 0 ? 1 : -1
+
+  const isFirst =
+    currentIndex === 0
+
+  const isLast =
+    currentIndex ===
+    testimonials.length - 1
+
+  /*
+   * At the boundaries, allow the page
+   * to scroll normally.
+   */
+  if (
+    (direction < 0 && isFirst) ||
+    (direction > 0 && isLast)
+  ) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (absoluteY < 18) {
+    return
+  }
+
+  touchHandled = true
+
+  const nextIndex =
+    currentIndex + direction
+
+  requestedIndexRef.current =
+    nextIndex
+
+  scrollToThumbnail(nextIndex)
+  handleItemClick(nextIndex)
+}
+
+const resetTouch = () => {
+  touchStartX = 0
+  touchStartY = 0
+  touchHandled = false
+}
   viewport.addEventListener(
     "scroll",
     handleGalleryScroll,
@@ -2422,25 +2763,17 @@ const handleGalleryScroll = () => {
     }
   )
 
-const handleGalleryScrollEnd =
-  () => {
-    if (!isProgrammaticScroll) {
-      selectClosestThumbnail()
-    }
-  }
+// const handleGalleryScrollEnd =
+//   () => {
+//     if (!isProgrammaticScroll) {
+//       selectClosestThumbnail()
+//     }
+//   }
 
-viewport.addEventListener(
-  "scroll",
-  handleGalleryScroll,
-  {
-    passive: true,
-  }
-)
-
-viewport.addEventListener(
-  "scrollend",
-  handleGalleryScrollEnd
-)
+// viewport.addEventListener(
+//   "scrollend",
+//   handleGalleryScrollEnd
+// )
 
 section.addEventListener(
   "wheel",
@@ -2450,7 +2783,41 @@ section.addEventListener(
     capture: true,
   }
 )
+section.addEventListener(
+  "touchstart",
+  handleTouchStart,
+  {
+    passive: true,
+    capture: true,
+  }
+)
 
+section.addEventListener(
+  "touchmove",
+  handleTouchMove,
+  {
+    passive: false,
+    capture: true,
+  }
+)
+
+section.addEventListener(
+  "touchend",
+  resetTouch,
+  {
+    passive: true,
+    capture: true,
+  }
+)
+
+section.addEventListener(
+  "touchcancel",
+  resetTouch,
+  {
+    passive: true,
+    capture: true,
+  }
+)
 return () => {
   window.clearTimeout(
     galleryScrollTimeoutRef.current
@@ -2471,16 +2838,34 @@ return () => {
     handleGalleryScroll
   )
 
-  viewport.removeEventListener(
-    "scrollend",
-    handleGalleryScrollEnd
-  )
-
   section.removeEventListener(
     "wheel",
     handleSectionWheel,
     true
   )
+  section.removeEventListener(
+  "touchstart",
+  handleTouchStart,
+  true
+)
+
+section.removeEventListener(
+  "touchmove",
+  handleTouchMove,
+  true
+)
+
+section.removeEventListener(
+  "touchend",
+  resetTouch,
+  true
+)
+
+section.removeEventListener(
+  "touchcancel",
+  resetTouch,
+  true
+)
 }
 }, [])
 const handleItemClick = (nextIndex) => {
@@ -2620,9 +3005,9 @@ const handleItemClick = (nextIndex) => {
 
 <main
   ref={testimonialsSectionRef}
-  className="relative z-10 flex h-screen w-full origin-bottom overflow-hidden bg-[#0f0f0f] will-change-transform [backface-visibility:hidden] max-[900px]:flex-col"
+  className=" relative z-10 flex h-screen w-full origin-bottom overflow-hidden bg-[#0f0f0f] will-change-transform [backface-visibility:hidden] max-[900px]:flex-col"
 >
-      {/* Blurred background preview */}
+
 <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#0f0f0f]">
   {testimonials.map(
     (testimonial, index) => (
@@ -2645,105 +3030,186 @@ const handleItemClick = (nextIndex) => {
     )
   )}
 
-  <div className="absolute inset-0 bg-white/25" />
+  <div className="absolute inset-0 bg-white/40" />
 </div>
 
-      {/* Left information column */}
+  
       <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:flex-[0.5] max-[900px]:border-r-0 max-[900px]:border-b">
 
+      <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
 
-        <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
-          <div className="text-[20px] font-canelathin">
-               A visual archive of
-            selected patient treatment
-            outcomes.
-          </div>
-        </div>
 
-        <div className="copy max-[900px]:hidden">
-          <p className="text-base font-canelathin text-white">
-        
+  <FreySmilesGrid />
+</div>
+
+      </div>
+
+{/* Active testimonial */}
+<div className="relative flex-[2] p-4">
+    <div
+    aria-hidden="true"
+    className="
+      pointer-events-none
+      absolute inset-0 z-0
+      border-y border-white/15
+      bg-white/[0.15]
+      shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
+      backdrop-blur-[22px]
+      backdrop-saturate-[115%]
+    "
+  />
+    <div className="z-10 translate-y-16 text-[18px]  opacity-70 font-neuehaas35">
+    A visual archive of selected patient
+    treatment outcomes.
+  </div>
+  {/* Testimonial details */}
+  <div
+    key={`details-${displayedIndex}`}
+    className="absolute left-8 top-12 w-[min(34rem,calc(100%_-_4rem))] text-left max-[900px]:left-4 max-[900px]:top-8 max-[900px]:w-[calc(100%_-_2rem)]"
+  >
+    <div className="flex flex-col gap-4 font-neuehaas35">
+
+<div className="flex translate-y-[10vh] flex-col gap-4 font-neuehaas35">
+  {/* 01 — Project */}
+  <div className="grid grid-cols-[3rem_minmax(0,1fr)] items-baseline">
+    <div className="overflow-hidden">
+      <span
+        ref={projectNumberRef}
+        aria-hidden="true"
+        className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+      >
+        [01]
+      </span>
+    </div>
+
+    <div className="overflow-hidden">
+      <div
+        ref={titleRef}
+        className="relative block text-left text-base uppercase leading-[1.2] tracking-[0.03em] opacity-70 will-change-transform"
+      >
+        {displayedTestimonial.project}
+      </div>
+    </div>
+  </div>
+
+{/* 02 — Treatment information */}
+<div className="relative grid grid-cols-[3rem_minmax(0,1fr)] items-baseline pb-4">
+  <div className="overflow-hidden">
+    <span
+      ref={treatmentNumberRef}
+      aria-hidden="true"
+      className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+    >
+      [02]
+    </span>
+  </div>
+
+  <div className="overflow-hidden">
+    <p
+      ref={infoRef}
+      className="relative text-left font-neuehaas35 text-base leading-[1.2] tracking-[0.025em] opacity-70 will-change-transform"
+    >
+      {displayedTestimonial.type ||
+        "Treatment outcome"}
+    </p>
+  </div>
+
+<div
+  aria-hidden="true"
+  className="
+    pointer-events-none
+    absolute bottom-0 left-[-2rem]
+    z-10 h-[12px] w-screen
+    max-[900px]:left-[-1rem]
+  "
+>
+  {/* Moves left */}
+  <div
+    className="
+      absolute left-0 top-0
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-left_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+  />
+
+  {/* Moves right */}
+  <div
+    className="
+      absolute left-0 top-[10px]
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-right_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+  />
+</div>
+</div>
+</div>
+
+
+      {/* <div className="ml-[3rem] mt-3 grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-x-3 text-base leading-[1.2]">
+        <div className="overflow-hidden">
+          <p
+            ref={creditsRef}
+            className="relative inline-block uppercase opacity-70 will-change-transform"
+          >
+            Patient
           </p>
         </div>
-      </div>
 
-      {/* Active testimonial */}
-      <div className="project-preview col relative flex-[2] p-4">
-        <div
-          key={`details-${displayedIndex}`}
-          className="project-details absolute left-4 top-4 w-1/2 max-[900px]:w-[calc(100%-1rem)]"
-        >
-          <div className="title mb-2 overflow-hidden">
-            <div
-              ref={titleRef}
-              className="relative translate-y-10 text-[px] font-neuehaas35 will-change-transform"
-            >
-              {
-                displayedTestimonial.project
-              }
-            </div>
-          </div>
-
-          <div className="info mb-4 overflow-hidden">
-            <p
-              ref={infoRef}
-              className="text-base font-neuehaas35"
-            >
-              {displayedTestimonial.type ||
-                "Treatment outcome"}
-            </p>
-          </div>
-
-          <div className="credits overflow-hidden">
-            <p
-              ref={creditsRef}
-              className="relative inline-block translate-y-5 text-base font-neuehaas35 will-change-transform"
-            >
-              Patient
-            </p>
-          </div>
-
-          <div className="director overflow-hidden">
-            <p
-              ref={patientRef}
-              className="relative inline-block translate-y-5 text-base font-neuehaas35  will-change-transform"
-            >
-              {
-                displayedTestimonial.name
-              }
-            </p>
-          </div>
+        <div className="overflow-hidden">
+          <p
+            ref={patientRef}
+            className="relative inline-block will-change-transform"
+          >
+            {displayedTestimonial.name}
+          </p>
         </div>
+      </div> */}
+    </div>
+  </div>
 
-        <div
-          key={`image-${displayedIndex}`}
-          ref={projectImageRef}
-          className="project-img absolute bottom-4 left-4 h-1/2 w-3/4 overflow-hidden will-change-transform max-[900px]:w-[93%]"
-        >
-          <img
-            ref={
-              projectImageElementRef
-            }
-            src={
-              displayedTestimonial.image
-            }
-            alt={`${displayedTestimonial.name} treatment outcome`}
-            className="h-full w-full object-cover will-change-transform"
-          />
-        </div>
-      </div>
+<div
+  key={`image-${displayedIndex}`}
+  ref={projectImageRef}
+  className="absolute bottom-[12%] left-4 h-1/2 w-3/4 overflow-hidden will-change-transform max-[900px]:bottom-[14%] max-[900px]:w-[93%]"
+>
 
-{/* Scroll-snapping thumbnail gallery */}
+<img
+  src={displayedTestimonial.image}
+  alt=""
+  className="
+    z-[16]
+    h-full
+    w-full
+    origin-center
+    object-cover
+    [clip-path:polygon(48px_0%,calc(100%_-_48px)_0%,calc(100%_-_48px)_48px,calc(100%_-_48px)_96px,100%_96px,100%_calc(100%_-_144px),calc(100%_-_48px)_calc(100%_-_144px),calc(100%_-_48px)_calc(100%_-_96px),100%_calc(100%_-_96px),100%_calc(100%_-_48px),calc(100%_-_48px)_calc(100%_-_48px),calc(100%_-_96px)_calc(100%_-_48px),calc(100%_-_96px)_calc(100%_-_96px),calc(100%_-_48px)_calc(100%_-_96px),calc(100%_-_48px)_100%,120px_100%,0%_calc(100%_-_104px),0%_48px,48px_48px)]
+  "
+/>
+  </div>
+</div>
+
 <div
   ref={galleryViewportRef}
-  data-lenis-prevent
+data-lenis-prevent-wheel
   className="
     relative z-20
     h-full w-[124px] shrink-0
     snap-y snap-mandatory
     scroll-pt-3
     overflow-y-auto overflow-x-hidden
-    overscroll-contain
+overscroll-y-contain
+max-[900px]:overscroll-y-auto
+max-[900px]:overscroll-x-contain
     border-l border-white/10
     bg-white/30
     p-3
@@ -2761,17 +3227,20 @@ const handleItemClick = (nextIndex) => {
     max-[900px]:border-t
   "
 >
-  <div
-    className="
-      flex min-h-max w-full
-      flex-col gap-3
+<div
+  className="
+    flex min-h-max w-full
+    flex-col gap-3
+    pb-[calc(100vh-174px)]
 
-      max-[900px]:h-full
-      max-[900px]:min-h-0
-      max-[900px]:w-max
-      max-[900px]:flex-row
-    "
-  >
+    max-[900px]:h-full
+    max-[900px]:min-h-0
+    max-[900px]:w-max
+    max-[900px]:flex-row
+    max-[900px]:pb-0
+    max-[900px]:pr-[calc(100vw-144px)]
+  "
+>
     {testimonials.map(
       (testimonial, index) => {
         const isActive =
