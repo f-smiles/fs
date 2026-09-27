@@ -63,12 +63,12 @@ export default function BookNow() {
       if (item.dataset.split) return
       item.dataset.split = "1"
       
-      let word = item.children[0].children[0].innerText.split('')
-      // console.log("WORD", word)
+      let text = item.children[0].children[0].innerText.trim().replace(/\s+/g, '\u00A0')
+      // console.log("WORD", text)
 
       item.children[0].innerHTML = ''
 
-      word.forEach((letter, index) => {
+      ;[...text].forEach((letter, index) => {
         item.children[0].innerHTML += `<span style="--index: ${index};">${letter}</span>`
       })
 

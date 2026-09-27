@@ -111,6 +111,7 @@ body {
   line-height: 1;
   pointer-events: none;
   position: relative;
+  white-space: pre;
 }
 
 .MenuItem > div:nth-child(1) span {
