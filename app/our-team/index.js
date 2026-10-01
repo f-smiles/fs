@@ -745,667 +745,167 @@ const buttonClasses = [
   "max-[1000px]:text-[0.65rem]",
 ].join(" ");
 
-function GoodFellaHero() {
-  const rootRef = useRef(null);
-  const imageRef = useRef(null);
-  const imageContainerRef =
-    useRef(null);
+function Hero() {
+  const rootRef = useRef(null)
 
   useLayoutEffect(() => {
-    const root = rootRef.current;
-    const image = imageRef.current;
-    const imageContainer =
-      imageContainerRef.current;
+    const root = rootRef.current
 
-    if (
-      !root ||
-      !image ||
-      !imageContainer
-    ) {
-      return undefined;
+    if (!root) {
+      return undefined
     }
 
-    let cancelled = false;
-    let context;
-let loaderContext
-let contentContext
-let loaderTimeline
-let asciiResult
+    let preloaderSplit
 
-    const splitInstances = [];
-let resolveLoader
-
-const loaderFinished = new Promise(
-  (resolve) => {
-    resolveLoader = resolve
-  }
-)
-
-loaderContext = gsap.context(() => {
-  const preloaderSplit =
-    SplitText.create(
-      ".preloader-copy p",
-      {
-        type: "chars",
-        charsClass: "char",
-      }
-    )
-
-  splitInstances.push(preloaderSplit)
-
-  // Prevent a flash before the character
-  // animation begins.
-  gsap.set(preloaderSplit.chars, {
-    opacity: 0,
-  })
-
-  // JSX starts this element with `invisible`.
-  gsap.set(".preloader-copy p", {
-    visibility: "visible",
-  })
-
-  const preloaderBlocks =
-    gsap.utils.toArray(
-      ".preloader-block"
-    )
-
-  const nestedBlocks =
-    preloaderBlocks.slice(1)
-
-loaderTimeline = gsap.timeline({
-  delay: 0,
-  onComplete: resolveLoader,
-})
-
-loaderTimeline.to(
-  preloaderSplit.chars,
-  {
-    opacity: 1,
-    duration: 0.15,
-    stagger: 0.1,
-  }
-)
-
-loaderTimeline.to(
-  ".preloader",
-  {
-    scale: 1,
-    duration: 0.35,
-    ease: "back.out(1.8)",
-  },
-  "<"
-)
-
-loaderTimeline.to(
-  nestedBlocks,
-  {
-    delay: 0.25,
-    rotation: 0,
-    duration: 0.65,
-    ease: "power3.inOut",
-    stagger: 0.75,
-  },
-  "<"
-)
-}, root)
-
-async function initialize() {
-  const fontReady =
-    document.fonts?.ready
-      ? Promise.race([
-          document.fonts.ready,
-          new Promise((resolve) => {
-            window.setTimeout(
-              resolve,
-              1500
-            )
-          }),
-        ])
-      : Promise.resolve()
-
-const [imageLoaded] =
-  await Promise.all([
-    waitForImage(image),
-    fontReady,
-    loaderFinished,
-  ])
-
-  if (cancelled) return
-
-  if (imageLoaded) {
-    asciiResult =
-      buildAscii(image)
-
-    if (asciiResult) {
-      imageContainer.appendChild(
-        asciiResult.grid
-      )
-    }
-  }
-
-  contentContext =
-    gsap.context(() => {
-      /*
-       * Prepare the hero after the
-       * fonts and image are ready.
-       */
-      const heroSplit =
-        SplitText.create(
-          ".hero-copy h1",
-          {
-            type: "lines",
-            linesClass:
-              "block-line",
-            mask: "lines",
-          }
-        )
-
-      /*
-       * The footer is optional because
-       * its JSX may be commented out.
-       */
-      const footerElement =
-        root.querySelector(
-          ".hero-footer p"
-        )
-
-      const footerSplit =
-        footerElement
-          ? SplitText.create(
-              footerElement,
-              {
-                type: "words",
-                wordsClass: "word",
-                mask: "words",
-              }
-            )
-          : null
-
-      splitInstances.push(
-        heroSplit
-      )
-
-      if (footerSplit) {
-        splitInstances.push(
-          footerSplit
-        )
-      }
-
-      const heroLines = []
-      const heroReveals = []
-
-      heroSplit.lines.forEach(
-        (line) => {
-          const wrapper =
-            line.parentElement
-
-          if (!wrapper) return
-
-          wrapper.classList.add(
-            "relative",
-            "block",
-            "w-max"
-          )
-
-          line.classList.add(
-            "relative",
-            "block"
-          )
-
-          const orange =
-            addRevealBlock(
-              wrapper,
-              "bg-[#ff591f]"
-            )
-
-          const white =
-            addRevealBlock(
-              wrapper,
-              "bg-white"
-            )
-
-          heroLines.push(line)
-
-          heroReveals.push({
-            orange,
-            white,
-          })
-        }
-      )
-
-      const revealerBlocks =
-        heroReveals.flatMap(
-          ({ orange, white }) => [
-            orange,
-            white,
-          ]
-        )
-
-      gsap.set(heroLines, {
-        opacity: 0,
-      })
-
-      gsap.set(
-        revealerBlocks,
-        {
-          scaleX: 0,
-          transformOrigin:
-            "left center",
-        }
-      )
-
-      if (footerSplit) {
-        gsap.set(
-          footerSplit.words,
-          {
-            yPercent: 100,
-          }
-        )
-      }
-
-      /*
-       * This timeline starts only after
-       * the loader entrance and assets
-       * are ready.
-       */
-      const timeline =
-        gsap.timeline({
-          delay: 0,
-        })
-
-      /*
-       * Fade out the loader contents.
-       */
-      timeline.to(
-        [
-          ".preloader-copy",
-          ".preloader-block",
-        ],
-        {
-          opacity: 0,
-          duration: 0.4,
-          ease: "power2.out",
-        }
-      )
-
-      /*
-       * Remove the orange overlay with
-       * the diagonal clip-path wipe.
-       */
-      const finishedWipe =
-        "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)"
-
-      timeline.to(
-        ".preloader-overlay",
-        {
-          clipPath:
-            finishedWipe,
-          WebkitClipPath:
-            finishedWipe,
-          duration: 1.1,
-          ease: "power3.inOut",
-        }
-      )
-
-      timeline.set(
-        ".preloader-overlay",
-        {
-          display: "none",
-        }
-      )
-
-      /*
-       * Bring in navigation while the
-       * wipe is finishing.
-       */
-      timeline.to(
-        "nav",
-        {
-          y: 0,
-          duration: 1,
-          ease: "power3.out",
-        },
-        "-=0.65"
-      )
-
-      /*
-       * Reveal each hero heading line.
-       */
-      heroReveals.forEach(
-        (reveal, index) => {
-          const line =
-            heroLines[index]
-
-          const position =
-            index === 0
-              ? "-=0.65"
-              : "-=0.75"
-
-          const lineTimeline =
-            gsap.timeline()
-
-          ;[
-            reveal.orange,
-            reveal.white,
-          ].forEach(
-            (
-              block,
-              blockIndex
-            ) => {
-              const blockTimeline =
-                gsap.timeline({
-                  delay:
-                    blockIndex *
-                    0.15,
-                })
-
-              blockTimeline.to(
-                block,
-                {
-                  scaleX: 1,
-                  duration: 0.5,
-                  ease:
-                    "power4.inOut",
-                }
-              )
-
-              blockTimeline.set(
-                block,
-                {
-                  transformOrigin:
-                    "right center",
-                }
-              )
-
-              blockTimeline.to(
-                block,
-                {
-                  scaleX: 0,
-                  duration: 0.5,
-                  ease:
-                    "power4.inOut",
-                }
-              )
-
-              lineTimeline.add(
-                blockTimeline,
-                0
-              )
+    const context = gsap.context(
+      () => {
+        preloaderSplit =
+          SplitText.create(
+            ".preloader-copy p",
+            {
+              type: "chars",
+              charsClass: "char",
             }
           )
 
-          lineTimeline.set(
-            line,
-            {
-              opacity: 1,
-            },
-            0.5
+        const preloaderBlocks =
+          gsap.utils.toArray(
+            ".preloader-block"
           )
 
-          timeline.add(
-            lineTimeline,
-            position
-          )
-        }
-      )
+        const nestedBlocks =
+          preloaderBlocks.slice(1)
 
-      /*
-       * Hero button.
-       */
-      timeline.to(
-        ".hero-button",
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: "power3.out",
-        },
-        "-=0.5"
-      )
-
-      /*
-       * Optional footer.
-       */
-      if (
-        footerSplit?.words?.length
-      ) {
-        timeline.to(
-          footerSplit.words,
+        gsap.set(
+          preloaderSplit.chars,
           {
-            yPercent: 0,
-            duration: 0.75,
-            stagger: 0.075,
-            ease: "power3.out",
-          },
-          "-=0.85"
+            opacity: 0,
+          }
         )
-      }
 
-      /*
-       * Optional ASCII portrait.
-       */
-      if (
-        asciiResult?.chars?.length
-      ) {
-        const getCharDelay =
-          (index) =>
-            asciiResult
-              .distances[index] *
-            ASCII_WAVE_DELAY
+        gsap.set(
+          ".preloader-copy p",
+          {
+            visibility: "visible",
+          }
+        )
+
+        const timeline =
+          gsap.timeline()
 
         timeline.to(
-          asciiResult.chars,
+          preloaderSplit.chars,
           {
-            opacity: (index) =>
-              asciiResult
-                .opacities[index],
-            duration: 0.01,
-            ease: "power1.out",
-            stagger:
-              getCharDelay,
-          },
-          "-=2.5"
+            opacity: 1,
+            duration: 0.15,
+            stagger: 0.1,
+          }
         )
 
         timeline.to(
-          asciiResult.chars,
+          ".preloader",
           {
-            color:
-              ASCII_COLOR,
-            duration: 0.01,
-            ease: "power1.out",
-            stagger:
-              getCharDelay,
+            scale: 1,
+            duration: 0.35,
+            ease: "back.out(1.8)",
           },
-          "-=2"
+          "<"
         )
-      }
-    }, root)
-}
 
-initialize()
+        timeline.to(
+          nestedBlocks,
+          {
+            delay: 0.25,
+            rotation: 0,
+            duration: 0.65,
+            ease: "power3.inOut",
+            stagger: 0.75,
+          },
+          "<"
+        )
 
-return () => {
-  cancelled = true
+        /*
+         * Fade only the loader contents.
+         */
+        timeline.to(
+          [
+            ".preloader-copy",
+            ".preloader-block",
+          ],
+          {
+            opacity: 0,
+            duration: 0.4,
+            ease: "power2.out",
+          }
+        )
 
-  loaderContext?.revert()
-  contentContext?.revert()
+        /*
+         * Keep the original diagonal wipe.
+         */
+        timeline.to(
+          root,
+          {
+            clipPath:
+              "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
 
-  splitInstances
-    .reverse()
-    .forEach((split) => {
-      split.revert()
-    })
+            WebkitClipPath:
+              "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
 
-  asciiResult?.grid.remove()
-}
-}, [])
+            duration: 1.1,
+            ease: "power3.inOut",
+          }
+        )
+
+        timeline.set(root, {
+          display: "none",
+        })
+      },
+      root
+    )
+
+    return () => {
+      context.revert()
+      preloaderSplit?.revert()
+    }
+  }, [])
 
   return (
-   <main
-  ref={rootRef}
-  className="min-h-svh bg-[#171717]"
->
-  <div
-    className="preloader-overlay fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 overflow-hidden bg-[#fff] will-change-[clip-path]"
-    style={{
-      clipPath:
-        "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      WebkitClipPath:
-        "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-    }}
-  >
-<div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
-<div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
-  <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-    <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-      <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
-    </div>
-  </div>
-</div>
-        </div>
+    <div
+      ref={rootRef}
+      className="
+        preloader-overlay
+        fixed inset-0 z-[100]
+        flex flex-col
+        items-center justify-center
+        gap-4 overflow-hidden
+        bg-white
+        will-change-[clip-path]
+      "
+      style={{
+        clipPath:
+          "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
 
-<div className="preloader-copy w-40 text-center">
-  <p className="invisible whitespace-nowrap text-[1.05rem] font-neuehaas35 leading-none text-[#171717]">
-    Meet the Team
-  </p>
-</div>
-      </div>
-
-      <nav
-        className={[
-          "fixed",
-          "left-0",
-          "top-0",
-          "z-10",
-          "flex",
-          "w-full",
-          "-translate-y-[300px]",
-          "items-center",
-          "gap-8",
-          "p-8",
-          "will-change-transform",
-        ].join(" ")}
-      >
-        <div className="flex-1">
-          <img
-            src="/logo.svg"
-            alt="GoodFella"
-            className="h-auto w-24"
-          />
-        </div>
-
-        <div className="flex flex-1 justify-center">
-          <button
-            type="button"
-            className={`${buttonClasses} bg-[#171717] text-white`}
-          >
-            Menu
-          </button>
-        </div>
-
-        <div className="flex flex-1 justify-end">
-          <a
-            href="#contact"
-            className={
-              buttonClasses
-            }
-          >
-            {/* Get in touch */}
-          </a>
-        </div>
-      </nav>
-
-      <section
-        className={[
-          "hero",
-          "relative",
-          "z-[1]",
-          "flex",
-          "h-svh",
-          "w-full",
-          "gap-8",
-          "overflow-hidden",
-          "bg-[#171717]",
-
-          "max-[1000px]:flex-col",
-          "max-[1000px]:pt-[10svh]",
-        ].join(" ")}
-      >
-        <div
-          className={[
-            "hero-copy",
-            "flex",
-            "h-full",
-            "min-w-0",
-            "flex-1",
-            "flex-col",
-            "justify-center",
-            "gap-8",
-            "p-8",
-            "text-white",
-          ].join(" ")}
-        >
-     <h1 className="font-neuehaas35 text-[clamp(2rem,4vw,5rem)] font-medium leading-[1.25]">
-  LOREM IPSUM
-</h1>
-
-          <a
-            href="#work"
-            className={[
-              buttonClasses,
-              "hero-button",
-              "translate-y-10",
-              "opacity-0",
-              "will-change-[transform,opacity]",
-            ].join(" ")}
-          >
-            {/* See our work */}
-          </a>
-        </div>
-
-        <div
-          className={[
-            "hero-media",
-            "flex",
-            "min-w-0",
-            "flex-1",
-            "items-end",
-            "justify-center",
-
-            "max-[1000px]:justify-end",
-          ].join(" ")}
-        >
-          <div
-            ref={imageContainerRef}
-            className={[
-              "hero-img",
-              "relative",
-              "aspect-[5/7]",
-              "w-[85%]",
-
-              "max-[1000px]:aspect-square",
-              "max-[1000px]:w-3/4",
-            ].join(" ")}
-          >
-            <img
-              ref={imageRef}
-              src="/images/team_members/danfrey.png"
-              alt=""
-              className="h-full w-full object-cover opacity-0"
-            />
+        WebkitClipPath:
+          "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      }}
+    >
+      <div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
+        <div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
+          <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
+            <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
+              <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* <div className="hero-footer absolute bottom-8 left-8">
-          <p className="text-sm font-semibold leading-none text-[#5c5c5c] max-[1000px]:text-white">
-            Currently booking
-            projects for 2026.
-          </p>
-        </div> */}
-      </section>
-    </main>
-  );
+      <div className="preloader-copy w-40 text-center">
+        <p className="invisible whitespace-nowrap font-neuehaas35 text-[1.05rem] leading-none text-[#171717]">
+          Meet the Team
+        </p>
+      </div>
+    </div>
+  )
 }
 export default function OurTeam() {
   const [showContent, setShowContent] = useState(false);
@@ -1811,8 +1311,7 @@ export default function OurTeam() {
   return (
     <>
       <div className="h-screen w-screen">
-<GoodFellaHero />
-      </div>
+<Hero />
       <div
         ref={pinRef}
         className="relative w-full h-screen overflow-hidden bg-[#17181C]"
@@ -2217,6 +1716,8 @@ export default function OurTeam() {
         </div> */}
         </div>
       </div>
+      </div>
+
     </>
   );
 }

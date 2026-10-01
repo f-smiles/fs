@@ -1733,7 +1733,7 @@ const testimonials = [
   {
     name: "Lainie",
     image: "../images/testimonials/lainielandscape.png",
-    type: "Mild deep bite and class 2 on left side and crowding corrected in 18 months with braces and elastics.",
+    type: "Deep bite and dental crowding corrected in 18 months with self-ligating braces and orthodontic elastics.",
     project: "Lainie",
   },
   {
@@ -1745,37 +1745,39 @@ const testimonials = [
   {
     name: "Ron L.",
     image: "../images/testimonials/Ronlandscape.png",
-    type: "Crossbite and crowding corrected in twelve months with Invisalign. Minor aesthetic bonding performed on front tooth.",
-    project: "Ron L.",
+    type: "Antreior crossbite and crowding corrected in 12 months with Invisalign.",
+    project: "Ron",
   },
   {
     name: "Elizabeth",
     image: "../images/testimonials/elizabethmask.png",
-    type: "Mandibular retrognathia corrected in 30 months with functional appliance, braces, and Invisalign",
+    type: "Mandibular retrognathia corrected in 30 months with a functional appliance, self-ligating braces, and Invisalign",
     project: "Elizabeth",
   },
   {
     name: "Ashley",
-    image: "../images/freysmilepatient1.jpg",
-    type: "Posterior cross bite and upper and lower crowding corrected with braces in 22 months",
+    image: "../images/testimonials/ashleylandscape.png",
+    type: "Posterior cross bite and crowding corrected with braces in 22 months",
     project: "Ashley",
+
   },
     {
     name: "Amandeep",
     image: "../images/IMG_9527.PNG.jpg",
-    type: "Edge to edge anterior malloclusion and lateral open bite corrected in 15 months with Invisalign",
+    type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
     project: "Amandeep",
+
   },
   {
-    name: "Chase K.",
+    name: "Chase",
     image: "../images/testimonials/kasprenski.png",
-    type: "Posterior cross bite and upper arch constriction tooth size discrepancy and crowding corrected wtih self-ligating braces in two and a half years",
+    type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
     project: "Chase K.",
   },
   {
     name: "Leanne",
     image: "../images/testimonials/Leannelandscape.png",
-    type: "Adult crowding and arch constriction corrected in 12 months with Invisalign",
+    type: "Crowding and constricted arches corrected in 12 months with Invisalign",
     project: "Leanne",
   },
   {
@@ -1786,14 +1788,14 @@ const testimonials = [
   },
   {
     name: "Abigail",
-    image: "../images/testimonials/Abigailportrait.png",
-    type: undefined,
+    image: "../images/testimonials/Abigaillandscape.png",
+    type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
     project: "Abigail",
   },
   {
     name: "Madi",
     image: "../images/testimonials/Madi.png",
-    type: "",
+    type: "Crowding corrected with self-ligating braces in two years",
     project: "Madi",
   },
   {
@@ -1804,45 +1806,41 @@ const testimonials = [
   },
   {
     name: "Jillian",
-    image: "../images/testimonials/Natalia.png",
-    type: "Cross bite and upper and loewr crowding corrected with self ligating braces in 2 years.",
+    image: "../images/testimonials/jillianlandscape.png",
+    type: "Cross bite and crowding corrected with self ligating braces in 2 years.",
     project: "Jillian",
   },
+
   {
-    name: "Breanna",
-    image: "../images/testimonials/Breanna.png",
-    type: "2 years, Braces",
-    project: "Breanna",
+    name: "Sophia",
+    image: "../images/testimonials/Sophialandscape.png",
+    type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
+    project: "Sophia",
   },
-  {
-    name: "Ibis",
-    image: "../images/testimonials/Ibis_Subero.jpg",
-    type: "12 months, Invisalign",
-    project: "Ibis",
-  },
-  {
-    name: "Natasha",
-    image: "../images/testimonials/Natasha.png",
-    type: undefined,
-    project: "Natasha",
-  },
-  {
-    name: "Alex",
-    image: "../images/testimonials/Alex.png",
-    type: "2 years, Braces",
-    project: "Alex",
-  },
-  {
-    name: "Nicolle",
-    image: "../images/testimonials/Nicolle.png",
-    type: "Invisalign",
-    project: "Nilaya",
+
+ {
+    name: "Sabrina",
+    image: "../images/testimonials/sabrinalandscape.png",
+    type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
+    project: "Sabrina",
   },
   {
     name: "Maria A.",
     image: "../images/testimonials/Maria.png",
     type: undefined,
     project: "Maria A.",
+  },
+    {
+    name: "Jackson",
+    image: "../images/testimonials/Jacksonlandscape.png",
+    type: "Moderate deep bite & mild crowding corrected with Invisalign",
+    project: "Jackson",
+  },
+   {
+    name: "Nilaya",
+    image: "../images/testimonials/Nilaya.jpeg",
+    type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
+    project: "Nilaya",
   },
 ];
 
@@ -2099,6 +2097,7 @@ function FreySmilesGrid() {
 }
 
 const List = ({
+
   onInteractionChange,
 }) => {
   const [activeIndex, setActiveIndex] =
@@ -2124,7 +2123,8 @@ const galleryScrollTimeoutRef =
   const titleRef = useRef(null)
   const infoRef = useRef(null)
   const creditsRef = useRef(null)
-  const patientRef = useRef(null)
+
+  
 
   const projectImageRef = useRef(null)
   const projectImageElementRef =
@@ -2155,7 +2155,8 @@ const getTextTargets = () => {
     ),
 
     creditsRef.current,
-    patientRef.current,
+
+    
   ].filter(Boolean)
 }
 
@@ -2219,10 +2220,7 @@ useLayoutEffect(() => {
     }
   )
 
-  /*
-   * Mobile: no pin and no transformed
-   * layer. Main follows intro naturally.
-   */
+  
   media.add(
     "(max-width: 900px)",
     () => {
@@ -2720,10 +2718,6 @@ if (!isSectionAligned()) {
     currentIndex ===
     testimonials.length - 1
 
-  /*
-   * At the boundaries, allow the page
-   * to scroll normally.
-   */
   if (
     (direction < 0 && isFirst) ||
     (direction > 0 && isLast)
@@ -3034,7 +3028,7 @@ const handleItemClick = (nextIndex) => {
 </div>
 
   
-      <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:flex-[0.5] max-[900px]:border-r-0 max-[900px]:border-b">
+<div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
 
       <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
 
@@ -3046,18 +3040,19 @@ const handleItemClick = (nextIndex) => {
 
 {/* Active testimonial */}
 <div className="relative flex-[2] p-4">
-    <div
-    aria-hidden="true"
-    className="
-      pointer-events-none
-      absolute inset-0 z-0
-      border-y border-white/15
-      bg-white/[0.15]
-      shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
-      backdrop-blur-[22px]
-      backdrop-saturate-[115%]
-    "
-  />
+<div
+  aria-hidden="true"
+  className="
+    pointer-events-none
+    absolute inset-0 z-0
+    border-y border-white/15
+    bg-white/[0.15]
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
+    backdrop-blur-[22px]
+    backdrop-saturate-[115%]
+    max-[900px]:hidden
+  "
+/>
     <div className="z-10 translate-y-16 text-[18px]  opacity-70 font-neuehaas35">
     A visual archive of selected patient
     treatment outcomes.
@@ -3078,14 +3073,15 @@ const handleItemClick = (nextIndex) => {
         aria-hidden="true"
         className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
       >
-        [01]
+  <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+
       </span>
     </div>
 
     <div className="overflow-hidden">
       <div
         ref={titleRef}
-        className="relative block text-left text-base uppercase leading-[1.2] tracking-[0.03em] opacity-70 will-change-transform"
+        className="relative block text-left text-base leading-[1.2] tracking-[0.03em] opacity-70 will-change-transform"
       >
         {displayedTestimonial.project}
       </div>
@@ -3100,7 +3096,8 @@ const handleItemClick = (nextIndex) => {
       aria-hidden="true"
       className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
     >
-      [02]
+ <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+
     </span>
   </div>
 
@@ -3154,26 +3151,6 @@ const handleItemClick = (nextIndex) => {
 </div>
 </div>
 
-
-      {/* <div className="ml-[3rem] mt-3 grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-x-3 text-base leading-[1.2]">
-        <div className="overflow-hidden">
-          <p
-            ref={creditsRef}
-            className="relative inline-block uppercase opacity-70 will-change-transform"
-          >
-            Patient
-          </p>
-        </div>
-
-        <div className="overflow-hidden">
-          <p
-            ref={patientRef}
-            className="relative inline-block will-change-transform"
-          >
-            {displayedTestimonial.name}
-          </p>
-        </div>
-      </div> */}
     </div>
   </div>
 
@@ -3436,7 +3413,7 @@ function JanusFace() {
 
   const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
     return Array.from({ length }, (_, i) => {
-      const shouldBlink = !isMobile && (i + rowIndex) % 4 === 0;
+      const shouldBlink = !isMobile && (i + rowIndex) % 2 === 0;
 
       return (
         <span
