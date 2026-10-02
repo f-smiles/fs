@@ -1761,18 +1761,18 @@ const testimonials = [
     project: "Ashley",
 
   },
-    {
-    name: "Amandeep",
-    image: "../images/IMG_9527.PNG.jpg",
-    type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
-    project: "Amandeep",
+  //   {
+  //   name: "Amandeep",
+  //   image: "../images/IMG_9527.PNG.jpg",
+  //   type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
+  //   project: "Amandeep",
 
-  },
+  // },
   {
     name: "Chase",
     image: "../images/testimonials/kasprenski.png",
     type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
-    project: "Chase K.",
+    project: "Chase",
   },
   {
     name: "Leanne",
@@ -2118,9 +2118,6 @@ const galleryScrollTimeoutRef =
   const titleRef = useRef(null)
   const infoRef = useRef(null)
   const creditsRef = useRef(null)
-
-  
-
   const projectImageRef = useRef(null)
   const projectImageElementRef =
     useRef(null)
@@ -2141,17 +2138,12 @@ const getTextTargets = () => {
   return [
     projectNumberRef.current,
     titleRef.current,
-
     treatmentNumberRef.current,
-
     ...(
       infoSplitRef.current?.lines ??
       []
     ),
-
     creditsRef.current,
-
-    
   ].filter(Boolean)
 }
 
@@ -2168,10 +2160,6 @@ useLayoutEffect(() => {
 
   const media = gsap.matchMedia()
 
-  /*
-   * Desktop: pin the intro while main
-   * rises over it and straightens.
-   */
   media.add(
     "(min-width: 901px)",
     () => {
@@ -2292,11 +2280,6 @@ media.add(
       })
     }
 
-    /*
-     * Second transition:
-     * main locks at top: 0 while native
-     * page scrolling selects testimonials.
-     */
     const galleryPin =
       ScrollTrigger.create({
         trigger: main,
@@ -2815,18 +2798,6 @@ const handleSectionWheel = (
     }
   )
 
-// const handleGalleryScrollEnd =
-//   () => {
-//     if (!isProgrammaticScroll) {
-//       selectClosestThumbnail()
-//     }
-//   }
-
-// viewport.addEventListener(
-//   "scrollend",
-//   handleGalleryScrollEnd
-// )
-
 section.addEventListener(
   "wheel",
   handleSectionWheel,
@@ -2862,9 +2833,6 @@ return () => {
     true
   )
  
-
-
-
 }
 }, [])
 useEffect(() => {
@@ -2926,7 +2894,6 @@ useEffect(() => {
 
   return () => {
     gsap.killTweensOf(viewport)
-
   
   }
 }, [])
@@ -3083,7 +3050,10 @@ const handleItemClick = (nextIndex) => {
     will-change-transform
     [backface-visibility:hidden]
 
-    max-[900px]:h-svh
+    max-[900px]:sticky
+    max-[900px]:top-0
+    max-[900px]:h-[100dvh]
+    max-[900px]:min-h-[100dvh]
     max-[900px]:flex-col
     max-[900px]:will-change-auto
     max-[900px]:[backface-visibility:visible]
@@ -3206,7 +3176,6 @@ const handleItemClick = (nextIndex) => {
     </div>
   </div>
 
-
 <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
   <div className="overflow-hidden">
     <span
@@ -3271,7 +3240,6 @@ className="
 </div>
 </div>
 </div>
-
     </div>
   </div>
 
@@ -3295,12 +3263,12 @@ className="
   src={displayedTestimonial.image}
   alt=""
   className="
+    testimonial-image-clip
     z-[16]
     h-full
     w-full
     origin-center
     object-cover
-    [clip-path:polygon(48px_0%,calc(100%_-_48px)_0%,calc(100%_-_48px)_48px,calc(100%_-_48px)_96px,100%_96px,100%_calc(100%_-_144px),calc(100%_-_48px)_calc(100%_-_144px),calc(100%_-_48px)_calc(100%_-_96px),100%_calc(100%_-_96px),100%_calc(100%_-_48px),calc(100%_-_48px)_calc(100%_-_48px),calc(100%_-_96px)_calc(100%_-_48px),calc(100%_-_96px)_calc(100%_-_96px),calc(100%_-_48px)_calc(100%_-_96px),calc(100%_-_48px)_100%,120px_100%,0%_calc(100%_-_104px),0%_48px,48px_48px)]
   "
 />
   </div>
@@ -3308,7 +3276,6 @@ className="
 
 <div
   ref={galleryViewportRef}
-
   className="
     relative z-20
     h-full w-[124px] shrink-0

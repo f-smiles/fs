@@ -7628,3 +7628,52 @@ animation-delay:
   }
 }
 
+.testimonial-image-clip {
+  clip-path: polygon(
+    48px 0%,
+    calc(100% - 48px) 0%,
+    calc(100% - 48px) 48px,
+    calc(100% - 48px) 96px,
+    100% 96px,
+    100% calc(100% - 144px),
+    calc(100% - 48px) calc(100% - 144px),
+    calc(100% - 48px) calc(100% - 96px),
+    100% calc(100% - 96px),
+    100% calc(100% - 48px),
+    calc(100% - 48px) calc(100% - 48px),
+    calc(100% - 96px) calc(100% - 48px),
+    calc(100% - 96px) calc(100% - 96px),
+    calc(100% - 48px) calc(100% - 96px),
+    calc(100% - 48px) 100%,
+    120px 100%,
+    0% calc(100% - 104px),
+    0% 48px,
+    48px 48px
+  );
+}
+
+@media (max-width: 900px) {
+  .testimonial-image-clip {
+    clip-path: polygon(
+      48px 0%,
+      calc(100% - 48px) 0%,
+      calc(100% - 48px) 24px,
+      calc(100% - 48px) 48px,
+      100% 48px,
+      100% calc(100% - 72px),
+      calc(100% - 48px) calc(100% - 72px),
+      calc(100% - 48px) calc(100% - 48px),
+      100% calc(100% - 48px),
+      100% calc(100% - 24px),
+      calc(100% - 48px) calc(100% - 24px),
+      calc(100% - 96px) calc(100% - 24px),
+      calc(100% - 96px) calc(100% - 48px),
+      calc(100% - 48px) calc(100% - 48px),
+      calc(100% - 48px) 100%,
+      120px 100%,
+      0% calc(100% - 52px),
+      0% 24px,
+      48px 24px
+    );
+  }
+}
