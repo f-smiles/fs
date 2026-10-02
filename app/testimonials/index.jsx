@@ -1745,7 +1745,7 @@ const testimonials = [
   {
     name: "Ron L.",
     image: "../images/testimonials/Ronlandscape.png",
-    type: "Antreior crossbite and crowding corrected in 12 months with Invisalign.",
+    type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
     project: "Ron",
   },
   {
@@ -1794,7 +1794,7 @@ const testimonials = [
   },
   {
     name: "Madi",
-    image: "../images/testimonials/Madi.png",
+    image: "../images/madilandscape.png",
     type: "Crowding corrected with self-ligating braces in two years",
     project: "Madi",
   },
@@ -1824,12 +1824,7 @@ const testimonials = [
     type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
     project: "Sabrina",
   },
-  {
-    name: "Maria A.",
-    image: "../images/testimonials/Maria.png",
-    type: undefined,
-    project: "Maria A.",
-  },
+
     {
     name: "Jackson",
     image: "../images/testimonials/Jacksonlandscape.png",
@@ -1838,7 +1833,7 @@ const testimonials = [
   },
    {
     name: "Nilaya",
-    image: "../images/testimonials/Nilaya.jpeg",
+    image: "../images/testimonials/Nilayalandscape.png",
     type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
     project: "Nilaya",
   },
@@ -2173,6 +2168,10 @@ useLayoutEffect(() => {
 
   const media = gsap.matchMedia()
 
+  /*
+   * Desktop: pin the intro while main
+   * rises over it and straightens.
+   */
   media.add(
     "(min-width: 901px)",
     () => {
@@ -2181,12 +2180,12 @@ useLayoutEffect(() => {
           scrollTrigger: {
             trigger: intro,
             start: "top top",
-            endTrigger: main,
-            end: "top 20%",
+
+            end: () =>
+              `+=${intro.offsetHeight}`,
 
             pin: intro,
             pinSpacing: false,
-
             scrub: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
@@ -2213,23 +2212,152 @@ useLayoutEffect(() => {
         },
         0
       )
-
-      return () => {
-        timeline.kill()
-      }
     }
   )
 
-  
-  media.add(
-    "(max-width: 900px)",
-    () => {
-      gsap.set(main, {
-        clearProps:
-          "transform,transformOrigin,transformPerspective,backfaceVisibility",
+media.add(
+  "(max-width: 900px)",
+  () => {
+    const viewport =
+      galleryViewportRef.current
+
+    if (!viewport) {
+      return undefined
+    }
+
+    gsap.set(main, {
+      clearProps:
+        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+
+      willChange: "auto",
+    })
+
+    /*
+     * First transition:
+     * main travels over the pinned intro.
+     */
+    const introPin =
+      ScrollTrigger.create({
+        trigger: intro,
+        start: "top top",
+
+        end: () =>
+          `+=${intro.offsetHeight}`,
+
+        pin: intro,
+        pinSpacing: false,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      })
+
+    /*
+     * How much native scroll each
+     * testimonial receives.
+     */
+    const getStepDistance = () =>
+      Math.max(
+        window.innerHeight * 0.45,
+        260
+      )
+
+    const scrollThumbnailToIndex = (
+      index
+    ) => {
+      const thumbnail =
+        thumbnailRefs.current[index]
+
+      if (!thumbnail) return
+
+      const viewportRect =
+        viewport.getBoundingClientRect()
+
+      const thumbnailRect =
+        thumbnail.getBoundingClientRect()
+
+      const targetScrollLeft =
+        viewport.scrollLeft +
+        thumbnailRect.left -
+        viewportRect.left -
+        12
+
+      gsap.killTweensOf(viewport)
+
+      gsap.to(viewport, {
+        scrollLeft:
+          targetScrollLeft,
+
+        duration: 0.45,
+        ease: "power2.out",
+        overwrite: true,
       })
     }
-  )
+
+    /*
+     * Second transition:
+     * main locks at top: 0 while native
+     * page scrolling selects testimonials.
+     */
+    const galleryPin =
+      ScrollTrigger.create({
+        trigger: main,
+        start: "top top",
+
+        end: () =>
+          `+=${
+            (
+              testimonials.length -
+              1
+            ) *
+            getStepDistance()
+          }`,
+
+        pin: main,
+        pinSpacing: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+
+        onUpdate: (self) => {
+          const nextIndex =
+            Math.min(
+              testimonials.length - 1,
+              Math.max(
+                0,
+                Math.round(
+                  self.progress *
+                    (
+                      testimonials.length -
+                      1
+                    )
+                )
+              )
+            )
+
+          if (
+            nextIndex ===
+            requestedIndexRef.current
+          ) {
+            return
+          }
+
+          requestedIndexRef.current =
+            nextIndex
+
+          handleItemClick(nextIndex)
+
+          scrollThumbnailToIndex(
+            nextIndex
+          )
+        },
+      })
+
+    return () => {
+      introPin.kill()
+      galleryPin.kill()
+
+      gsap.killTweensOf(viewport)
+    }
+  }
+)
 
   const refreshFrame =
     requestAnimationFrame(() => {
@@ -2314,47 +2442,47 @@ useLayoutEffect(() => {
   },
 })
 
-        timeline.fromTo(
-          textTargets,
-          {
-            y: 40,
-          },
-          {
-            y: 0,
-            duration: 1,
-            ease: "power4.out",
-            stagger: 0.05,
-          },
-          0
-        )
+timeline.fromTo(
+  textTargets,
+  {
+    y: 40,
+  },
+  {
+    y: 0,
+    duration: 0.6,
+    ease: "power4.out",
+    stagger: 0.04,
+  },
+  0
+)
 
-        timeline.fromTo(
-          projectImageRef.current,
-          {
-            scale: 0,
-            bottom: "-10em",
-          },
-          {
-            scale: 1,
-            bottom: "12%",
-            duration: 1,
-            ease: "power4.out",
-          },
-          0
-        )
+timeline.fromTo(
+  projectImageRef.current,
+  {
+    scale: 0,
+    bottom: "-10em",
+  },
+  {
+    scale: 1,
+    bottom: "12%",
+    duration: 0.6,
+    ease: "power4.out",
+  },
+  0
+)
 
-        timeline.fromTo(
-          projectImageElementRef.current,
-          {
-            scale: 2,
-          },
-          {
-            scale: 1,
-            duration: 1,
-            ease: "power4.out",
-          },
-          0
-        )
+timeline.fromTo(
+  projectImageElementRef.current,
+  {
+    scale: 2,
+  },
+  {
+    scale: 1,
+    duration: 0.6,
+    ease: "power4.out",
+  },
+  0
+)
       },
       testimonialsSectionRef
     )
@@ -2406,9 +2534,10 @@ useLayoutEffect(() => {
 
 useEffect(() => {
   let isProgrammaticScroll = false
-let touchStartX = 0
-let touchStartY = 0
-let touchHandled = false
+const desktopQuery =
+  window.matchMedia(
+    "(min-width: 901px)"
+  )
   const viewport =
     galleryViewportRef.current
 
@@ -2418,6 +2547,13 @@ let touchHandled = false
   if (!viewport || !section) {
     return undefined
   }
+  if (
+  !viewport ||
+  !section ||
+  !desktopQuery.matches
+) {
+  return undefined
+}
 
   let wheelAccumulator = 0
   let wheelLocked = false
@@ -2432,7 +2568,15 @@ const isSectionAligned = () => {
   const rect =
     section.getBoundingClientRect()
 
-  return Math.abs(rect.top) <= 3
+  const tolerance = Math.max(
+    16,
+    window.innerHeight * 0.025
+  )
+
+  return (
+    Math.abs(rect.top) <=
+    tolerance
+  )
 }
 
   const selectClosestThumbnail =
@@ -2553,6 +2697,11 @@ onComplete: () => {
 }
 
 const handleGalleryScroll = () => {
+
+  if (getIsHorizontal()) {
+    return
+  }
+
   if (isProgrammaticScroll) {
     return
   }
@@ -2582,6 +2731,7 @@ const keepWheelLocked = () => {
 const handleSectionWheel = (
   event
 ) => {
+  
   if (!isSectionAligned()) {
     return
   }
@@ -2627,7 +2777,7 @@ const handleSectionWheel = (
 
   if (
     Math.abs(wheelAccumulator) <
-    35
+    10
   ) {
     return
   }
@@ -2650,105 +2800,13 @@ const handleSectionWheel = (
 
   requestedIndexRef.current =
     nextIndex
-
-  scrollToThumbnail(nextIndex)
   handleItemClick(nextIndex)
+  scrollToThumbnail(nextIndex)
+
 
   keepWheelLocked()
 }
-const handleTouchStart = (
-  event
-) => {
-  const touch = event.touches[0]
 
-  if (!touch) return
-
-  touchStartX = touch.clientX
-  touchStartY = touch.clientY
-  touchHandled = false
-}
-const handleTouchMove = (
-  event
-) => {
-  const touch = event.touches[0]
-
-  if (!touch) return
-if (!isSectionAligned()) {
-    return
-  }
-
-  if (touchHandled) {
-    event.preventDefault()
-    event.stopPropagation()
-    return
-  }
-
-  const deltaX =
-    touchStartX - touch.clientX
-
-  const deltaY =
-    touchStartY - touch.clientY
-
-  const absoluteX =
-    Math.abs(deltaX)
-
-  const absoluteY =
-    Math.abs(deltaY)
-
-  if (
-    absoluteX < 4 &&
-    absoluteY < 4
-  ) {
-    return
-  }
-  if (absoluteX > absoluteY) {
-    return
-  }
-
-  const currentIndex =
-    requestedIndexRef.current
-
-  const direction =
-    deltaY > 0 ? 1 : -1
-
-  const isFirst =
-    currentIndex === 0
-
-  const isLast =
-    currentIndex ===
-    testimonials.length - 1
-
-  if (
-    (direction < 0 && isFirst) ||
-    (direction > 0 && isLast)
-  ) {
-    return
-  }
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  if (absoluteY < 18) {
-    return
-  }
-
-  touchHandled = true
-
-  const nextIndex =
-    currentIndex + direction
-
-  requestedIndexRef.current =
-    nextIndex
-
-  scrollToThumbnail(nextIndex)
-  handleItemClick(nextIndex)
-}
-
-const resetTouch = () => {
-  touchStartX = 0
-  touchStartY = 0
-  touchHandled = false
-}
   viewport.addEventListener(
     "scroll",
     handleGalleryScroll,
@@ -2777,41 +2835,7 @@ section.addEventListener(
     capture: true,
   }
 )
-section.addEventListener(
-  "touchstart",
-  handleTouchStart,
-  {
-    passive: true,
-    capture: true,
-  }
-)
 
-section.addEventListener(
-  "touchmove",
-  handleTouchMove,
-  {
-    passive: false,
-    capture: true,
-  }
-)
-
-section.addEventListener(
-  "touchend",
-  resetTouch,
-  {
-    passive: true,
-    capture: true,
-  }
-)
-
-section.addEventListener(
-  "touchcancel",
-  resetTouch,
-  {
-    passive: true,
-    capture: true,
-  }
-)
 return () => {
   window.clearTimeout(
     galleryScrollTimeoutRef.current
@@ -2837,30 +2861,74 @@ return () => {
     handleSectionWheel,
     true
   )
-  section.removeEventListener(
-  "touchstart",
-  handleTouchStart,
-  true
-)
+ 
 
-section.removeEventListener(
-  "touchmove",
-  handleTouchMove,
-  true
-)
 
-section.removeEventListener(
-  "touchend",
-  resetTouch,
-  true
-)
 
-section.removeEventListener(
-  "touchcancel",
-  resetTouch,
-  true
-)
 }
+}, [])
+useEffect(() => {
+  const section =
+    testimonialsSectionRef.current
+
+  const viewport =
+    galleryViewportRef.current
+
+  const mobileQuery =
+    window.matchMedia(
+      "(max-width: 900px)"
+    )
+
+  if (
+    !section ||
+    !viewport ||
+    !mobileQuery.matches
+  ) {
+    return undefined
+  }
+
+  let touchStartX = 0
+  let touchStartY = 0
+  let gestureHandled = false
+  let gestureControlsGallery = false
+
+  const scrollToMobileThumbnail = (
+    index
+  ) => {
+    const thumbnail =
+      thumbnailRefs.current[index]
+
+    if (!thumbnail) return
+
+    const viewportRect =
+      viewport.getBoundingClientRect()
+
+    const thumbnailRect =
+      thumbnail.getBoundingClientRect()
+
+    const targetScrollLeft =
+      viewport.scrollLeft +
+      thumbnailRect.left -
+      viewportRect.left -
+      12
+
+    gsap.killTweensOf(viewport)
+
+    gsap.to(viewport, {
+      scrollLeft:
+        targetScrollLeft,
+
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+    })
+  }
+
+  return () => {
+    gsap.killTweensOf(viewport)
+
+  
+  }
 }, [])
 const handleItemClick = (nextIndex) => {
   requestedIndexRef.current =
@@ -2907,7 +2975,7 @@ const handleItemClick = (nextIndex) => {
     gsap.to(nextBackground, {
       opacity: 1,
       delay: 0.5,
-      duration: 1,
+      duration: .5,
       ease: "power2.inOut",
     })
   }
@@ -2916,7 +2984,7 @@ const handleItemClick = (nextIndex) => {
     gsap.to(previousBackground, {
       opacity: 0,
       delay: 0.5,
-      duration: 1,
+      duration: .5,
       ease: "power2.inOut",
 
       onComplete: () => {
@@ -2947,7 +3015,7 @@ const handleItemClick = (nextIndex) => {
     textTargets,
     {
       y: -60,
-      duration: 1,
+      duration: .5,
       ease: "power4.in",
       stagger: 0.05,
     },
@@ -2958,7 +3026,7 @@ const handleItemClick = (nextIndex) => {
     projectImageElementRef.current,
     {
       scale: 2,
-      duration: 1,
+      duration: .5,
       ease: "power4.in",
     },
     0
@@ -2969,7 +3037,7 @@ const handleItemClick = (nextIndex) => {
     {
       scale: 0,
       bottom: "10em",
-      duration: 1,
+      duration: .5,
       ease: "power4.in",
     },
     0
@@ -2977,10 +3045,15 @@ const handleItemClick = (nextIndex) => {
 }
 
   return (
-    <div className="testimonialsPage">
+<div className="relative w-full">
 <section
   ref={introSectionRef}
-  className="intro relative z-0 h-screen overflow-hidden"
+  className="
+    intro relative z-0
+    h-screen w-full max-w-full
+    overflow-hidden
+    max-[900px]:h-svh
+  "
 >
         <div className="pointer-events-none absolute inset-0 z-0">
           <JanusFace />
@@ -2999,30 +3072,63 @@ const handleItemClick = (nextIndex) => {
 
 <main
   ref={testimonialsSectionRef}
-  className=" relative z-10 flex h-screen w-full origin-bottom overflow-hidden bg-[#0f0f0f] will-change-transform [backface-visibility:hidden] max-[900px]:flex-col"
+  className="
+    relative z-10
+    flex h-screen
+    w-full max-w-full
+    origin-bottom
+    overflow-hidden
+    bg-[#0f0f0f]
+
+    will-change-transform
+    [backface-visibility:hidden]
+
+    max-[900px]:h-svh
+    max-[900px]:flex-col
+    max-[900px]:will-change-auto
+    max-[900px]:[backface-visibility:visible]
+  "
 >
 
-<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#0f0f0f]">
-  {testimonials.map(
-    (testimonial, index) => (
-      <img
-        key={`background-${testimonial.name}-${index}`}
-        ref={(element) => {
-          backgroundRefs.current[
-            index
-          ] = element
-        }}
-        src={testimonial.image}
-        alt=""
-        aria-hidden="true"
-        className="absolute -inset-[12%] h-[124%] w-[124%] scale-110 object-cover blur-[100px] will-change-opacity"
-        style={{
-          opacity:
-            index === 0 ? 1 : 0,
-        }}
-      />
-    )
-  )}
+<div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
+  <div
+    className="
+      absolute -inset-[16%]
+      scale-110
+      overflow-hidden
+      blur-[100px]
+      transform-gpu
+    "
+  >
+    {testimonials.map(
+      (testimonial, index) => (
+        <img
+          key={`background-${testimonial.name}-${index}`}
+          ref={(element) => {
+            backgroundRefs.current[
+              index
+            ] = element
+          }}
+          src={testimonial.image}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{
+            opacity:
+              index === 0 ? 1 : 0,
+
+            visibility:
+              index === 0
+                ? "visible"
+                : "hidden",
+
+            zIndex:
+              index === 0 ? 2 : 0,
+          }}
+        />
+      )
+    )}
+  </div>
 
   <div className="absolute inset-0 bg-white/40" />
 </div>
@@ -3053,25 +3159,37 @@ const handleItemClick = (nextIndex) => {
     max-[900px]:hidden
   "
 />
-    <div className="z-10 translate-y-16 text-[18px]  opacity-70 font-neuehaas35">
-    A visual archive of selected patient
-    treatment outcomes.
-  </div>
+  <div
+  className="
+    relative z-10
+    translate-y-16
+    font-anton
+    text-[18px]
+    uppercase
+    opacity-70
+
+    max-[900px]:translate-y-4
+    max-[900px]:text-[16px]
+  "
+>
+  A visual archive of selected patient
+  treatment outcomes.
+</div>
   {/* Testimonial details */}
   <div
     key={`details-${displayedIndex}`}
     className="absolute left-8 top-12 w-[min(34rem,calc(100%_-_4rem))] text-left max-[900px]:left-4 max-[900px]:top-8 max-[900px]:w-[calc(100%_-_2rem)]"
   >
-    <div className="flex flex-col gap-4 font-neuehaas35">
+    <div className="flex flex-col gap-4">
 
-<div className="flex translate-y-[10vh] flex-col gap-4 font-neuehaas35">
-  {/* 01 — Project */}
-  <div className="grid grid-cols-[3rem_minmax(0,1fr)] items-baseline">
+<div className="flex translate-y-[10vh]   max-[900px]:translate-y-[4vh] flex-col gap-4 font-neueroman text-[15px] uppercase">
+
+  <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
     <div className="overflow-hidden">
       <span
         ref={projectNumberRef}
         aria-hidden="true"
-        className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+        className="relative inline-block text-base leading-[1] opacity-70 will-change-transform"
       >
   <span className="block h-[5px] w-[5px] rounded-full bg-current" />
 
@@ -3081,15 +3199,15 @@ const handleItemClick = (nextIndex) => {
     <div className="overflow-hidden">
       <div
         ref={titleRef}
-        className="relative block text-left text-base leading-[1.2] tracking-[0.03em] opacity-70 will-change-transform"
+        className="relative block text-left text-[14px] opacity-70 will-change-transform "
       >
         {displayedTestimonial.project}
       </div>
     </div>
   </div>
 
-{/* 02 — Treatment information */}
-<div className="relative grid grid-cols-[3rem_minmax(0,1fr)] items-baseline pb-4">
+
+<div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
   <div className="overflow-hidden">
     <span
       ref={treatmentNumberRef}
@@ -3104,7 +3222,7 @@ const handleItemClick = (nextIndex) => {
   <div className="overflow-hidden">
     <p
       ref={infoRef}
-      className="relative text-left font-neuehaas35 text-base leading-[1.2] tracking-[0.025em] opacity-70 will-change-transform"
+      className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
     >
       {displayedTestimonial.type ||
         "Treatment outcome"}
@@ -3113,12 +3231,15 @@ const handleItemClick = (nextIndex) => {
 
 <div
   aria-hidden="true"
-  className="
-    pointer-events-none
-    absolute bottom-0 left-[-2rem]
-    z-10 h-[12px] w-screen
-    max-[900px]:left-[-1rem]
-  "
+className="
+  pointer-events-none
+  absolute bottom-0 left-[-2rem]
+  z-10 h-[12px]
+  w-[calc(100%+2rem)]
+
+  max-[900px]:left-[-1rem]
+  max-[900px]:w-[calc(100%+1rem)]
+"
 >
   {/* Moves left */}
   <div
@@ -3157,7 +3278,17 @@ const handleItemClick = (nextIndex) => {
 <div
   key={`image-${displayedIndex}`}
   ref={projectImageRef}
-  className="absolute bottom-[12%] left-4 h-1/2 w-3/4 overflow-hidden will-change-transform max-[900px]:bottom-[14%] max-[900px]:w-[93%]"
+  className="
+    absolute bottom-[12%] left-4
+    h-1/2 w-3/4
+    overflow-hidden
+    will-change-transform
+
+    max-[900px]:bottom-[14%]
+    max-[900px]:left-4
+    max-[900px]:right-4
+    max-[900px]:w-auto
+  "
 >
 
 <img
@@ -3177,7 +3308,7 @@ const handleItemClick = (nextIndex) => {
 
 <div
   ref={galleryViewportRef}
-data-lenis-prevent-wheel
+
   className="
     relative z-20
     h-full w-[124px] shrink-0
@@ -3196,9 +3327,8 @@ max-[900px]:overscroll-x-contain
 
     max-[900px]:h-[112px]
     max-[900px]:w-full
-    max-[900px]:snap-x
-    max-[900px]:scroll-pl-3
-    max-[900px]:overflow-x-auto
+   max-[900px]:snap-none
+max-[900px]:overflow-x-hidden
     max-[900px]:overflow-y-hidden
     max-[900px]:border-l-0
     max-[900px]:border-t
@@ -3288,7 +3418,7 @@ max-[900px]:overscroll-x-contain
   </div>
 </div>
     </main>
-    </div>
+</div>
   )
 }
 

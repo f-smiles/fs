@@ -14,7 +14,7 @@ export default function App({ children, user }) {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
 
-          <Navbar user={user} />
+          {/* <Navbar user={user} /> */}
           <main>
             <Toast />
             {children}
