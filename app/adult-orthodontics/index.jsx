@@ -730,8 +730,8 @@ innerStickies.forEach((item, i) => {
                         understanding how bone structure, dental positioning,
                         and soft tissue interact to shape the face—not just in
                         growing faces, but in aging ones too. Our doctors bring
-                        a natural appreciation for facial aesthetics, shaped by
-                        their orthodontic training and clinical expertise.
+                        a natural appreciation for facial aesthetics to patient care. Shaped by
+                        their orthodontic training and clinical expertise, Doctors Gregg and Daniel Frey.
                       </p>
                     </div>
                   </div>

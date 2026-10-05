@@ -824,9 +824,6 @@ function Hero() {
           "<"
         )
 
-        /*
-         * Fade only the loader contents.
-         */
         timeline.to(
           [
             ".preloader-copy",
@@ -839,22 +836,57 @@ function Hero() {
           }
         )
 
-        /*
-         * Keep the original diagonal wipe.
-         */
-        timeline.to(
-          root,
-          {
-            clipPath:
-              "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+/*
+ * Black layer enters from the left.
+ */
+timeline.fromTo(
+  ".preloader-wipe",
+  {
+    clipPath:
+      "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
 
-            WebkitClipPath:
-              "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+    WebkitClipPath:
+      "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
+  },
+  {
+    clipPath:
+      "polygon(0% 0%, 130% 0%, 100% 100%, 0% 100%)",
 
-            duration: 1.1,
-            ease: "power3.inOut",
-          }
-        )
+    WebkitClipPath:
+      "polygon(0% 0%, 130% 0%, 100% 100%, 0% 100%)",
+
+    duration: 0.8,
+    ease: "power3.inOut",
+  }
+)
+
+timeline.set(
+  [
+    ".preloader-screen",
+    ".preloader-content",
+  ],
+  {
+    visibility: "hidden",
+  }
+)
+
+timeline.to(
+  ".preloader-wipe",
+  {
+    clipPath:
+      "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+
+    WebkitClipPath:
+      "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+
+    duration: 1.1,
+    ease: "power3.inOut",
+  }
+)
+
+timeline.set(root, {
+  display: "none",
+})
 
         timeline.set(root, {
           display: "none",
@@ -870,41 +902,70 @@ function Hero() {
   }, [])
 
   return (
-    <div
-      ref={rootRef}
-      className="
-        preloader-overlay
-        fixed inset-0 z-[100]
-        flex flex-col
-        items-center justify-center
-        gap-4 overflow-hidden
-        bg-white
-        will-change-[clip-path]
-      "
-      style={{
-        clipPath:
-          "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+<div
+  ref={rootRef}
+  className="
+    preloader-overlay
+    fixed inset-0 z-[100]
+    overflow-hidden
+  "
+>
 
-        WebkitClipPath:
-          "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      }}
-    >
-      <div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
-        <div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
+  <div
+    aria-hidden="true"
+    className="
+      preloader-screen
+      absolute inset-0 z-0
+      bg-white
+    "
+  />
+
+  {/* Black diagonal wipe layer */}
+  <div
+    aria-hidden="true"
+    className="
+      preloader-wipe
+      absolute inset-0 z-10
+      bg-black
+      will-change-[clip-path]
+    "
+    style={{
+      clipPath:
+        "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
+
+      WebkitClipPath:
+        "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
+    }}
+  />
+
+  {/* Preloader content */}
+  <div
+    className="
+      preloader-content
+      relative z-20
+      flex h-full w-full
+      flex-col
+      items-center justify-center
+      gap-4
+    "
+  >
+    <div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
+      <div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
+        <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
           <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-            <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-              <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
-            </div>
+            <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
           </div>
         </div>
       </div>
-
-      <div className="preloader-copy w-40 text-center">
-        <p className="invisible whitespace-nowrap font-neuehaas35 text-[1.05rem] leading-none text-[#171717]">
-          Meet the Team
-        </p>
-      </div>
     </div>
+
+    <div className="preloader-copy w-40 text-center">
+      <p className="invisible whitespace-nowrap font-neuehaas35 text-[1.05rem] leading-none text-[#171717]">
+        Meet the Team
+      </p>
+    </div>
+  </div>
+</div>
   )
 }
 export default function OurTeam() {
@@ -1104,7 +1165,10 @@ export default function OurTeam() {
       if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
 
       gsap.set(trackRef.current, { xPercent: 0 });
-      gsap.set(stackRef.current, { y: 0 });
+      gsap.set(stackRef.current, {
+  xPercent: 0,
+  y: 0,
+})
 
       const getTargetY = () => {
         const viewportH = scrollRef.current.clientHeight;
@@ -1143,51 +1207,97 @@ export default function OurTeam() {
         },
       });
 
-      const totalVerticalTravel = getTargetY();
-      const verticalDuration = 1;
+   const isMobile = () =>
+  window.matchMedia(
+    "(max-width: 900px)"
+  ).matches
 
-      tl.to(
-        stackRef.current,
-        {
-          y: -totalVerticalTravel,
-          ease: "none",
-          duration: verticalDuration,
-        },
-        0,
-      );
+const switchDuration = 1
 
-      tl.add("switchStart", 0);
+tl.to(
+  stackRef.current,
+  {
+    /*
+     * Mobile: move Daniel in from the
+     * right and push Gregg left.
+     *
+     * Desktop: retain the vertical stack.
+     */
+    xPercent: () =>
+      isMobile() ? -100 : 0,
 
-      tl.to(
-        largeGreggRef.current,
-        { x: "100%", duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
-      tl.to(
-        largeDanRef.current,
-        { x: "0%", duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
-      tl.to(
-        smallDanRef.current,
-        { x: "100%", duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
-      tl.to(
-        smallGreggRef.current,
-        { x: "0%", duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
-      tl.to(
-        greggNameRef.current,
-        { opacity: 0, duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
-      tl.to(
-        danNameRef.current,
-        { opacity: 1, duration: verticalDuration, ease: "power2.inOut" },
-        "switchStart",
-      );
+    y: () =>
+      isMobile()
+        ? 0
+        : -getTargetY(),
+
+    ease: "none",
+    duration: switchDuration,
+  },
+  0
+)
+
+   tl.add("switchStart", 0)
+
+tl.to(
+  largeGreggRef.current,
+  {
+    x: "100%",
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
+
+tl.to(
+  largeDanRef.current,
+  {
+    x: "0%",
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
+
+tl.to(
+  smallDanRef.current,
+  {
+    x: "100%",
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
+
+tl.to(
+  smallGreggRef.current,
+  {
+    x: "0%",
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
+
+tl.to(
+  greggNameRef.current,
+  {
+    opacity: 0,
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
+
+tl.to(
+  danNameRef.current,
+  {
+    opacity: 1,
+    duration: switchDuration,
+    ease: "power2.inOut",
+  },
+  "switchStart"
+)
 
       tl.to(trackRef.current, {
         xPercent: -66.666,
@@ -1319,22 +1429,34 @@ export default function OurTeam() {
         <div ref={trackRef} className="relative flex h-screen">
           <div className="w-screen h-screen shrink-0">
             <div ref={wrapperRef} className="w-full h-full flex">
-              <div className="flex basis-[100%] h-screen">
-                <div
-                  ref={leftColumnRef}
-                  className="
-    left-panel
-    w-[65%]
-    z-10
-    h-screen
-    sticky top-1
-    py-[10em] sm:py-[10em]
-    border-l border-b border-r border-[#F2F2F2]
-    bg-[#FCFFFE]
-    rounded-[14px]
-    chamfer-br
-  "
-                >
+       <div
+    className="
+      flex h-screen basis-full
+
+      max-[900px]:flex-col
+    "
+  >
+              <div
+      ref={leftColumnRef}
+      className="
+        left-panel
+        sticky top-1 z-10
+        h-screen w-[65%]
+        rounded-[14px]
+        border-b border-l border-r
+        border-[#F2F2F2]
+        bg-[#FCFFFE]
+        py-[10em]
+        chamfer-br
+
+        max-[900px]:relative
+        max-[900px]:top-0
+        max-[900px]:h-[55svh]
+        max-[900px]:w-full
+        max-[900px]:shrink-0
+        max-[900px]:py-6
+      "
+    >
                   <svg width="0" height="0">
                     <defs>
                       <clipPath
@@ -1357,7 +1479,7 @@ export default function OurTeam() {
                     </defs>
                   </svg>
 
-                  <div className="max-w-[400px] ml-10 my-10 flex flex-col overflow-hidden">
+                  <div className="max-w-[400px] ml-10 my-6 flex flex-col overflow-hidden">
                     <div className="inline-block overflow-hidden">
                       <div className="text-[12px] leading-[1.1] font-neuehaas35 tracking-wide text-black">
                         {lines.map((line, index) => (
@@ -1377,79 +1499,112 @@ export default function OurTeam() {
                   </div>
 
                   <section>
-                    <div className="flex justify-center gap-6 overflow-hidden ">
-                      <div className="w-[275px] mr-10">
-                        <figure className="relative w-full aspect-[3/4] overflow-hidden">
-                          <HoverImage
-                            ref={largeGreggRef}
-                            src="../../images/team_members/GreggFrey.png"
-                            alt="Gregg Frey"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
+   <div className="flex justify-center gap-4 overflow-hidden max-[900px]:gap-1">
+  {/* Large image */}
+  <div className="mr-10 w-[275px] max-[900px]:mr-5 max-[900px]:w-[190px]">
+    <figure className="relative aspect-[3/4] w-full overflow-hidden">
+      <HoverImage
+        ref={largeGreggRef}
+        src="../../images/team_members/GreggFrey.png"
+        alt="Gregg Frey"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
 
-                          <HoverImage
-                            ref={largeDanRef}
-                            src="../../images/team_members/DanFrey.png"
-                            alt="Gregg Frey"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        </figure>
-                        <figcaption className="mt-3 relative h-[3em]">
-                          <div className="relative h-[1.4em]">
-                            <p
-                              ref={greggNameRef}
-                              className="absolute top-0 left-0 text-[14px] text-[#111]  font-canelathin"
-                            >
-                              Dr. Gregg Frey
-                            </p>
-                            <p
-                              ref={danNameRef}
-                              className="absolute top-0 left-0 text-[14px] text-[#111]  font-canelathin"
-                            >
-                              Dr. Dan Frey
-                            </p>
-                          </div>
-                          <div className="relative mt-1 h-[1.2em]"></div>
-                        </figcaption>
-                      </div>
+      <HoverImage
+        ref={largeDanRef}
+        src="../../images/team_members/DanFrey.png"
+        alt="Dan Frey"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    </figure>
 
-                      <div className="w-[200px]">
-                        <figure className="relative grayscale w-full aspect-[3/4] overflow-hidden">
-                          <img
-                            ref={smallGreggRef}
-                            src="../../images/team_members/GreggFrey.png"
-                            alt="Dr. Gregg Frey"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                          <img
-                            ref={smallDanRef}
-                            src="../../images/team_members/DanFrey.png"
-                            alt="Dr. Dan Frey"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        </figure>
-                      </div>
-                    </div>
+    <figcaption className="relative mt-1 h-[3em] max-[900px]:mt-1.5">
+      <div className="relative h-[1.4em]">
+        <p
+          ref={greggNameRef}
+          className="absolute left-0 top-0 font-canelathin text-[14px] text-[#111] max-[900px]:text-[12px]"
+        >
+          Dr. Gregg Frey
+        </p>
+
+        <p
+          ref={danNameRef}
+          className="absolute left-0 top-0 font-canelathin text-[14px] text-[#111] max-[900px]:text-[12px]"
+        >
+          Dr. Dan Frey
+        </p>
+      </div>
+
+      <div className="relative mt-1 h-[1.2em]" />
+    </figcaption>
+  </div>
+
+  {/* Small image */}
+  <div className="w-[200px] max-[900px]:w-[140px]">
+    <figure className="relative aspect-[3/4] w-full overflow-hidden grayscale">
+      <img
+        ref={smallGreggRef}
+        src="../../images/team_members/GreggFrey.png"
+        alt="Dr. Gregg Frey"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      <img
+        ref={smallDanRef}
+        src="../../images/team_members/DanFrey.png"
+        alt="Dr. Dan Frey"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    </figure>
+  </div>
+</div>
                   </section>
                 </div>
 
-                <div
-                  ref={scrollRef}
-                  className="shrink-0 w-[35%] h-screen relative"
-                >
-                  <div ref={stackRef} className="will-change-transform">
-                    <div className="rounded-[12px] border-b bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
-                      <h1 className="font-canelathin text-[20px]">
-                        Dr. Gregg Frey,
-                        <br />{" "}
-                        <div className="my-2 font-neuehaas45 text-[14px] tracking-wider">
-                          DDS
-                        </div>
-                      </h1>
+             <div
+      ref={scrollRef}
+      className="
+        relative h-screen w-[35%] shrink-0
+        overflow-hidden
 
-                      <div className="flex justify-center items-center h-full gap-8 px-6 max-w-[600px] relative">
-                        <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] ">
-                          Dr. Gregg Frey is an orthodontist based in
+        max-[900px]:h-[45svh]
+        max-[900px]:w-full
+      "
+    >
+<div
+  ref={stackRef}
+  className="
+    flex w-full flex-col
+    will-change-transform
+
+    max-[900px]:flex-row
+  "
+>
+  {/* Gregg */}
+  <div
+    className="
+      min-h-screen w-full shrink-0
+      rounded-[12px]
+      border-b
+      bg-[#FCFFFE]
+      px-8 py-[10em]
+
+      max-[900px]:min-h-[45svh]
+      max-[900px]:px-5
+      max-[900px]:py-6
+    "
+  >
+    <h1 className="font-canelathin text-[20px]">
+      Dr. Gregg Frey,
+      <span className="my-2 block font-neuehaas45 text-[14px] tracking-wider">
+        DDS
+      </span>
+    </h1>
+
+    <div className="relative mt-6 max-w-[600px]">
+      <p className="font-neuehaas45 text-[13px] leading-[1.3] tracking-wider text-[#111]">
+    
+    Dr. Gregg Frey is an orthodontist based in
                           Pennsylvania, who graduated from Temple University
                           School of Dentistry with honors and served in the U.S.
                           Navy Dental Corps before establishing his practice in
@@ -1466,25 +1621,44 @@ export default function OurTeam() {
                             of actual treated patients. Recently Dr. Frey
                             voluntarily re-certified. Dr. Frey enjoys coaching
                             soccer, vintage car racing, and playing the drums.
-                          </div>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="relative h-full">
-                      <section
-                        ref={lastSectionRef}
-                        className="panel1 relative bg-cover h-screen  rounded-[12px] overflow-hidden"
-                      >
-                        <div className="rounded-[12px] bg-[#FCFFFE]  py-[10em] sm:py-[10em] h-screen lg:px-8 ">
-                          <h1 className="font-canelathin text-[20px]">
-                            Dr. Daniel Frey,
-                            <br />{" "}
-                            <div className="my-2 font-neuehaas45 text-[14px] tracking-wider">
-                              DMD, MSD
-                            </div>
-                          </h1>
-                          <div className="flex justify-center items-center h-full gap-8 px-6 max-w-[600px] relative">
-                            <p className="leading-[1.3] font-neuehaas45 text-[13px] tracking-wider text-[#111] ">
+</div>
+      </p>
+    </div>
+  </div>
+
+  {/* Daniel — starts outside the viewport on mobile */}
+  <section
+    ref={lastSectionRef}
+    className="
+      panel1
+      relative min-h-screen
+      w-full shrink-0
+      overflow-hidden
+      rounded-[12px]
+      bg-[#FCFFFE]
+
+      max-[900px]:min-h-[45svh]
+    "
+  >
+    <div
+      className="
+        min-h-screen
+        px-8 py-[10em]
+
+        max-[900px]:min-h-[45svh]
+        max-[900px]:px-5
+        max-[900px]:py-6
+      "
+    >
+      <h1 className="font-canelathin text-[20px]">
+        Dr. Daniel Frey,
+        <span className="my-2 block font-neuehaas45 text-[14px] tracking-wider">
+          DMD, MSD
+        </span>
+      </h1>
+
+      <div className="relative mt-6 max-w-[600px]">
+        <p className="font-neuehaas45 text-[13px] leading-[1.3] tracking-wider text-[#111]">
                               Dr. Daniel Frey completed his pre-dental
                               requisites at the University of Pittsburgh,
                               majoring in Biology. Dr. Frey excelled in his
@@ -1511,11 +1685,11 @@ export default function OurTeam() {
                                 loved ones.
                               </div>
                             </p>
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-                  </div>
+
+      </div>
+    </div>
+  </section>
+</div>
                 </div>
               </div>
             </div>

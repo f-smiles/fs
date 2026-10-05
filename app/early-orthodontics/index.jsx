@@ -514,7 +514,7 @@ ScrollTrigger.create({
                         development (including risk factors for sleep apnea),
                         and detect jaw growth discrepancies. Habit reduction is also a part of early treatment. Obstructive habits
                         like thumb sucking, lip biting, tongue thrusting, or early
-                        malocclusion can be addressed early to support optimal
+                        malocclusion can be addressed to support optimal
                         jaw and airway development.
                       </p>
                     </div>

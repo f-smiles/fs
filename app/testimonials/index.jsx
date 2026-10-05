@@ -21,12 +21,6 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
-import {
-  EffectComposer,
-  Bloom,
-  Outline,
-  ChromaticAberration,
-} from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import gsap from "gsap";
 import { SplitText } from "gsap/all";
@@ -51,6 +45,3350 @@ import ScrollList from "./scroll-list.jsx";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
+}
+
+ScrollTrigger.config({
+  ignoreMobileResize: true,
+})
+function Background() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const renderer = new Renderer({
+      dpr: isMobile ? 0.75 : Math.min(window.devicePixelRatio, 1.5),
+
+      canvas: canvasRef.current,
+
+      width: window.innerWidth,
+
+      height: window.innerHeight,
+    });
+
+    const { gl } = renderer;
+
+    gl.clearColor(0.74, 0.745, 0.75, 1);
+
+    const geometry = new Triangle(gl);
+
+    const vertex = `
+      attribute vec2 uv;
+      attribute vec2 position;
+      uniform vec2 uResolution;
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+
+    const fragment = `
+  precision mediump float;
+
+  uniform float uTime;
+  uniform float uScroll;
+  uniform vec2 uResolution;
+
+  uniform vec3 uPeach;
+  uniform vec3 uRose;
+  uniform vec3 uGray;
+  uniform vec3 uPearl;
+
+  varying vec2 vUv;
+
+  float random(vec2 point) {
+    return fract(
+      sin(
+        dot(
+          point,
+          vec2(127.1, 311.7)
+        )
+      ) * 43758.5453123
+    );
+  }
+
+  float noise(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 local = fract(point);
+
+    local =
+      local *
+      local *
+      (3.0 - 2.0 * local);
+
+    float bottomLeft =
+      random(cell);
+
+    float bottomRight =
+      random(
+        cell +
+        vec2(1.0, 0.0)
+      );
+
+    float topLeft =
+      random(
+        cell +
+        vec2(0.0, 1.0)
+      );
+
+    float topRight =
+      random(
+        cell +
+        vec2(1.0, 1.0)
+      );
+
+    return mix(
+      mix(
+        bottomLeft,
+        bottomRight,
+        local.x
+      ),
+      mix(
+        topLeft,
+        topRight,
+        local.x
+      ),
+      local.y
+    );
+  }
+
+  float fbm(vec2 point) {
+    float value = 0.0;
+    float amplitude = 0.5;
+
+    for (
+      int octave = 0;
+      octave < 4;
+      octave++
+    ) {
+      value +=
+        amplitude *
+        noise(point);
+
+      point =
+        point * 2.03 +
+        vec2(4.1, 2.7);
+
+      amplitude *= 0.5;
+    }
+
+    return value;
+  }
+
+  void main() {
+    vec2 uv = vUv;
+
+    float aspect =
+      uResolution.x /
+      uResolution.y;
+
+    vec2 point =
+      uv - 0.5;
+
+    point.x *= aspect;
+
+    float time =
+      uTime * 0.16;
+
+    /*
+     * Large, slowly moving field.
+     */
+    float organicField =
+      fbm(
+        point * 1.75 +
+        vec2(
+          time * 0.16,
+          -time * 0.11
+        )
+      );
+
+    /*
+     * Smaller-scale surface movement.
+     */
+    float fineField =
+      fbm(
+        point * 3.8 +
+        vec2(
+          -time * 0.12,
+          time * 0.15
+        )
+      );
+float verticalLight =
+  smoothstep(
+    -0.7,
+    0.8,
+    point.y +
+    organicField * 0.16
+  );
+
+vec3 color = mix(
+  uGray,
+  uPearl,
+  0.18 +
+  verticalLight * 0.42
+);
+
+/*
+ * Stronger white mist creates visible
+ * cloudy areas without adding saturation.
+ */
+float mist =
+  fbm(
+    point * 1.2 +
+    vec2(
+      time * 0.05,
+      time * 0.035
+    )
+  );
+
+float mistStrength =
+  smoothstep(
+    0.48,
+    0.9,
+    mist
+  );
+
+color = mix(
+  color,
+  vec3(0.94, 0.94, 0.93),
+  mistStrength * 0.28
+);
+
+/*
+ * Main flowing current.
+ */
+float peachAxis =
+  point.y +
+  0.19 *
+  sin(
+    point.x * 2.4 +
+    time +
+    organicField * 2.0
+  ) +
+  0.07 *
+  sin(
+    point.x * 6.5 -
+    time * 0.8
+  ) +
+  uScroll * 0.28;
+
+float peachRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis +
+        0.06
+      ) / 0.14,
+      2.0
+    )
+  );
+
+peachRibbon *=
+  0.62 +
+  fineField * 0.38;
+
+/*
+ * Secondary current.
+ */
+float roseAxis =
+  point.y -
+  0.22 *
+  sin(
+    point.x * 1.8 -
+    time * 0.7 +
+    organicField * 1.7
+  ) +
+  0.13 +
+  uScroll * 0.2;
+
+float roseRibbon =
+  exp(
+    -pow(
+      roseAxis / 0.085,
+      2.0
+    )
+  );
+
+/*
+ * White ribbon beside the warmer current.
+ */
+float whiteRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis -
+        0.16
+      ) / 0.075,
+      2.0
+    )
+  );
+
+color = mix(
+  color,
+  uPeach,
+  peachRibbon * 0.24
+);
+
+color = mix(
+  color,
+  uRose,
+  roseRibbon * 0.11
+);
+
+color = mix(
+  color,
+  vec3(0.97, 0.97, 0.96),
+  whiteRibbon * 0.24
+);
+
+/*
+ * More visible surface variation.
+ */
+color +=
+  (
+    fineField - 0.5
+  ) * 0.02;
+
+color = clamp(
+  color,
+  0.0,
+  1.0
+);
+
+gl_FragColor =
+  vec4(color, 1.0);
+  }
+`;
+
+    const program = new Program(gl, {
+      vertex,
+      fragment,
+      uniforms: {
+        uTime: {
+          value: 0,
+        },
+
+        uScroll: {
+          value: 0,
+        },
+        uPeach: {
+          value: new Color("#d5b7b2"),
+        },
+
+        uRose: {
+          value: new Color("#e4dae0"),
+        },
+
+        uGray: {
+          value: new Color("#b2b7be"),
+        },
+
+        uPearl: {
+          value: new Color("#e5e5e3"),
+        },
+
+        uResolution: {
+          value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight),
+        },
+      },
+    });
+
+    const mesh = new Mesh(gl, { geometry, program });
+
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      renderer.setSize(width, height);
+      program.uniforms.uResolution.value.set(width, height);
+    };
+
+    let targetScroll = 0;
+    let currentScroll = 0;
+    let frameId = null;
+    let previousTime = 0;
+    let destroyed = false;
+
+    const handleScroll = () => {
+      targetScroll = window.scrollY * 0.00015;
+    };
+
+    const loop = (time) => {
+      if (destroyed) return;
+
+      frameId = requestAnimationFrame(loop);
+
+      const minimumFrameTime = isMobile ? 1000 / 30 : 0;
+
+      if (time - previousTime < minimumFrameTime) return;
+
+      previousTime = time;
+
+      program.uniforms.uTime.value = time * 0.001;
+
+      currentScroll += (targetScroll - currentScroll) * 0.06;
+      program.uniforms.uScroll.value = currentScroll;
+
+      renderer.render({ scene: mesh });
+    };
+
+    handleResize();
+    handleScroll();
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    frameId = requestAnimationFrame(loop);
+
+    return () => {
+      destroyed = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10"
+    />
+  );
+}
+
+const TerminalPreloader = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  const containerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const updateViewport = () => {
+      setIsMobile(mediaQuery.matches);
+    };
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewport);
+    };
+  }, []);
+
+  const lines = isMobile
+    ? [
+        {
+          id: "mobile",
+          text: "We are committed to setting the highest standard through exceptional service. That commitment is supported by our use of state-of-the-art technology and strengthened by the expertise that comes from unmatched experience",
+          top: 0,
+        },
+      ]
+    : [
+        {
+          id: 1,
+          text: "We are committed to setting the highest standard through exceptional service",
+          top: 0,
+        },
+        {
+          id: 2,
+          text: "That commitment is supported by our use of state-of-the-art technology",
+          top: 20,
+        },
+        {
+          id: 3,
+          text: "And strengthened by the expertise that comes from unmatched experience",
+          top: 40,
+        },
+      ];
+
+  const MAX_CELL_ITERATIONS = 30;
+  const CELL_INTERVAL = 15;
+  const LINE_DELAY = 180;
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const lineElements = Array.from(
+      container.querySelectorAll(".terminal-line"),
+    );
+
+    const animatedLines = lineElements.map((lineElement, lineIndex) => {
+      const cellElements = Array.from(
+        lineElement.querySelectorAll(".terminal-cell"),
+      );
+
+      return {
+        startDelay: lineIndex * LINE_DELAY,
+        lastTick: 0,
+        finished: false,
+
+        cells: cellElements.map((element) => ({
+          element,
+          original: element.dataset.character ?? "",
+          signal: "",
+          displayedValue: null,
+          iterations: 0,
+          finished: false,
+        })),
+      };
+    });
+
+    const renderCell = (cell, value) => {
+      const displayedValue = cell.original === " " ? " " : value || "\u00A0";
+
+      // Avoid rewriting the DOM when the value hasn't changed.
+      if (cell.displayedValue === displayedValue) return;
+
+      cell.element.textContent = displayedValue;
+      cell.displayedValue = displayedValue;
+    };
+
+    const finishCell = (cell) => {
+      cell.finished = true;
+      cell.signal = cell.original;
+      renderCell(cell, cell.original);
+    };
+
+    // Immediately display the final text for reduced-motion users.
+    if (reduceMotion) {
+      animatedLines.forEach(({ cells }) => {
+        cells.forEach(finishCell);
+      });
+
+      return;
+    }
+
+    // Clear all characters before starting.
+    animatedLines.forEach(({ cells }) => {
+      cells.forEach((cell) => {
+        cell.signal = "";
+        cell.iterations = 0;
+        cell.finished = false;
+        renderCell(cell, "");
+      });
+    });
+
+    let frameId = null;
+    let startTime = null;
+    let cancelled = false;
+
+    const updateLine = (line, time) => {
+      const previousSignals = line.cells.map((cell) => cell.signal);
+
+      line.cells.forEach((cell, index) => {
+        if (cell.finished) return;
+
+        const nextSignal =
+          index === 0
+            ? Math.random() < 0.5
+              ? "*"
+              : ":"
+            : previousSignals[index - 1];
+
+        cell.signal = nextSignal;
+        renderCell(cell, nextSignal);
+
+        if (nextSignal) {
+          cell.iterations += 1;
+        }
+
+        if (cell.iterations >= MAX_CELL_ITERATIONS) {
+          finishCell(cell);
+        }
+      });
+
+      line.finished = line.cells.every((cell) => cell.finished);
+      line.lastTick = time;
+    };
+
+    const animate = (time) => {
+      if (cancelled) return;
+
+      if (startTime === null) {
+        startTime = time;
+      }
+
+      const elapsed = time - startTime;
+
+      animatedLines.forEach((line) => {
+        if (line.finished || elapsed < line.startDelay) return;
+
+        if (line.lastTick === 0 || time - line.lastTick >= CELL_INTERVAL) {
+          updateLine(line, time);
+        }
+      });
+
+      const allLinesFinished = animatedLines.every((line) => line.finished);
+
+      if (!allLinesFinished) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelled = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isMobile]);
+
+  const renderLine = (line) => {
+    const words = line.text.split(" ");
+    let characterPosition = 0;
+
+    return words.map((word, wordIndex) => {
+      const wordCharacters = Array.from(word);
+
+      const renderedWord = (
+        <span key={`${line.id}-word-${wordIndex}`} className="terminal-word">
+          {wordCharacters.map((character) => {
+            const position = characterPosition;
+            characterPosition += 1;
+
+            return (
+              <span
+                key={`${line.id}-${position}`}
+                className="terminal-cell"
+                data-character={character}
+                aria-hidden="true"
+              >
+                {character}
+              </span>
+            );
+          })}
+        </span>
+      );
+
+      if (wordIndex === words.length - 1) {
+        return renderedWord;
+      }
+
+      const spacePosition = characterPosition;
+      characterPosition += 1;
+
+      return (
+        <React.Fragment key={`${line.id}-group-${wordIndex}`}>
+          {renderedWord}
+
+          <span
+            key={`${line.id}-${spacePosition}`}
+            className="terminal-cell terminal-space"
+            data-character=" "
+            aria-hidden="true"
+          >
+            {" "}
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  return (
+    <div className="terminal-preloader">
+      <div ref={containerRef} className="terminal-container">
+        {lines.map((line) => (
+          <div
+            key={line.id}
+            className="terminal-line"
+            style={{ top: `${line.top}px` }}
+            aria-label={line.text}
+          >
+            {renderLine(line)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const testimonials = [
+  {
+    name: "Lainie",
+    image: "../images/testimonials/lainielandscape.png",
+    type: "Deep bite and dental crowding corrected in 18 months with self-ligating braces and orthodontic elastics.",
+    project: "Lainie",
+  },
+  {
+    name: "James",
+    image: "../images/testimonials/Jamescontrast.png",
+    type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
+    project: "James",
+  },
+  {
+    name: "Ron L.",
+    image: "../images/testimonials/Ronlandscape.png",
+    type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
+    project: "Ron",
+  },
+  {
+    name: "Elizabeth",
+    image: "../images/testimonials/elizabethmask.png",
+    type: "Mandibular retrognathia corrected in 30 months with a functional appliance, self-ligating braces, and Invisalign",
+    project: "Elizabeth",
+  },
+  {
+    name: "Ashley",
+    image: "../images/testimonials/ashleylandscape.png",
+    type: "Posterior cross bite and crowding corrected with braces in 22 months",
+    project: "Ashley",
+  },
+  //   {
+  //   name: "Amandeep",
+  //   image: "../images/IMG_9527.PNG.jpg",
+  //   type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
+  //   project: "Amandeep",
+
+  // },
+  {
+    name: "Chase",
+    image: "../images/testimonials/kasprenski.png",
+    type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
+    project: "Chase",
+  },
+  {
+    name: "Leanne",
+    image: "../images/testimonials/Leannelandscape.png",
+    type: "Crowding and constricted arches corrected in 12 months with Invisalign",
+    project: "Leanne",
+  },
+  {
+    name: "Harold",
+    image: "../images/testimonials/harold.png",
+    type: "Overbite and spacing corrected in 14 months with Invisalign",
+    project: "Harold",
+  },
+  {
+    name: "Abigail",
+    image: "../images/testimonials/Abigaillandscape.png",
+    type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
+    project: "Abigail",
+  },
+  {
+    name: "Madi",
+    image: "../images/testimonials/madilandscape.png",
+    type: "Crowding corrected with self-ligating braces in two years",
+    project: "Madi",
+  },
+  {
+    name: "Justin",
+    image: "../images/testimonials/hurlburt.png",
+    type: "Deep bite corrected with Invisalign in 2 years",
+    project: "Justin",
+  },
+  {
+    name: "Jillian",
+    image: "../images/testimonials/jillianlandscape.png",
+    type: "Cross bite and crowding corrected with self ligating braces in 2 years.",
+    project: "Jillian",
+  },
+
+  {
+    name: "Sophia",
+    image: "../images/testimonials/Sophialandscape.png",
+    type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
+    project: "Sophia",
+  },
+
+  {
+    name: "Sabrina",
+    image: "../images/testimonials/sabrinalandscape.png",
+    type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
+    project: "Sabrina",
+  },
+
+  {
+    name: "Jackson",
+    image: "../images/testimonials/Jacksonlandscape.png",
+    type: "Moderate deep bite & mild crowding corrected with Invisalign",
+    project: "Jackson",
+  },
+  {
+    name: "Nilaya",
+    image: "../images/testimonials/Nilayalandscape.png",
+    type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
+    project: "Nilaya",
+  },
+];
+
+const WORD = "freysmiles";
+const REPEAT_COUNT = 11;
+const COLUMN_COUNT = 11;
+
+const characters = Array.from(
+  {
+    length: REPEAT_COUNT,
+  },
+  () => WORD,
+)
+  .join("")
+  .split("");
+
+function FreySmilesGrid() {
+  const gridRef = useRef(null);
+  const characterRefs = useRef([]);
+  const measurementsRef = useRef([]);
+  const pointerRef = useRef({
+    x: 0,
+    y: 0,
+  });
+  const frameRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+
+    if (!grid) {
+      return undefined;
+    }
+
+    const measureCharacters = () => {
+      measurementsRef.current = characterRefs.current
+        .map((element) => {
+          if (!element) return null;
+
+          const rect = element.getBoundingClientRect();
+
+          return {
+            element,
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+          };
+        })
+        .filter(Boolean);
+    };
+
+    const recalculateDistances = (x, y) => {
+      const containerRect = grid.getBoundingClientRect();
+
+      const diagonal = Math.hypot(containerRect.width, containerRect.height);
+
+      if (diagonal === 0) return;
+
+      measurementsRef.current.forEach((measurement) => {
+        const distance = Math.hypot(measurement.x - x, measurement.y - y);
+
+        const normalizedDistance = 1 - distance / diagonal;
+
+        const intensity = Math.max(Math.pow(normalizedDistance, 3), 0);
+
+        measurement.element.style.setProperty("--distance", intensity);
+      });
+    };
+
+    const updatePointerEffect = () => {
+      frameRef.current = null;
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const handlePointerMove = (event) => {
+      pointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+
+      if (frameRef.current !== null) {
+        return;
+      }
+
+      frameRef.current = requestAnimationFrame(updatePointerEffect);
+    };
+
+    const handleLayoutChange = () => {
+      measureCharacters();
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const resizeObserver = new ResizeObserver(handleLayoutChange);
+
+    resizeObserver.observe(grid);
+
+    measureCharacters();
+
+    document.fonts?.ready.then(() => {
+      measureCharacters();
+    });
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+
+    window.addEventListener("resize", handleLayoutChange);
+
+    window.addEventListener("scroll", handleLayoutChange, {
+      passive: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+
+      window.removeEventListener("pointermove", handlePointerMove);
+
+      window.removeEventListener("resize", handleLayoutChange);
+
+      window.removeEventListener("scroll", handleLayoutChange);
+
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <section className="grid min-h-screen cursor-crosshair place-items-center  text-white">
+      <div
+        ref={gridRef}
+        className="lowercase frey-text-grid font-ibmplex"
+        style={{
+          "--chars": COLUMN_COUNT,
+        }}
+        aria-label={Array.from(
+          {
+            length: REPEAT_COUNT,
+          },
+          () => WORD,
+        ).join(" ")}
+      >
+        {characters.map((character, index) => {
+          const rowIndex = Math.floor(index / COLUMN_COUNT);
+
+          const columnIndex = index % COLUMN_COUNT;
+
+          const isCutout = rowIndex < 3 && columnIndex >= COLUMN_COUNT - 4;
+
+          return (
+            <span
+              key={`${character}-${index}`}
+              ref={(element) => {
+                characterRefs.current[index] = isCutout ? null : element;
+              }}
+              className={[
+                "frey-text-grid__char",
+                isCutout ? "invisible pointer-events-none" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-hidden="true"
+              style={{
+                "--i": index,
+                "--row": rowIndex,
+              }}
+            >
+              {character}
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+const NS = "http://www.w3.org/2000/svg";
+
+const R = (a, b) => a + Math.random() * (b - a);
+const RI = (a, b) => Math.floor(R(a, b + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const chance = (p) => Math.random() < p;
+
+const EDGES = ["L", "L", "R", "R", "T", "B"];
+
+const DEFAULT_SUBJECT = {
+  head: { x: 50, y: 42, rx: 22, ry: 30 },
+  torso: { x1: 22, x2: 78, top: 66 },
+};
+
+const CIRCUIT_CLASSES = {
+  tr: "testimonial-image-clip-circ-trace",
+  pu: "testimonial-image-clip-circ-pulse",
+  in: "testimonial-image-clip-circ-in",
+  node: "testimonial-image-clip-circ-node",
+  fill: "testimonial-image-clip-circ-dot",
+  ring: "testimonial-image-clip-circ-ring",
+  t1: "testimonial-image-clip-circ-tone-1",
+  t2: "testimonial-image-clip-circ-tone-2",
+};
+
+/* ---------- Spatial grid ---------- */
+
+class Occupancy {
+  constructor(cell = 2.5) {
+    this.cell = cell;
+    this.map = new Map();
+  }
+
+  key(i, j) {
+    return `${i},${j}`;
+  }
+
+  add(x, y) {
+    const key = this.key(Math.floor(x / this.cell), Math.floor(y / this.cell));
+
+    let list = this.map.get(key);
+
+    if (!list) {
+      list = [];
+      this.map.set(key, list);
+    }
+
+    list.push([x, y]);
+  }
+
+  near(x, y, distance) {
+    const i = Math.floor(x / this.cell);
+    const j = Math.floor(y / this.cell);
+    const radius = Math.ceil(distance / this.cell);
+
+    for (let a = -radius; a <= radius; a++) {
+      for (let b = -radius; b <= radius; b++) {
+        const list = this.map.get(this.key(i + a, j + b));
+
+        if (!list) continue;
+
+        for (const [px, py] of list) {
+          if (Math.hypot(px - x, py - y) < distance) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+}
+
+function makeBlocker(H, subject) {
+  const k = H / 100;
+  const head = subject.head;
+  const torso = subject.torso;
+  const PAD = 2.5;
+
+  return (x, y) => {
+    const yp = y / k;
+
+    if (x < 0.8 || x > 99.2 || y < 0.8 || y > H - 0.8) {
+      return true;
+    }
+
+    // Approximate exclusions for the morphing frame corners.
+    if (
+      (x < 15 && yp < 9) ||
+      (x > 66 && yp < 15) ||
+      (x > 85 && yp > 77 && yp < 87) ||
+      (x > 85 && yp > 90) ||
+      (x < 40 && (yp > 78 + x || yp > 83 + 0.45 * x))
+    ) {
+      return true;
+    }
+
+    if (head) {
+      const dx = (x - head.x) / (head.rx + PAD);
+      const dy = (y - head.y * k) / (head.ry * k + PAD);
+
+      if (dx * dx + dy * dy < 1) {
+        return true;
+      }
+
+      if (
+        torso &&
+        Math.abs(x - head.x) < head.rx * 0.55 + PAD &&
+        y > head.y * k &&
+        y < torso.top * k + PAD
+      ) {
+        return true;
+      }
+    }
+
+    if (
+      torso &&
+      x > torso.x1 - PAD &&
+      x < torso.x2 + PAD &&
+      y > torso.top * k - PAD
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+}
+
+/* ---------- Geometry ---------- */
+
+function samplePath(points, step = 0.8) {
+  const samples = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const [a, b] = points[k - 1];
+    const [c, d] = points[k];
+
+    const count = Math.max(1, Math.ceil(Math.hypot(c - a, d - b) / step));
+
+    for (let j = k === 1 ? 0 : 1; j <= count; j++) {
+      samples.push([a + ((c - a) * j) / count, b + ((d - b) * j) / count]);
+    }
+  }
+
+  return samples;
+}
+
+// Create a parallel polyline with mitered corners.
+// Reject degenerate paths and offsets that fold back.
+function offsetPath(points, offset) {
+  if (points.length < 2) return null;
+
+  const directions = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const dx = points[k][0] - points[k - 1][0];
+    const dy = points[k][1] - points[k - 1][1];
+    const length = Math.hypot(dx, dy);
+
+    if (length < 0.0001) return null;
+
+    directions.push([dx / length, dy / length]);
+  }
+
+  const normal = ([x, y]) => [-y, x];
+  const result = [];
+
+  for (let k = 0; k < points.length; k++) {
+    const [x, y] = points[k];
+
+    if (k === 0 || k === points.length - 1) {
+      const direction = k === 0 ? directions[0] : directions[k - 1];
+
+      const [nx, ny] = normal(direction);
+
+      result.push([x + nx * offset, y + ny * offset]);
+
+      continue;
+    }
+
+    const a = normal(directions[k - 1]);
+    const b = normal(directions[k]);
+    const denominator = 1 + a[0] * b[0] + a[1] * b[1];
+
+    if (Math.abs(denominator) < 0.0001) return null;
+
+    result.push([
+      x + ((a[0] + b[0]) / denominator) * offset,
+      y + ((a[1] + b[1]) / denominator) * offset,
+    ]);
+  }
+
+  for (let k = 1; k < result.length; k++) {
+    const along =
+      (result[k][0] - result[k - 1][0]) * directions[k - 1][0] +
+      (result[k][1] - result[k - 1][1]) * directions[k - 1][1];
+
+    if (along < 0.8) return null;
+  }
+
+  return result;
+}
+
+function walk(edge, H, big) {
+  let x;
+  let y;
+  let dx = 0;
+  let dy = 0;
+
+  if (edge === "L") {
+    x = 0;
+    y = R(0.1, 0.8) * H;
+    dx = 1;
+  } else if (edge === "R") {
+    x = 100;
+    y = R(0.18, 0.76) * H;
+    dx = -1;
+  } else if (edge === "T") {
+    x = R(16, 64);
+    y = 0;
+    dy = 1;
+  } else {
+    x = R(36, 85);
+    y = H;
+    dy = -1;
+  }
+
+  const points = [[x, y]];
+
+  let length = big ? R(6, 14) : R(4, 14);
+
+  x += dx * length;
+  y += dy * length;
+  points.push([x, y]);
+
+  const bends = RI(1, 2);
+
+  for (let k = 0; k < bends; k++) {
+    const sign = chance(0.5) ? 1 : -1;
+    const px = dy !== 0 ? sign : 0;
+    const py = dx !== 0 ? sign : 0;
+    const diagonal = big ? R(4, 8) : R(2, 7);
+
+    x += (dx + px) * diagonal;
+    y += (dy + py) * diagonal;
+    points.push([x, y]);
+
+    if (chance(0.4)) {
+      dx = px;
+      dy = py;
+    }
+
+    length = big ? R(6, 12) : R(3, 12);
+
+    x += dx * length;
+    y += dy * length;
+    points.push([x, y]);
+  }
+
+  return points;
+}
+
+function generate(H, blocked) {
+  const occupancy = new Occupancy();
+
+  const layout = {
+    buses: [],
+    singles: [],
+    bells: [],
+    details: [],
+  };
+
+  const fits = (points, skipStart, gap) => {
+    const [sx, sy] = points[0];
+
+    for (const [x, y] of samplePath(points)) {
+      if (skipStart && Math.hypot(x - sx, y - sy) < 1.2) {
+        continue;
+      }
+
+      if (blocked(x, y) || occupancy.near(x, y, gap)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const commit = (points) => {
+    for (const [x, y] of samplePath(points)) {
+      occupancy.add(x, y);
+    }
+  };
+
+  // Buses: parallel lanes with staggered endpoints.
+  let tries = 0;
+  const busCount = RI(3, 5);
+
+  while (layout.buses.length < busCount && tries++ < 160) {
+    const center = walk(pick(EDGES), H, true);
+    const count = RI(3, 6);
+    const spacing = R(1.7, 2.2);
+    const lanes = [];
+
+    for (let i = 0; i < count; i++) {
+      const lane = offsetPath(center, (i - (count - 1) / 2) * spacing);
+
+      if (!lane) continue;
+
+      const last = lane.length - 1;
+      const a = lane[last - 1];
+      const b = lane[last];
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+      const extension = i % 2 ? R(1.6, 2.8) : R(-0.4, 0.4);
+
+      lane[last] = [
+        b[0] + ((b[0] - a[0]) / length) * extension,
+        b[1] + ((b[1] - a[1]) / length) * extension,
+      ];
+
+      if (fits(lane, true, 1.3)) {
+        lanes.push(lane);
+      }
+    }
+
+    if (lanes.length >= 2) {
+      lanes.forEach(commit);
+
+      layout.buses.push({
+        lanes,
+        tone: pick(["t1", "t2"]),
+        end: pick(["ring", "ring", "square", "dot"]),
+      });
+    }
+  }
+
+  // Single traces.
+  tries = 0;
+  const singleCount = RI(6, 10);
+
+  while (layout.singles.length < singleCount && tries++ < 220) {
+    const points = walk(pick(EDGES), H, false);
+
+    if (fits(points, true, 1.6)) {
+      commit(points);
+
+      layout.singles.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+        weight: chance(0.3) ? 2.1 : 1.5,
+        end: pick(["ring", "ring", "dot", "square"]),
+      });
+    }
+  }
+
+  // Short connectors with a ring at each end.
+  tries = 0;
+  const bellCount = RI(4, 8);
+
+  while (layout.bells.length < bellCount && tries++ < 220) {
+    const x = R(3, 97);
+    const y = R(3, H - 3);
+    const angle = (pick([0, 45, 90, 135]) * Math.PI) / 180;
+    const length = R(2.5, 6);
+
+    const points = [
+      [x, y],
+      [x + Math.cos(angle) * length, y + Math.sin(angle) * length],
+    ];
+
+    if (fits(points, false, 2.2)) {
+      commit(points);
+
+      layout.bells.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  // Component details.
+  tries = 0;
+  const detailCount = RI(2, 4);
+
+  const radii = {
+    dots: 2.4,
+    pads: 2.4,
+    ringpads: 3.4,
+    oval: 4.6,
+  };
+
+  while (layout.details.length < detailCount && tries++ < 220) {
+    const type = pick(["dots", "pads", "ringpads", "oval"]);
+    const x = R(4, 96);
+    const y = R(4, H - 4);
+    const radius = radii[type];
+    const probes = [[x, y]];
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+
+      probes.push([x + Math.cos(angle) * radius, y + Math.sin(angle) * radius]);
+
+      probes.push([
+        x + (Math.cos(angle) * radius) / 2,
+        y + (Math.sin(angle) * radius) / 2,
+      ]);
+    }
+
+    const available = probes.every(
+      ([qx, qy]) => !blocked(qx, qy) && !occupancy.near(qx, qy, 1.3),
+    );
+
+    if (available) {
+      probes.forEach(([qx, qy]) => occupancy.add(qx, qy));
+
+      layout.details.push({
+        type,
+        x,
+        y,
+        vertical: chance(0.5),
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  return layout;
+}
+
+function el(parent, tag, attrs = {}, styles = {}) {
+  const element = document.createElementNS(NS, tag);
+
+  const classes = String(attrs.class || "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const hasEcho = classes.includes("echo");
+
+  for (const [name, value] of Object.entries(attrs)) {
+    if (name === "class" || name === "stroke-width") continue;
+    element.setAttribute(name, String(value));
+  }
+
+  element.setAttribute(
+    "class",
+    classes
+      .filter((name) => name !== "echo")
+      .map((name) => CIRCUIT_CLASSES[name] || name)
+      .join(" "),
+  );
+
+  for (const [name, value] of Object.entries(styles)) {
+    element.style.setProperty(name, String(value));
+  }
+
+  if (attrs["stroke-width"] != null) {
+    element.style.setProperty("stroke-width", String(attrs["stroke-width"]));
+  }
+
+  if (hasEcho) {
+    const echoGroup = document.createElementNS(NS, "g");
+
+    echoGroup.setAttribute("class", "testimonial-image-clip-circ-echo");
+
+    for (const [name, value] of Object.entries(styles)) {
+      echoGroup.style.setProperty(name, String(value));
+    }
+
+    echoGroup.appendChild(element);
+    parent.appendChild(echoGroup);
+  } else {
+    parent.appendChild(element);
+  }
+
+  return element;
+}
+
+const toD = (points) =>
+  "M" + points.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join("L");
+
+function drawPad(svg, type, x, y, radius, classes, styles) {
+  if (type === "square") {
+    return el(
+      svg,
+      "rect",
+      {
+        x: x - radius,
+        y: y - radius,
+        width: 2 * radius,
+        height: 2 * radius,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  if (type === "dot") {
+    return el(
+      svg,
+      "circle",
+      {
+        cx: x,
+        cy: y,
+        r: radius * 0.85,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  return el(
+    svg,
+    "circle",
+    {
+      cx: x,
+      cy: y,
+      r: radius,
+      class: `${classes} ring`,
+      "stroke-width": 1.3,
+    },
+    styles,
+  );
+}
+
+function drawTrace(svg, points, options) {
+  const d = toD(points);
+  const [endX, endY] = points[points.length - 1];
+  const arrival = options.start + options.dur;
+
+  el(
+    svg,
+    "path",
+    {
+      d,
+      pathLength: 100,
+      class: `tr ${options.tone}`,
+      "stroke-width": options.weight,
+    },
+    {
+      "--draw-delay": `${options.start}s`,
+      "--draw-dur": `${options.dur}s`,
+      "--dim-delay": `${arrival + 0.05}s`,
+    },
+  );
+
+  if (options.cycle) {
+    el(
+      svg,
+      "path",
+      {
+        d,
+        pathLength: 100,
+        class: `pu ${options.tone}${options.outward ? "" : " in"}`,
+        "stroke-width": options.weight * 1.9,
+      },
+      {
+        "--cycle": `${options.cycle}s`,
+        "--pulse-delay": `${options.pulseDelay}s`,
+      },
+    );
+  }
+
+  if (options.startPad) {
+    drawPad(
+      svg,
+      "ring",
+      points[0][0],
+      points[0][1],
+      options.r,
+      `node ${options.tone}`,
+      {
+        "--pop-delay": `${options.start}s`,
+      },
+    );
+  }
+
+  const echo = options.cycle && options.outward ? " echo" : "";
+
+  drawPad(
+    svg,
+    options.end,
+    endX,
+    endY,
+    options.r,
+    `node ${options.tone}${echo}`,
+    {
+      "--pop-delay": `${arrival}s`,
+      "--cycle": `${options.cycle || 1}s`,
+      "--pulse-delay": `${options.pulseDelay || 0}s`,
+    },
+  );
+}
+
+/* ---------- Component details ---------- */
+
+function drawDetail(svg, detail, delay) {
+  const classes = `node ${detail.tone}`;
+  const ax = detail.vertical ? 0 : 1;
+  const ay = detail.vertical ? 1 : 0;
+
+  const pop = (index) => ({
+    "--pop-delay": `${delay + index * 0.06}s`,
+  });
+
+  if (detail.type === "dots") {
+    [-1, 0, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.8,
+          cy: detail.y + ay * j * 1.8,
+          r: 0.5,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
+
+  if (detail.type === "pads") {
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "rect",
+        {
+          x: detail.x + ax * j * 1.4 - 0.8,
+          y: detail.y + ay * j * 1.4 - 0.8,
+          width: 1.6,
+          height: 1.6,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
+
+  if (detail.type === "ringpads") {
+    el(
+      svg,
+      "circle",
+      {
+        cx: detail.x,
+        cy: detail.y,
+        r: 3.1,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
+
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.2,
+          cy: detail.y + ay * j * 1.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+
+  if (detail.type === "oval") {
+    const width = detail.vertical ? 3.6 : 8.4;
+    const height = detail.vertical ? 8.4 : 3.6;
+
+    el(
+      svg,
+      "rect",
+      {
+        x: detail.x - width / 2,
+        y: detail.y - height / 2,
+        width,
+        height,
+        rx: 1.8,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
+
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 2.2,
+          cy: detail.y + ay * j * 2.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+}
+
+export function renderCircuit(svg, subject = DEFAULT_SUBJECT) {
+  let cancelled = false;
+  let frameId = null;
+
+  const build = (attempt = 0) => {
+    if (cancelled || !svg || !svg.isConnected) return;
+
+    // Use layout dimensions so wrapper transforms do not
+    // distort the circuit's coordinate system.
+    const width = svg.clientWidth;
+    const height = svg.clientHeight;
+
+    if (!width || !height) {
+      if (attempt < 10) {
+        frameId = requestAnimationFrame(() => build(attempt + 1));
+      }
+      return;
+    }
+
+    const H = (100 * height) / width;
+
+    svg.setAttribute("viewBox", `0 0 100 ${H}`);
+    svg.replaceChildren();
+
+    const layout = generate(H, makeBlocker(H, subject));
+
+    const groups = [
+      ...layout.buses.map((bus) => ({ bus })),
+      ...layout.singles.map((single) => ({ single })),
+    ];
+
+    // Fisher–Yates shuffle.
+    for (let i = groups.length - 1; i > 0; i--) {
+      const j = RI(0, i);
+      [groups[i], groups[j]] = [groups[j], groups[i]];
+    }
+
+    const gap = R(0.04, 0.08);
+
+    groups.forEach((group, rank) => {
+      const start = 0.35 + rank * gap + R(0, 0.06);
+      const cycle = R(5, 11);
+      const outward = chance(0.65);
+
+      if (group.bus) {
+        const duration = R(0.4, 0.65);
+
+        // Wait until all lanes finish drawing before pulsing.
+        const pulseDelay =
+          start +
+          duration +
+          (group.bus.lanes.length - 1) * 0.03 +
+          0.8 +
+          R(0, cycle);
+
+        group.bus.lanes.forEach((lane, index) => {
+          drawTrace(svg, lane, {
+            tone: group.bus.tone,
+            weight: 1.1,
+            start: start + index * 0.03,
+            dur: duration,
+            cycle,
+            pulseDelay: pulseDelay + index * 0.07,
+            outward,
+            end: group.bus.end,
+            r: 0.75,
+          });
+        });
+      } else {
+        const duration = R(0.35, 0.7);
+
+        drawTrace(svg, group.single.pts, {
+          tone: group.single.tone,
+          weight: group.single.weight,
+          start,
+          dur: duration,
+          cycle,
+          pulseDelay: start + duration + 0.8 + R(0, cycle),
+          outward,
+          end: group.single.end,
+          r: 1.05,
+        });
+      }
+    });
+
+    layout.bells.forEach((bell) => {
+      drawTrace(svg, bell.pts, {
+        tone: bell.tone,
+        weight: 1.1,
+        start: R(0.9, 1.7),
+        dur: 0.3,
+        end: "ring",
+        r: 0.85,
+        startPad: true,
+      });
+    });
+
+    layout.details.forEach((detail) => {
+      drawDetail(svg, detail, R(1.2, 2.1));
+    });
+  };
+
+  build();
+
+  return () => {
+    cancelled = true;
+
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+  };
+}
+const List = ({ onInteractionChange }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const [displayedIndex, setDisplayedIndex] = useState(0);
+  const introSectionRef = useRef(null);
+  const testimonialsSectionRef = useRef(null);
+
+  const galleryViewportRef = useRef(null);
+  const thumbnailRefs = useRef([]);
+
+  const activeIndexRef = useRef(0);
+  const requestedIndexRef = useRef(0);
+
+  const galleryScrollTimeoutRef = useRef(null);
+  const backgroundRefs = useRef([]);
+  const titleRef = useRef(null);
+  const infoRef = useRef(null);
+  const creditsRef = useRef(null);
+  const projectImageRef = useRef(null);
+  const projectImageElementRef = useRef(null);
+
+  const infoSplitRef = useRef(null);
+  const isAnimating = useRef(false);
+  const shouldAnimateIn = useRef(false);
+  const projectNumberRef = useRef(null);
+const galleryRunwayRef =
+  useRef(null)
+  const treatmentNumberRef = useRef(null);
+  const displayedTestimonial = testimonials[displayedIndex];
+
+  const getTextTargets = () => {
+    return [
+      projectNumberRef.current,
+      titleRef.current,
+      treatmentNumberRef.current,
+      ...(infoSplitRef.current?.lines ?? []),
+      creditsRef.current,
+    ].filter(Boolean);
+  };
+
+  useLayoutEffect(() => {
+    const intro = introSectionRef.current;
+
+    const main = testimonialsSectionRef.current;
+
+    if (!intro || !main) {
+      return undefined;
+    }
+
+    const media = gsap.matchMedia();
+
+    media.add("(min-width: 901px)", () => {
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: intro,
+          start: "top top",
+
+          end: () => `+=${intro.offsetHeight}`,
+
+          pin: intro,
+          pinSpacing: false,
+          scrub: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      timeline.fromTo(
+        main,
+        {
+          rotationX: 8,
+
+          transformOrigin: "50% 100%",
+
+          transformPerspective: 1600,
+
+          backfaceVisibility: "hidden",
+        },
+        {
+          rotationX: 0,
+          ease: "none",
+        },
+        0,
+      );
+    });
+
+media.add(
+  "(max-width: 900px)",
+  () => {
+    const viewport =
+      galleryViewportRef.current
+
+    const runway =
+      galleryRunwayRef.current
+
+    if (!viewport || !runway) {
+      return undefined
+    }
+
+    gsap.set(main, {
+      clearProps:
+        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+
+      willChange: "auto",
+    })
+
+
+    const introPin =
+      ScrollTrigger.create({
+        trigger: intro,
+        start: "top top",
+
+        end: () =>
+          `+=${intro.offsetHeight}`,
+
+        pin: intro,
+        pinSpacing: false,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      })
+
+    const getStepDistance = () =>
+      Math.max(
+        main.offsetHeight * 0.35,
+        240
+      )
+
+    const updateRunwayHeight = () => {
+      const testimonialDistance =
+        (
+          testimonials.length -
+          1
+        ) *
+        getStepDistance()
+
+      runway.style.height =
+        `${
+          main.offsetHeight +
+          testimonialDistance
+        }px`
+    }
+
+    const scrollThumbnailToIndex = (
+      index
+    ) => {
+      const thumbnail =
+        thumbnailRefs.current[index]
+
+      if (!thumbnail) return
+
+      const viewportRect =
+        viewport.getBoundingClientRect()
+
+      const thumbnailRect =
+        thumbnail.getBoundingClientRect()
+
+      const targetScrollLeft =
+        viewport.scrollLeft +
+        thumbnailRect.left -
+        viewportRect.left -
+        12
+
+      gsap.killTweensOf(viewport)
+
+      gsap.to(viewport, {
+        scrollLeft:
+          targetScrollLeft,
+
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      })
+    }
+
+    updateRunwayHeight()
+
+
+    
+
+const galleryState =
+  ScrollTrigger.create({
+    trigger: runway,
+    start: "top top",
+    end: "bottom bottom",
+
+    invalidateOnRefresh: true,
+    onRefreshInit:
+      updateRunwayHeight,
+  })
+
+
+    let touchStartX = 0
+    let touchStartY = 0
+    let touchHandled = false
+
+const handleTouchStart = (event) => {
+  const touch = event.touches[0]
+
+  if (!touch) return
+
+  touchStartX = touch.clientX
+  touchStartY = touch.clientY
+  touchHandled = false
+}
+
+const handleTouchMove = (event) => {
+  const touch = event.touches[0]
+
+  if (!touch) return
+
+  const rect =
+    main.getBoundingClientRect()
+
+  const viewportHeight =
+    window.visualViewport?.height ??
+    window.innerHeight
+
+  const galleryControlsGesture =
+    rect.top <= 16 &&
+    rect.bottom >=
+      viewportHeight * 0.75
+
+  if (!galleryControlsGesture) {
+    return
+  }
+
+  const consumeGesture = () => {
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
+    event.stopPropagation()
+  }
+
+  if (touchHandled) {
+    consumeGesture()
+    return
+  }
+
+  const deltaX =
+    touchStartX - touch.clientX
+
+  const deltaY =
+    touchStartY - touch.clientY
+
+  const absoluteX =
+    Math.abs(deltaX)
+
+  const absoluteY =
+    Math.abs(deltaY)
+
+  if (
+    absoluteX < 6 &&
+    absoluteY < 6
+  ) {
+    return
+  }
+
+  if (absoluteX > absoluteY) {
+    return
+  }
+
+  consumeGesture()
+
+  if (absoluteY < 10) {
+    return
+  }
+
+  touchHandled = true
+
+  const currentIndex =
+    activeIndexRef.current
+
+  const direction =
+    deltaY > 0 ? 1 : -1
+
+  const isFirst =
+    currentIndex === 0
+
+  const isLast =
+    currentIndex ===
+    testimonials.length - 1
+
+  if (
+    direction < 0 &&
+    isFirst
+  ) {
+    window.scrollTo({
+      top: galleryState.start - 2,
+      behavior: "auto",
+    })
+
+    return
+  }
+
+  if (
+    direction > 0 &&
+    isLast
+  ) {
+    window.scrollTo({
+      top: galleryState.end + 2,
+      behavior: "auto",
+    })
+
+    return
+  }
+
+  const nextIndex =
+    currentIndex + direction
+
+  requestedIndexRef.current =
+    nextIndex
+
+  handleItemClick(nextIndex)
+  scrollThumbnailToIndex(nextIndex)
+}
+
+    const resetTouch = () => {
+      touchStartX = 0
+      touchStartY = 0
+      touchHandled = false
+    }
+
+    main.addEventListener(
+      "touchstart",
+      handleTouchStart,
+      {
+        passive: true,
+      }
+    )
+
+    main.addEventListener(
+      "touchmove",
+      handleTouchMove,
+      {
+        passive: false,
+      }
+    )
+
+    main.addEventListener(
+      "touchend",
+      resetTouch,
+      {
+        passive: true,
+      }
+    )
+
+    main.addEventListener(
+      "touchcancel",
+      resetTouch,
+      {
+        passive: true,
+      }
+    )
+
+    return () => {
+      main.removeEventListener(
+        "touchstart",
+        handleTouchStart
+      )
+
+      main.removeEventListener(
+        "touchmove",
+        handleTouchMove
+      )
+
+      main.removeEventListener(
+        "touchend",
+        resetTouch
+      )
+
+      main.removeEventListener(
+        "touchcancel",
+        resetTouch
+      )
+
+
+      introPin.kill()
+      galleryState.kill()
+
+      gsap.killTweensOf(viewport)
+
+      runway.style.removeProperty(
+        "height"
+      )
+    }
+  }
+)
+    const refreshFrame = requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+
+    return () => {
+      cancelAnimationFrame(refreshFrame);
+
+      media.revert();
+    };
+  }, []);
+  useLayoutEffect(() => {
+    if (!infoRef.current) {
+      return undefined;
+    }
+
+    const context = gsap.context(() => {
+      infoSplitRef.current = SplitText.create(infoRef.current, {
+        type: "lines",
+        linesClass: "project-info-line",
+        mask: "lines",
+      });
+
+      const textTargets = getTextTargets();
+      const imageFrame = projectImageRef.current;
+      const imageElement = projectImageElementRef.current;
+
+      const imageBottom = window.matchMedia("(max-width: 900px)").matches
+        ? "14%"
+        : "12%";
+
+
+      gsap.set(imageFrame, {
+        scale: 1,
+        bottom: imageBottom,
+      });
+
+      if (imageElement) {
+        gsap.set(imageElement, {
+          scale: 1,
+        });
+      }
+
+      if (!shouldAnimateIn.current) {
+        gsap.set(textTargets, {
+          y: 0,
+        });
+
+        gsap.set(imageFrame, {
+          "--close": 0,
+        });
+
+        return;
+      }
+      const timeline = gsap.timeline();
+
+      /*
+       * Open the new image first. Interaction
+       * unlocks as soon as this short reveal
+       * finishes.
+       */
+      timeline.fromTo(
+        imageFrame,
+        {
+          "--close": 1,
+        },
+        {
+          "--close": 0,
+          duration: 0.25,
+          ease: "power4.out",
+          overwrite: "auto",
+
+          onComplete: () => {
+            shouldAnimateIn.current = false;
+
+            isAnimating.current = false;
+
+            requestedIndexRef.current = activeIndexRef.current;
+          },
+        },
+        0,
+      );
+
+      timeline.fromTo(
+        textTargets,
+        {
+          y: 40,
+        },
+        {
+          y: 0,
+          duration: 0.6,
+          ease: "power4.out",
+          stagger: 0.04,
+          overwrite: "auto",
+        },
+        0,
+      );
+    }, testimonialsSectionRef);
+
+    return () => {
+      context.revert();
+      infoSplitRef.current?.revert();
+      infoSplitRef.current = null;
+    };
+  }, [displayedIndex]);
+
+  useLayoutEffect(() => {
+    return () => {
+      gsap.killTweensOf(backgroundRefs.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = testimonialsSectionRef.current;
+
+    if (!section || !onInteractionChange) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        onInteractionChange(entry.isIntersecting);
+      },
+      {
+        threshold: 0.4,
+      },
+    );
+
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onInteractionChange]);
+
+  useEffect(() => {
+    let isProgrammaticScroll = false;
+    const desktopQuery = window.matchMedia("(min-width: 901px)");
+    const viewport = galleryViewportRef.current;
+
+    const section = testimonialsSectionRef.current;
+
+    if (!viewport || !section) {
+      return undefined;
+    }
+    if (!viewport || !section || !desktopQuery.matches) {
+      return undefined;
+    }
+
+    let wheelAccumulator = 0;
+    let wheelLocked = false;
+    let wheelUnlockTimer = null;
+
+    const getIsHorizontal = () =>
+      window.matchMedia("(max-width: 900px)").matches;
+
+    const isSectionAligned = () => {
+      const rect = section.getBoundingClientRect();
+
+      const tolerance = Math.max(16, window.innerHeight * 0.025);
+
+      return Math.abs(rect.top) <= tolerance;
+    };
+
+    const selectClosestThumbnail = () => {
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const viewportStart = isHorizontal
+        ? viewportRect.left + 12
+        : viewportRect.top + 12;
+
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+
+      thumbnailRefs.current.forEach((thumbnail, index) => {
+        if (!thumbnail) return;
+
+        const rect = thumbnail.getBoundingClientRect();
+
+        const thumbnailStart = isHorizontal ? rect.left : rect.top;
+
+        const distance = Math.abs(thumbnailStart - viewportStart);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+
+          closestIndex = index;
+        }
+      });
+
+      requestedIndexRef.current = closestIndex;
+
+      handleItemClick(closestIndex);
+    };
+
+    const scrollToThumbnail = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+
+      if (!thumbnail) return;
+
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      const targetPosition = isHorizontal
+        ? viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12
+        : viewport.scrollTop + thumbnailRect.top - viewportRect.top - 12;
+
+      isProgrammaticScroll = true;
+
+      viewport.style.scrollSnapType = "none";
+
+      gsap.killTweensOf(viewport);
+
+      gsap.to(viewport, {
+        ...(isHorizontal
+          ? {
+              scrollLeft: targetPosition,
+            }
+          : {
+              scrollTop: targetPosition,
+            }),
+
+        duration: 0.55,
+        ease: "power2.inOut",
+        overwrite: true,
+
+        onComplete: () => {
+          viewport.style.removeProperty("scroll-snap-type");
+
+          requestAnimationFrame(() => {
+            isProgrammaticScroll = false;
+          });
+        },
+      });
+    };
+
+    const handleGalleryScroll = () => {
+      if (getIsHorizontal()) {
+        return;
+      }
+
+      if (isProgrammaticScroll) {
+        return;
+      }
+
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      galleryScrollTimeoutRef.current = window.setTimeout(
+        selectClosestThumbnail,
+        120,
+      );
+    };
+    const keepWheelLocked = () => {
+      window.clearTimeout(wheelUnlockTimer);
+
+      wheelUnlockTimer = window.setTimeout(() => {
+        wheelLocked = false;
+        wheelAccumulator = 0;
+      }, 140);
+    };
+
+    const handleSectionWheel = (event) => {
+      if (!isSectionAligned()) {
+        return;
+      }
+
+      const delta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX;
+
+      if (delta === 0) return;
+
+      const currentIndex = requestedIndexRef.current;
+
+      const isFirst = currentIndex === 0;
+
+      const isLast = currentIndex === testimonials.length - 1;
+
+      if (wheelLocked) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        keepWheelLocked();
+        return;
+      }
+
+      if ((delta < 0 && isFirst) || (delta > 0 && isLast)) {
+        wheelAccumulator = 0;
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      wheelAccumulator += delta;
+
+      if (Math.abs(wheelAccumulator) < 10) {
+        return;
+      }
+
+      const direction = wheelAccumulator > 0 ? 1 : -1;
+
+      const nextIndex = Math.max(
+        0,
+        Math.min(testimonials.length - 1, currentIndex + direction),
+      );
+
+      wheelAccumulator = 0;
+      wheelLocked = true;
+
+      requestedIndexRef.current = nextIndex;
+      handleItemClick(nextIndex);
+      scrollToThumbnail(nextIndex);
+
+      keepWheelLocked();
+    };
+
+    viewport.addEventListener("scroll", handleGalleryScroll, {
+      passive: true,
+    });
+
+    section.addEventListener("wheel", handleSectionWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      window.clearTimeout(wheelUnlockTimer);
+
+      gsap.killTweensOf(viewport);
+
+      viewport.style.removeProperty("scroll-snap-type");
+
+      viewport.removeEventListener("scroll", handleGalleryScroll);
+
+      section.removeEventListener("wheel", handleSectionWheel, true);
+    };
+  }, []);
+
+  const handleItemClick = (nextIndex) => {
+    requestedIndexRef.current = nextIndex;
+
+    if (nextIndex === activeIndexRef.current || isAnimating.current) {
+      return;
+    }
+
+    isAnimating.current = true;
+
+    const previousIndex = activeIndexRef.current;
+    activeIndexRef.current = nextIndex;
+
+    const previousBackground = backgroundRefs.current[previousIndex];
+
+    const nextBackground = backgroundRefs.current[nextIndex];
+
+    setActiveIndex(nextIndex);
+
+    gsap.killTweensOf([previousBackground, nextBackground].filter(Boolean));
+
+    if (nextBackground) {
+      gsap.set(nextBackground, {
+        visibility: "visible",
+      });
+
+      gsap.to(nextBackground, {
+        opacity: 1,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+      });
+    }
+
+    if (previousBackground) {
+      gsap.to(previousBackground, {
+        opacity: 0,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+        onComplete: () => {
+          gsap.set(previousBackground, {
+            visibility: "hidden",
+          });
+        },
+      });
+    }
+
+    const textTargets = getTextTargets();
+
+    const outgoingTimeline = gsap.timeline({
+      onComplete: () => {
+        shouldAnimateIn.current = true;
+        setDisplayedIndex(nextIndex);
+      },
+    });
+
+    outgoingTimeline.to(
+      textTargets,
+      {
+        y: -60,
+        duration: 0.5,
+        ease: "power4.in",
+        stagger: 0.05,
+      },
+      0,
+    );
+    const textExitDuration = 0.5 + Math.max(0, textTargets.length - 1) * 0.05;
+
+    outgoingTimeline.to(
+      projectImageRef.current,
+      {
+        "--close": 1,
+        duration: 0.3,
+        ease: "power2.in",
+      },
+      textExitDuration - 0.3,
+    );
+  };
+  const circuitRef = useRef(null);
+
+  useEffect(() => {
+    const svg = circuitRef.current;
+    if (!svg) return;
+
+    let stopCircuit = () => {};
+    let previousWidth = -1;
+    let previousHeight = -1;
+
+    const rebuild = () => {
+      const width = svg.clientWidth;
+      const height = svg.clientHeight;
+
+      if (!width || !height) return;
+
+      if (width === previousWidth && height === previousHeight) {
+        return;
+      }
+
+      previousWidth = width;
+      previousHeight = height;
+
+      stopCircuit();
+      stopCircuit = renderCircuit(svg);
+    };
+
+    rebuild();
+
+    const observer = new ResizeObserver(rebuild);
+    observer.observe(svg);
+
+    return () => {
+      observer.disconnect();
+      stopCircuit();
+    };
+  }, [displayedIndex]);
+  return (
+    <div className="relative w-full">
+      <section
+        ref={introSectionRef}
+        className="
+    intro relative z-0
+    h-screen w-full max-w-full
+    overflow-hidden
+    max-[900px]:h-svh
+  "
+      >
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <JanusFace />
+        </div>
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] flex-col md:flex-row">
+          <div className="hidden min-h-screen md:block md:w-1/2" />
+
+          <div className="flex min-h-screen w-full items-center justify-center px-6 md:w-1/2 md:px-0">
+            <div className="w-full max-w-[1200px]">
+              <TerminalPreloader />
+            </div>
+          </div>
+        </div>
+      </section>
+<div
+  ref={galleryRunwayRef}
+  className="relative"
+>
+      <main
+        ref={testimonialsSectionRef}
+        className="
+    relative z-10
+    flex h-screen
+    w-full max-w-full
+    origin-bottom
+    overflow-hidden
+    bg-[#0f0f0f]
+
+    will-change-transform
+    [backface-visibility:hidden]
+
+    max-[900px]:sticky
+    max-[900px]:top-0
+    max-[900px]:h-[100svh]
+    max-[900px]:min-h-[100svh]
+    max-[900px]:flex-col
+    max-[900px]:will-change-auto
+    max-[900px]:[backface-visibility:visible]
+
+  "
+      >
+        <div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
+          <div
+            className="
+      absolute -inset-[16%]
+      scale-110
+      overflow-hidden
+      blur-[100px]
+      transform-gpu
+    "
+          >
+            {testimonials.map((testimonial, index) => (
+              <img
+                key={`background-${testimonial.name}-${index}`}
+                ref={(element) => {
+                  backgroundRefs.current[index] = element;
+                }}
+                src={testimonial.image}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  opacity: index === 0 ? 1 : 0,
+
+                  visibility: index === 0 ? "visible" : "hidden",
+
+                  zIndex: index === 0 ? 2 : 0,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="absolute inset-0 bg-white/40" />
+        </div>
+
+        <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
+          <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
+            <FreySmilesGrid />
+          </div>
+        </div>
+
+        {/* Active testimonial */}
+        <div className="relative flex-[2] p-4">
+          <div
+            aria-hidden="true"
+            className="
+    pointer-events-none
+    absolute inset-0 z-0
+    border-y border-white/15
+    bg-white/[0.15]
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
+    backdrop-blur-[22px]
+    backdrop-saturate-[115%]
+    max-[900px]:hidden
+  "
+          />
+          <div
+            className="
+    relative z-10
+    translate-y-16
+    font-anton
+    text-[18px]
+    uppercase
+    opacity-70
+
+    max-[900px]:translate-y-4
+    max-[900px]:text-[16px]
+  "
+          >
+            A visual archive of selected patient treatment outcomes.
+          </div>
+
+          {/* Testimonial details */}
+          <div
+            key={`details-${displayedIndex}`}
+            className="
+    absolute left-8 top-12
+    w-[min(34rem,calc(100%_-_4rem))]
+    text-left
+
+    max-[900px]:left-4
+    max-[900px]:top-[5.75rem]
+    max-[900px]:w-[calc(100%_-_2rem)]
+
+    max-[380px]:top-[6.5rem]
+  "
+          >
+            <div className="flex flex-col gap-4">
+              <div
+                className="
+        flex translate-y-[10vh]
+        flex-col gap-4
+        font-neueroman
+        text-[15px]
+        uppercase
+
+        max-[900px]:translate-y-0
+      "
+              >
+                <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
+                  <div className="overflow-hidden">
+                    <span
+                      ref={projectNumberRef}
+                      aria-hidden="true"
+                      className="relative inline-block text-base leading-none opacity-70 will-change-transform"
+                    >
+                      <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                    </span>
+                  </div>
+
+                  <div className="overflow-hidden">
+                    <div
+                      ref={titleRef}
+                      className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                    >
+                      {displayedTestimonial.project}
+                    </div>
+                  </div>
+                </div>
+                <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
+                  <div className="overflow-hidden">
+                    <span
+                      ref={treatmentNumberRef}
+                      aria-hidden="true"
+                      className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+                    >
+                      <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                    </span>
+                  </div>
+
+                  <div className="overflow-hidden">
+                    <p
+                      ref={infoRef}
+                      className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                    >
+                      {displayedTestimonial.type || "Treatment outcome"}
+                    </p>
+                  </div>
+
+                  <div
+                    aria-hidden="true"
+                    className="
+  pointer-events-none
+  absolute bottom-0 left-[-2rem]
+  z-10 h-[12px]
+  w-[calc(100%+2rem)]
+
+  max-[900px]:left-[-1rem]
+  max-[900px]:w-[calc(100%+1rem)]
+"
+                  >
+                    {/* Moves left */}
+                    <div
+                      className="
+      absolute left-0 top-0
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-left_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                    />
+
+                    {/* Moves right */}
+                    <div
+                      className="
+      absolute left-0 top-[10px]
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-right_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            key={`image-${displayedIndex}`}
+            ref={projectImageRef}
+            className="
+    testimonial-image-clip-frame
+    absolute bottom-[12%] left-4
+    h-1/2 w-3/4
+    will-change-transform
+
+    max-[900px]:bottom-[14%]
+    max-[900px]:left-4
+    max-[900px]:right-4
+    max-[900px]:w-auto
+  "
+          >
+            <div className="testimonial-image-clip-reveal">
+              <div className="testimonial-image-clip-photo h-full w-full">
+                <img
+                  src={displayedTestimonial.image}
+                  alt=""
+                  className="h-full w-full origin-center object-cover"
+                />
+
+                <div className="testimonial-image-clip-scan" />
+
+                <svg
+                  ref={circuitRef}
+                  className="testimonial-image-clip-circ"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+
+            <div
+              className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-tl
+    "
+            />
+
+            <div
+              className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-br
+    "
+            />
+          </div>
+        </div>
+
+        <div
+          ref={galleryViewportRef}
+          className="
+    relative z-20
+    h-full w-[124px] shrink-0
+    snap-y snap-mandatory
+    scroll-pt-3
+    overflow-y-auto overflow-x-hidden
+overscroll-y-contain
+max-[900px]:overscroll-y-auto
+max-[900px]:overscroll-x-contain
+    border-l border-white/10
+    bg-white/30
+    p-3
+    backdrop-blur-[20px]
+    [scrollbar-width:none]
+    [&::-webkit-scrollbar]:hidden
+
+    max-[900px]:h-[112px]
+    max-[900px]:w-full
+   max-[900px]:snap-none
+max-[900px]:overflow-x-hidden
+    max-[900px]:overflow-y-hidden
+    max-[900px]:border-l-0
+    max-[900px]:border-t
+  "
+        >
+          <div
+            className="
+    flex min-h-max w-full
+    flex-col gap-3
+    pb-[calc(100vh-174px)]
+
+    max-[900px]:h-full
+    max-[900px]:min-h-0
+    max-[900px]:w-max
+    max-[900px]:flex-row
+    max-[900px]:pb-0
+    max-[900px]:pr-[calc(100vw-144px)]
+  "
+          >
+            {testimonials.map((testimonial, index) => {
+              const isActive = index === activeIndex;
+
+              return (
+                <button
+                  key={`gallery-${testimonial.name}-${index}`}
+                  ref={(element) => {
+                    thumbnailRefs.current[index] = element;
+                  }}
+                  type="button"
+                  className={[
+                    "treatment-thumbnail",
+                    "relative",
+                    "block",
+                    "h-[150px]",
+                    "w-full",
+                    "shrink-0",
+                    "snap-start",
+                    "overflow-hidden",
+                    "border-0",
+                    "bg-[#aeaeae]",
+                    "p-0",
+
+                    "max-[900px]:h-full",
+                    "max-[900px]:w-[120px]",
+
+                    "after:pointer-events-none",
+                    "after:absolute",
+                    "after:inset-0",
+                    "after:z-10",
+                    "after:content-['']",
+                    "after:transition-colors",
+                    "after:delay-500",
+                    "after:duration-500",
+
+                    isActive ? "after:bg-black/0" : "after:bg-black/65",
+                  ].join(" ")}
+                  onClick={() => {
+                    requestedIndexRef.current = index;
+
+                    handleItemClick(index);
+                  }}
+                  aria-label={`View ${testimonial.name}`}
+                  aria-pressed={isActive}
+                >
+                  <img
+                    src={testimonial.image}
+                    alt=""
+                    className="absolute inset-0 block !h-full !w-full !object-cover"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+      </div>
+    </div>
+  );
+};
+
+function JanusFace() {
+  const [leftShapes, setLeftShapes] = useState([]);
+  const [rightShapes, setRightShapes] = useState([]);
+
+  const r = (from, to) => Math.random() * (to - from) + from;
+  const ri = (from, to) => ~~r(from, to);
+  const pick = (...args) => args[ri(0, args.length)];
+
+  const symbols = [
+    "□",
+    "▢",
+    "▭",
+    "▯",
+
+    "○",
+    "◯",
+    "◌",
+
+    "△",
+    "▽",
+    "▷",
+    "◁",
+
+    "◇",
+    "◊",
+
+    "◅",
+    "▻",
+  ];
+
+  const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
+    return Array.from({ length }, (_, i) => {
+      const shouldBlink = !isMobile && (i + rowIndex) % 2 === 0;
+
+      return (
+        <span
+          key={i}
+          className={shouldBlink ? "symbol symbol-blink" : "symbol"}
+          style={
+            shouldBlink
+              ? {
+                  "--blink-delay": `${(i * 0.09 + rowIndex * 0.17) % 4}s`,
+
+                  "--blink-duration": `${3.5 + ((i + rowIndex) % 4) * 0.4}s`,
+                }
+              : undefined
+          }
+        >
+          {pick(...symbols)}
+        </span>
+      );
+    });
+  };
+  const generateBaseParagraphs = (isMobile = false) => {
+    const paragraphs = [];
+
+    const rowCount = 50;
+
+    for (let i = 0; i < rowCount; i++) {
+      const offset = r(45, 95);
+      const color = "#AAA6E3";
+
+      const textLength = isMobile ? ri(18, 34) : ri(25, 95);
+
+      paragraphs.push({
+        offset,
+        color,
+        textLength,
+        key: i,
+      });
+    }
+
+    return paragraphs;
+  };
+
+  const build = () => {
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const baseData = generateBaseParagraphs(isMobile);
+
+    const leftParas = baseData.map((data, i) => (
+      <div
+        key={i}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "left",
+          mask: `linear-gradient(
+          to right,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    const rightParas = baseData.map((data, i) => (
+      <div
+        key={`r${i}`}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "right",
+          mask: `linear-gradient(
+          to left,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    setLeftShapes(leftParas);
+    setRightShapes(rightParas);
+  };
+
+  useEffect(() => {
+    build();
+  }, []);
+
+  const shapePath =
+    "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
+
+  const mirrorPolygon = (poly) => {
+    return poly
+      .split(",")
+      .map((pt) => pt.trim())
+      .map((pt) => {
+        const [xRaw, y] = pt.split(/\s+/);
+        const xPercent = parseFloat(xRaw);
+        const mirroredX = (100 - xPercent).toFixed(2) + "%";
+        return `${mirroredX} ${y}`;
+      })
+      .join(", ");
+  };
+
+  const leftShapePath = mirrorPolygon(shapePath);
+
+  return (
+    <div className="janus-main" onClick={build} style={{ cursor: "pointer" }}>
+      <div className="janus-container">
+        {/* Left Face */}
+        <div className="face-container left-face">
+          <div
+            className="janus-shape left-shape"
+            style={{ shapeOutside: `polygon(${leftShapePath})` }}
+          />
+          <div className="text-container left-text">{leftShapes}</div>
+        </div>
+
+        {/* Right Face */}
+        <div className="face-container right-face">
+          <div
+            className="janus-shape right-shape"
+            style={{ shapeOutside: `polygon(${shapePath})` }}
+          />
+          <div className="text-container right-text">{rightShapes}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Testimonials = () => {
+  const textRef = useRef(null);
+  const bgTextColor = "#CECED3";
+  const fgTextColor = "#161818";
+  const [disableFluid, setDisableFluid] = useState(false);
+  useEffect(() => {
+    if (!textRef.current) return;
+
+    const split = new SplitText(textRef.current, { type: "words, chars" });
+
+    gsap.fromTo(
+      split.chars,
+      { color: bgTextColor },
+      {
+        color: fgTextColor,
+        stagger: 0.03,
+        duration: 1,
+        ease: "power2.out",
+      },
+    );
+
+    return () => split.revert();
+  }, []);
+
+
+
+  const listRefs = useRef([]);
+
+  useEffect(() => {
+    listRefs.current.forEach((el, i) => {
+      gsap.fromTo(
+        el,
+        { filter: "blur(8px)", opacity: 0 },
+        {
+          filter: "blur(0px)",
+          opacity: 1,
+          scrollTrigger: {
+            trigger: el,
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+          duration: 0.6,
+          ease: "power2.out",
+        },
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    const lines = gsap.utils.toArray("#smile-scroll-section .line");
+
+    lines.forEach((line, index) => {
+      const direction = index % 2 === 0 ? -1 : 1;
+
+      gsap.to(line, {
+        xPercent: direction * 50,
+        ease: "none",
+        scrollTrigger: {
+          trigger: "#smile-scroll-section",
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    });
+  }, []);
+
+  const textRefs = useRef([]);
+
+  useEffect(() => {
+    textRefs.current.forEach((el, i) => {
+      gsap.fromTo(
+        el,
+        { filter: "blur(8px)", opacity: 0 },
+        {
+          filter: "blur(0px)",
+          opacity: 1,
+          scrollTrigger: {
+            trigger: el,
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+          duration: 0.6,
+          ease: "power2.out",
+        },
+      );
+    });
+  }, []);
+
+  const movingBlobRef = useRef(null);
+
+  const points = [
+    { x: 150, y: 60 },
+    { x: 210, y: 110 },
+    { x: 200, y: 190 },
+    { x: 120, y: 210 },
+    { x: 70, y: 140 },
+    { x: 100, y: 100 },
+  ];
+
+  useLayoutEffect(() => {
+    const tl = gsap.timeline({
+      repeat: -1,
+      defaults: { ease: "sine.inOut", duration: 1.6 },
+    });
+
+    points.forEach((p) => {
+      tl.to(movingBlobRef.current, {
+        attr: { cx: p.x, cy: p.y },
+      });
+    });
+  }, []);
+
+  return (
+    <>
+      {/* <FluidSimulation disabled={disableFluid} /> */}
+      <List onInteractionChange={setDisableFluid} />
+
+      <Background />
+    </>
+  );
+};
+
+export default Testimonials;
+
+{
+  /* <section className="w-full py-12">
+        <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
+          <div className="flex items-center justify-between py-10 w-full">
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
+
+            <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
+          </div>
+
+          <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
+            Every smile tells a story — these are some of our favorites.
+          </div>
+
+        </section>
+      </section> */
 }
 
 // const FluidSimulation = ({ disabled }) => {
@@ -1035,2361 +4373,6 @@ if (typeof window !== "undefined") {
 //   );
 // };
 
-function Background() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    const renderer = new Renderer({
-      dpr: isMobile ? 0.75 : Math.min(window.devicePixelRatio, 1.5),
-
-      canvas: canvasRef.current,
-
-      width: window.innerWidth,
-
-      height: window.innerHeight,
-    });
-
-    const { gl } = renderer;
-
-gl.clearColor(
-  0.74,
-  0.745,
-  0.75,
-  1
-)
-
-    const geometry = new Triangle(gl);
-
-    const vertex = `
-      attribute vec2 uv;
-      attribute vec2 position;
-      uniform vec2 uResolution;
-      varying vec2 vUv;
-
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `;
-
-const fragment = `
-  precision mediump float;
-
-  uniform float uTime;
-  uniform float uScroll;
-  uniform vec2 uResolution;
-
-  uniform vec3 uPeach;
-  uniform vec3 uRose;
-  uniform vec3 uGray;
-  uniform vec3 uPearl;
-
-  varying vec2 vUv;
-
-  float random(vec2 point) {
-    return fract(
-      sin(
-        dot(
-          point,
-          vec2(127.1, 311.7)
-        )
-      ) * 43758.5453123
-    );
-  }
-
-  float noise(vec2 point) {
-    vec2 cell = floor(point);
-    vec2 local = fract(point);
-
-    local =
-      local *
-      local *
-      (3.0 - 2.0 * local);
-
-    float bottomLeft =
-      random(cell);
-
-    float bottomRight =
-      random(
-        cell +
-        vec2(1.0, 0.0)
-      );
-
-    float topLeft =
-      random(
-        cell +
-        vec2(0.0, 1.0)
-      );
-
-    float topRight =
-      random(
-        cell +
-        vec2(1.0, 1.0)
-      );
-
-    return mix(
-      mix(
-        bottomLeft,
-        bottomRight,
-        local.x
-      ),
-      mix(
-        topLeft,
-        topRight,
-        local.x
-      ),
-      local.y
-    );
-  }
-
-  float fbm(vec2 point) {
-    float value = 0.0;
-    float amplitude = 0.5;
-
-    for (
-      int octave = 0;
-      octave < 4;
-      octave++
-    ) {
-      value +=
-        amplitude *
-        noise(point);
-
-      point =
-        point * 2.03 +
-        vec2(4.1, 2.7);
-
-      amplitude *= 0.5;
-    }
-
-    return value;
-  }
-
-  void main() {
-    vec2 uv = vUv;
-
-    float aspect =
-      uResolution.x /
-      uResolution.y;
-
-    vec2 point =
-      uv - 0.5;
-
-    point.x *= aspect;
-
-    float time =
-      uTime * 0.16;
-
-    /*
-     * Large, slowly moving field.
-     */
-    float organicField =
-      fbm(
-        point * 1.75 +
-        vec2(
-          time * 0.16,
-          -time * 0.11
-        )
-      );
-
-    /*
-     * Smaller-scale surface movement.
-     */
-    float fineField =
-      fbm(
-        point * 3.8 +
-        vec2(
-          -time * 0.12,
-          time * 0.15
-        )
-      );
-float verticalLight =
-  smoothstep(
-    -0.7,
-    0.8,
-    point.y +
-    organicField * 0.16
-  );
-
-vec3 color = mix(
-  uGray,
-  uPearl,
-  0.18 +
-  verticalLight * 0.42
-);
-
-/*
- * Stronger white mist creates visible
- * cloudy areas without adding saturation.
- */
-float mist =
-  fbm(
-    point * 1.2 +
-    vec2(
-      time * 0.05,
-      time * 0.035
-    )
-  );
-
-float mistStrength =
-  smoothstep(
-    0.48,
-    0.9,
-    mist
-  );
-
-color = mix(
-  color,
-  vec3(0.94, 0.94, 0.93),
-  mistStrength * 0.28
-);
-
-/*
- * Main flowing current.
- */
-float peachAxis =
-  point.y +
-  0.19 *
-  sin(
-    point.x * 2.4 +
-    time +
-    organicField * 2.0
-  ) +
-  0.07 *
-  sin(
-    point.x * 6.5 -
-    time * 0.8
-  ) +
-  uScroll * 0.28;
-
-float peachRibbon =
-  exp(
-    -pow(
-      (
-        peachAxis +
-        0.06
-      ) / 0.14,
-      2.0
-    )
-  );
-
-peachRibbon *=
-  0.62 +
-  fineField * 0.38;
-
-/*
- * Secondary current.
- */
-float roseAxis =
-  point.y -
-  0.22 *
-  sin(
-    point.x * 1.8 -
-    time * 0.7 +
-    organicField * 1.7
-  ) +
-  0.13 +
-  uScroll * 0.2;
-
-float roseRibbon =
-  exp(
-    -pow(
-      roseAxis / 0.085,
-      2.0
-    )
-  );
-
-/*
- * White ribbon beside the warmer current.
- */
-float whiteRibbon =
-  exp(
-    -pow(
-      (
-        peachAxis -
-        0.16
-      ) / 0.075,
-      2.0
-    )
-  );
-
-color = mix(
-  color,
-  uPeach,
-  peachRibbon * 0.24
-);
-
-color = mix(
-  color,
-  uRose,
-  roseRibbon * 0.11
-);
-
-color = mix(
-  color,
-  vec3(0.97, 0.97, 0.96),
-  whiteRibbon * 0.24
-);
-
-/*
- * More visible surface variation.
- */
-color +=
-  (
-    fineField - 0.5
-  ) * 0.02;
-
-color = clamp(
-  color,
-  0.0,
-  1.0
-);
-
-gl_FragColor =
-  vec4(color, 1.0);
-  }
-`;
-
-const program = new Program(gl, {
-  vertex,
-  fragment,
-  uniforms: {
-    uTime: {
-      value: 0,
-    },
-
-    uScroll: {
-      value: 0,
-    },
- uPeach: {
-  value: new Color(
-    "#d5b7b2"
-  ),
-},
-
-uRose: {
-  value: new Color(
-    "#e4dae0"
-  ),
-},
-
-uGray: {
-  value: new Color(
-    "#b2b7be"
-  ),
-},
-
-uPearl: {
-  value: new Color(
-    "#e5e5e3"
-  ),
-},
-
-    uResolution: {
-      value: new Vec2(
-        gl.canvas.offsetWidth,
-        gl.canvas.offsetHeight
-      ),
-    },
-  },
-})
-
-    const mesh = new Mesh(gl, { geometry, program });
-
-    const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      renderer.setSize(width, height);
-      program.uniforms.uResolution.value.set(width, height);
-    };
-
-    let targetScroll = 0;
-    let currentScroll = 0;
-    let frameId = null;
-    let previousTime = 0;
-    let destroyed = false;
-
-    const handleScroll = () => {
-      targetScroll = window.scrollY * 0.00015;
-    };
-
-    const loop = (time) => {
-      if (destroyed) return;
-
-      frameId = requestAnimationFrame(loop);
-
-      const minimumFrameTime = isMobile ? 1000 / 30 : 0;
-
-      if (time - previousTime < minimumFrameTime) return;
-
-      previousTime = time;
-
-      program.uniforms.uTime.value = time * 0.001;
-
-      currentScroll += (targetScroll - currentScroll) * 0.06;
-      program.uniforms.uScroll.value = currentScroll;
-
-      renderer.render({ scene: mesh });
-    };
-
-    handleResize();
-    handleScroll();
-
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    frameId = requestAnimationFrame(loop);
-
-    return () => {
-      destroyed = true;
-
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId);
-      }
-
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10"
-    />
-  );
-}
-
-const TerminalPreloader = () => {
-  const [isMobile, setIsMobile] = useState(false);
-  const containerRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-
-    const updateViewport = () => {
-      setIsMobile(mediaQuery.matches);
-    };
-
-    updateViewport();
-    mediaQuery.addEventListener("change", updateViewport);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateViewport);
-    };
-  }, []);
-
-  const lines = isMobile
-    ? [
-        {
-          id: "mobile",
-          text: "We are committed to setting the highest standard through exceptional service. That commitment is supported by our use of state-of-the-art technology and strengthened by the expertise that comes from unmatched experience",
-          top: 0,
-        },
-      ]
-    : [
-        {
-          id: 1,
-          text: "We are committed to setting the highest standard through exceptional service",
-          top: 0,
-        },
-        {
-          id: 2,
-          text: "That commitment is supported by our use of state-of-the-art technology",
-          top: 20,
-        },
-        {
-          id: 3,
-          text: "And strengthened by the expertise that comes from unmatched experience",
-          top: 40,
-        },
-      ];
-
-  const MAX_CELL_ITERATIONS = 30;
-  const CELL_INTERVAL = 15;
-  const LINE_DELAY = 180;
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-
-    if (!container) return;
-
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    const lineElements = Array.from(
-      container.querySelectorAll(".terminal-line"),
-    );
-
-    const animatedLines = lineElements.map((lineElement, lineIndex) => {
-      const cellElements = Array.from(
-        lineElement.querySelectorAll(".terminal-cell"),
-      );
-
-      return {
-        startDelay: lineIndex * LINE_DELAY,
-        lastTick: 0,
-        finished: false,
-
-        cells: cellElements.map((element) => ({
-          element,
-          original: element.dataset.character ?? "",
-          signal: "",
-          displayedValue: null,
-          iterations: 0,
-          finished: false,
-        })),
-      };
-    });
-
-    const renderCell = (cell, value) => {
-      const displayedValue =
-        cell.original === " " ? " " : value || "\u00A0";
-
-      // Avoid rewriting the DOM when the value hasn't changed.
-      if (cell.displayedValue === displayedValue) return;
-
-      cell.element.textContent = displayedValue;
-      cell.displayedValue = displayedValue;
-    };
-
-    const finishCell = (cell) => {
-      cell.finished = true;
-      cell.signal = cell.original;
-      renderCell(cell, cell.original);
-    };
-
-    // Immediately display the final text for reduced-motion users.
-    if (reduceMotion) {
-      animatedLines.forEach(({ cells }) => {
-        cells.forEach(finishCell);
-      });
-
-      return;
-    }
-
-    // Clear all characters before starting.
-    animatedLines.forEach(({ cells }) => {
-      cells.forEach((cell) => {
-        cell.signal = "";
-        cell.iterations = 0;
-        cell.finished = false;
-        renderCell(cell, "");
-      });
-    });
-
-    let frameId = null;
-    let startTime = null;
-    let cancelled = false;
-
-    const updateLine = (line, time) => {
-      const previousSignals = line.cells.map((cell) => cell.signal);
-
-      line.cells.forEach((cell, index) => {
-        if (cell.finished) return;
-
-        const nextSignal =
-          index === 0
-            ? Math.random() < 0.5
-              ? "*"
-              : ":"
-            : previousSignals[index - 1];
-
-        cell.signal = nextSignal;
-        renderCell(cell, nextSignal);
-
-        if (nextSignal) {
-          cell.iterations += 1;
-        }
-
-        if (cell.iterations >= MAX_CELL_ITERATIONS) {
-          finishCell(cell);
-        }
-      });
-
-      line.finished = line.cells.every((cell) => cell.finished);
-      line.lastTick = time;
-    };
-
-    const animate = (time) => {
-      if (cancelled) return;
-
-      if (startTime === null) {
-        startTime = time;
-      }
-
-      const elapsed = time - startTime;
-
-      animatedLines.forEach((line) => {
-        if (line.finished || elapsed < line.startDelay) return;
-
-        if (
-          line.lastTick === 0 ||
-          time - line.lastTick >= CELL_INTERVAL
-        ) {
-          updateLine(line, time);
-        }
-      });
-
-      const allLinesFinished = animatedLines.every(
-        (line) => line.finished,
-      );
-
-      if (!allLinesFinished) {
-        frameId = requestAnimationFrame(animate);
-      }
-    };
-
-    frameId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelled = true;
-
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId);
-      }
-    };
-  }, [isMobile]);
-
-  const renderLine = (line) => {
-    const words = line.text.split(" ");
-    let characterPosition = 0;
-
-    return words.map((word, wordIndex) => {
-      const wordCharacters = Array.from(word);
-
-      const renderedWord = (
-        <span
-          key={`${line.id}-word-${wordIndex}`}
-          className="terminal-word"
-        >
-          {wordCharacters.map((character) => {
-            const position = characterPosition;
-            characterPosition += 1;
-
-            return (
-              <span
-                key={`${line.id}-${position}`}
-                className="terminal-cell"
-                data-character={character}
-                aria-hidden="true"
-              >
-                {character}
-              </span>
-            );
-          })}
-        </span>
-      );
-
-      if (wordIndex === words.length - 1) {
-        return renderedWord;
-      }
-
-      const spacePosition = characterPosition;
-      characterPosition += 1;
-
-      return (
-        <React.Fragment key={`${line.id}-group-${wordIndex}`}>
-          {renderedWord}
-
-          <span
-            key={`${line.id}-${spacePosition}`}
-            className="terminal-cell terminal-space"
-            data-character=" "
-            aria-hidden="true"
-          >
-            {" "}
-          </span>
-        </React.Fragment>
-      );
-    });
-  };
-
-  return (
-    <div className="terminal-preloader">
-      <div ref={containerRef} className="terminal-container">
-        {lines.map((line) => (
-          <div
-            key={line.id}
-            className="terminal-line"
-            style={{ top: `${line.top}px` }}
-            aria-label={line.text}
-          >
-            {renderLine(line)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const testimonials = [
-  {
-    name: "Lainie",
-    image: "../images/testimonials/lainielandscape.png",
-    type: "Deep bite and dental crowding corrected in 18 months with self-ligating braces and orthodontic elastics.",
-    project: "Lainie",
-  },
-  {
-    name: "James",
-    image: "../images/testimonials/Jamescontrast.png",
-    type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
-    project: "James",
-  },
-  {
-    name: "Ron L.",
-    image: "../images/testimonials/Ronlandscape.png",
-    type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
-    project: "Ron",
-  },
-  {
-    name: "Elizabeth",
-    image: "../images/testimonials/elizabethmask.png",
-    type: "Mandibular retrognathia corrected in 30 months with a functional appliance, self-ligating braces, and Invisalign",
-    project: "Elizabeth",
-  },
-  {
-    name: "Ashley",
-    image: "../images/testimonials/ashleylandscape.png",
-    type: "Posterior cross bite and crowding corrected with braces in 22 months",
-    project: "Ashley",
-
-  },
-  //   {
-  //   name: "Amandeep",
-  //   image: "../images/IMG_9527.PNG.jpg",
-  //   type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
-  //   project: "Amandeep",
-
-  // },
-  {
-    name: "Chase",
-    image: "../images/testimonials/kasprenski.png",
-    type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
-    project: "Chase",
-  },
-  {
-    name: "Leanne",
-    image: "../images/testimonials/Leannelandscape.png",
-    type: "Crowding and constricted arches corrected in 12 months with Invisalign",
-    project: "Leanne",
-  },
-  {
-    name: "Harold",
-    image: "../images/testimonials/harold.png",
-    type: "Overbite and spacing corrected in 14 months with Invisalign",
-    project: "Harold",
-  },
-  {
-    name: "Abigail",
-    image: "../images/testimonials/Abigaillandscape.png",
-    type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
-    project: "Abigail",
-  },
-  {
-    name: "Madi",
-    image: "../images/madilandscape.png",
-    type: "Crowding corrected with self-ligating braces in two years",
-    project: "Madi",
-  },
-  {
-    name: "Justin",
-    image: "../images/testimonials/hurlburt.png",
-    type: "Deep bite corrected with Invisalign in 2 years",
-    project: "Justin",
-  },
-  {
-    name: "Jillian",
-    image: "../images/testimonials/jillianlandscape.png",
-    type: "Cross bite and crowding corrected with self ligating braces in 2 years.",
-    project: "Jillian",
-  },
-
-  {
-    name: "Sophia",
-    image: "../images/testimonials/Sophialandscape.png",
-    type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
-    project: "Sophia",
-  },
-
- {
-    name: "Sabrina",
-    image: "../images/testimonials/sabrinalandscape.png",
-    type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
-    project: "Sabrina",
-  },
-
-    {
-    name: "Jackson",
-    image: "../images/testimonials/Jacksonlandscape.png",
-    type: "Moderate deep bite & mild crowding corrected with Invisalign",
-    project: "Jackson",
-  },
-   {
-    name: "Nilaya",
-    image: "../images/testimonials/Nilayalandscape.png",
-    type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
-    project: "Nilaya",
-  },
-];
-
-const WORD = "freysmiles"
-const REPEAT_COUNT = 11
-const COLUMN_COUNT = 11
-
-const characters = Array.from(
-  {
-    length: REPEAT_COUNT,
-  },
-  () => WORD
-)
-  .join("")
-  .split("")
-
-function FreySmilesGrid() {
-  const gridRef = useRef(null)
-  const characterRefs = useRef([])
-  const measurementsRef = useRef([])
-  const pointerRef = useRef({
-    x: 0,
-    y: 0,
-  })
-  const frameRef = useRef(null)
-
-  useLayoutEffect(() => {
-    const grid = gridRef.current
-
-    if (!grid) {
-      return undefined
-    }
-
-    const measureCharacters = () => {
-      measurementsRef.current =
-        characterRefs.current
-          .map((element) => {
-            if (!element) return null
-
-            const rect =
-              element.getBoundingClientRect()
-
-            return {
-              element,
-              x:
-                rect.left +
-                rect.width / 2,
-              y:
-                rect.top +
-                rect.height / 2,
-            }
-          })
-          .filter(Boolean)
-    }
-
-    const recalculateDistances = (
-      x,
-      y
-    ) => {
-      const containerRect =
-        grid.getBoundingClientRect()
-
-      const diagonal = Math.hypot(
-        containerRect.width,
-        containerRect.height
-      )
-
-      if (diagonal === 0) return
-
-      measurementsRef.current.forEach(
-        (measurement) => {
-          const distance = Math.hypot(
-            measurement.x - x,
-            measurement.y - y
-          )
-
-          const normalizedDistance =
-            1 - distance / diagonal
-
-          const intensity = Math.max(
-            Math.pow(
-              normalizedDistance,
-              3
-            ),
-            0
-          )
-
-          measurement.element.style.setProperty(
-            "--distance",
-            intensity
-          )
-        }
-      )
-    }
-
-    const updatePointerEffect = () => {
-      frameRef.current = null
-
-      recalculateDistances(
-        pointerRef.current.x,
-        pointerRef.current.y
-      )
-    }
-
-    const handlePointerMove = (
-      event
-    ) => {
-      pointerRef.current = {
-        x: event.clientX,
-        y: event.clientY,
-      }
-
-      if (
-        frameRef.current !== null
-      ) {
-        return
-      }
-
-      frameRef.current =
-        requestAnimationFrame(
-          updatePointerEffect
-        )
-    }
-
-    const handleLayoutChange = () => {
-      measureCharacters()
-
-      recalculateDistances(
-        pointerRef.current.x,
-        pointerRef.current.y
-      )
-    }
-
-    const resizeObserver =
-      new ResizeObserver(
-        handleLayoutChange
-      )
-
-    resizeObserver.observe(grid)
-
-    measureCharacters()
-
-
-    document.fonts?.ready.then(() => {
-      measureCharacters()
-    })
-
-    window.addEventListener(
-      "pointermove",
-      handlePointerMove,
-      {
-        passive: true,
-      }
-    )
-
-    window.addEventListener(
-      "resize",
-      handleLayoutChange
-    )
-
-    window.addEventListener(
-      "scroll",
-      handleLayoutChange,
-      {
-        passive: true,
-      }
-    )
-
-    return () => {
-      resizeObserver.disconnect()
-
-      window.removeEventListener(
-        "pointermove",
-        handlePointerMove
-      )
-
-      window.removeEventListener(
-        "resize",
-        handleLayoutChange
-      )
-
-      window.removeEventListener(
-        "scroll",
-        handleLayoutChange
-      )
-
-      if (
-        frameRef.current !== null
-      ) {
-        cancelAnimationFrame(
-          frameRef.current
-        )
-      }
-    }
-  }, [])
-
-  return (
-    <section className="grid min-h-screen cursor-crosshair place-items-center  text-white">
-      <div
-        ref={gridRef}
-        className="lowercase frey-text-grid font-ibmplex"
-        style={{
-          "--chars": COLUMN_COUNT,
-        }}
-        aria-label={Array.from(
-          {
-            length:
-              REPEAT_COUNT,
-          },
-          () => WORD
-        ).join(" ")}
-      >
-{characters.map((character, index) => {
-  const rowIndex = Math.floor(
-    index / COLUMN_COUNT
-  )
-
-  const columnIndex =
-    index % COLUMN_COUNT
-
-  const isCutout =
-    rowIndex < 3 &&
-    columnIndex >=
-      COLUMN_COUNT - 4
-
-  return (
-    <span
-      key={`${character}-${index}`}
-      ref={(element) => {
-        characterRefs.current[index] =
-          isCutout ? null : element
-      }}
-      className={[
-        "frey-text-grid__char",
-        isCutout
-          ? "invisible pointer-events-none"
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      aria-hidden="true"
-      style={{
-        "--i": index,
-        "--row": rowIndex,
-      }}
-    >
-      {character}
-    </span>
-  )
-})}
-      </div>
-    </section>
-  )
-}
-
-const List = ({
-
-  onInteractionChange,
-}) => {
-  const [activeIndex, setActiveIndex] =
-    useState(0)
-
-  const [
-    displayedIndex,
-    setDisplayedIndex,
-  ] = useState(0)
-const introSectionRef = useRef(null);
-const testimonialsSectionRef =
-  useRef(null);
-
-const galleryViewportRef = useRef(null)
-const thumbnailRefs = useRef([])
-
-const activeIndexRef = useRef(0)
-const requestedIndexRef = useRef(0)
-
-const galleryScrollTimeoutRef =
-  useRef(null)
-  const backgroundRefs = useRef([])
-  const titleRef = useRef(null)
-  const infoRef = useRef(null)
-  const creditsRef = useRef(null)
-  const projectImageRef = useRef(null)
-  const projectImageElementRef =
-    useRef(null)
-
-  const infoSplitRef = useRef(null)
-  const isAnimating = useRef(false)
-  const shouldAnimateIn =
-    useRef(false)
-const projectNumberRef =
-  useRef(null)
-
-const treatmentNumberRef =
-  useRef(null)
-  const displayedTestimonial =
-    testimonials[displayedIndex]
-
-const getTextTargets = () => {
-  return [
-    projectNumberRef.current,
-    titleRef.current,
-    treatmentNumberRef.current,
-    ...(
-      infoSplitRef.current?.lines ??
-      []
-    ),
-    creditsRef.current,
-  ].filter(Boolean)
-}
-
-useLayoutEffect(() => {
-  const intro =
-    introSectionRef.current
-
-  const main =
-    testimonialsSectionRef.current
-
-  if (!intro || !main) {
-    return undefined
-  }
-
-  const media = gsap.matchMedia()
-
-  media.add(
-    "(min-width: 901px)",
-    () => {
-      const timeline =
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: intro,
-            start: "top top",
-
-            end: () =>
-              `+=${intro.offsetHeight}`,
-
-            pin: intro,
-            pinSpacing: false,
-            scrub: true,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-          },
-        })
-
-      timeline.fromTo(
-        main,
-        {
-          rotationX: 8,
-
-          transformOrigin:
-            "50% 100%",
-
-          transformPerspective:
-            1600,
-
-          backfaceVisibility:
-            "hidden",
-        },
-        {
-          rotationX: 0,
-          ease: "none",
-        },
-        0
-      )
-    }
-  )
-
-media.add(
-  "(max-width: 900px)",
-  () => {
-    const viewport =
-      galleryViewportRef.current
-
-    if (!viewport) {
-      return undefined
-    }
-
-    gsap.set(main, {
-      clearProps:
-        "transform,transformOrigin,transformPerspective,backfaceVisibility",
-
-      willChange: "auto",
-    })
-
-    /*
-     * First transition:
-     * main travels over the pinned intro.
-     */
-    const introPin =
-      ScrollTrigger.create({
-        trigger: intro,
-        start: "top top",
-
-        end: () =>
-          `+=${intro.offsetHeight}`,
-
-        pin: intro,
-        pinSpacing: false,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      })
-
-    /*
-     * How much native scroll each
-     * testimonial receives.
-     */
-    const getStepDistance = () =>
-      Math.max(
-        window.innerHeight * 0.45,
-        260
-      )
-
-    const scrollThumbnailToIndex = (
-      index
-    ) => {
-      const thumbnail =
-        thumbnailRefs.current[index]
-
-      if (!thumbnail) return
-
-      const viewportRect =
-        viewport.getBoundingClientRect()
-
-      const thumbnailRect =
-        thumbnail.getBoundingClientRect()
-
-      const targetScrollLeft =
-        viewport.scrollLeft +
-        thumbnailRect.left -
-        viewportRect.left -
-        12
-
-      gsap.killTweensOf(viewport)
-
-      gsap.to(viewport, {
-        scrollLeft:
-          targetScrollLeft,
-
-        duration: 0.45,
-        ease: "power2.out",
-        overwrite: true,
-      })
-    }
-
-    const galleryPin =
-      ScrollTrigger.create({
-        trigger: main,
-        start: "top top",
-
-        end: () =>
-          `+=${
-            (
-              testimonials.length -
-              1
-            ) *
-            getStepDistance()
-          }`,
-
-        pin: main,
-        pinSpacing: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-
-        onUpdate: (self) => {
-          const nextIndex =
-            Math.min(
-              testimonials.length - 1,
-              Math.max(
-                0,
-                Math.round(
-                  self.progress *
-                    (
-                      testimonials.length -
-                      1
-                    )
-                )
-              )
-            )
-
-          if (
-            nextIndex ===
-            requestedIndexRef.current
-          ) {
-            return
-          }
-
-          requestedIndexRef.current =
-            nextIndex
-
-          handleItemClick(nextIndex)
-
-          scrollThumbnailToIndex(
-            nextIndex
-          )
-        },
-      })
-
-    return () => {
-      introPin.kill()
-      galleryPin.kill()
-
-      gsap.killTweensOf(viewport)
-    }
-  }
-)
-
-  const refreshFrame =
-    requestAnimationFrame(() => {
-      ScrollTrigger.refresh()
-    })
-
-  return () => {
-    cancelAnimationFrame(
-      refreshFrame
-    )
-
-    media.revert()
-  }
-}, [])
-  useLayoutEffect(() => {
-    if (!infoRef.current) {
-      return undefined
-    }
-
-    const context = gsap.context(
-      () => {
-        infoSplitRef.current =
-          SplitText.create(
-            infoRef.current,
-            {
-              type: "lines",
-              linesClass:
-                "project-info-line",
-              mask: "lines",
-            }
-          )
-
-        const textTargets =
-          getTextTargets()
-
-        if (
-          !shouldAnimateIn.current
-        ) {
-          gsap.set(textTargets, {
-            y: 0,
-          })
-
-          gsap.set(
-            projectImageRef.current,
-            {
-              scale: 1,
-              bottom: "12%",
-            }
-          )
-
-          gsap.set(
-            projectImageElementRef.current,
-            {
-              scale: 1,
-            }
-          )
-
-          return
-        }
-
-        const timeline = gsap.timeline({
-  onComplete: () => {
-    shouldAnimateIn.current =
-      false
-
-    isAnimating.current =
-      false
-
-    const requestedIndex =
-      requestedIndexRef.current
-
-    if (
-      requestedIndex !==
-      activeIndexRef.current
-    ) {
-      requestAnimationFrame(() => {
-        handleItemClick(
-          requestedIndex
-        )
-      })
-    }
-  },
-})
-
-timeline.fromTo(
-  textTargets,
-  {
-    y: 40,
-  },
-  {
-    y: 0,
-    duration: 0.6,
-    ease: "power4.out",
-    stagger: 0.04,
-  },
-  0
-)
-
-timeline.fromTo(
-  projectImageRef.current,
-  {
-    scale: 0,
-    bottom: "-10em",
-  },
-  {
-    scale: 1,
-    bottom: "12%",
-    duration: 0.6,
-    ease: "power4.out",
-  },
-  0
-)
-
-timeline.fromTo(
-  projectImageElementRef.current,
-  {
-    scale: 2,
-  },
-  {
-    scale: 1,
-    duration: 0.6,
-    ease: "power4.out",
-  },
-  0
-)
-      },
-      testimonialsSectionRef
-    )
-
-    return () => {
-      context.revert()
-      infoSplitRef.current?.revert()
-      infoSplitRef.current = null
-    }
-  }, [displayedIndex])
-
-  useLayoutEffect(() => {
-    return () => {
-      gsap.killTweensOf(
-        backgroundRefs.current
-      )
-    }
-  }, [])
-
-  useEffect(() => {
-    const section =
-      testimonialsSectionRef.current
-
-    if (
-      !section ||
-      !onInteractionChange
-    ) {
-      return undefined
-    }
-
-    const observer =
-      new IntersectionObserver(
-        ([entry]) => {
-          onInteractionChange(
-            entry.isIntersecting
-          )
-        },
-        {
-          threshold: 0.4,
-        }
-      )
-
-    observer.observe(section)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [onInteractionChange])
-
-useEffect(() => {
-  let isProgrammaticScroll = false
-const desktopQuery =
-  window.matchMedia(
-    "(min-width: 901px)"
-  )
-  const viewport =
-    galleryViewportRef.current
-
-  const section =
-    testimonialsSectionRef.current
-
-  if (!viewport || !section) {
-    return undefined
-  }
-  if (
-  !viewport ||
-  !section ||
-  !desktopQuery.matches
-) {
-  return undefined
-}
-
-  let wheelAccumulator = 0
-  let wheelLocked = false
-  let wheelUnlockTimer = null
-
-  const getIsHorizontal = () =>
-    window.matchMedia(
-      "(max-width: 900px)"
-    ).matches
-
-const isSectionAligned = () => {
-  const rect =
-    section.getBoundingClientRect()
-
-  const tolerance = Math.max(
-    16,
-    window.innerHeight * 0.025
-  )
-
-  return (
-    Math.abs(rect.top) <=
-    tolerance
-  )
-}
-
-  const selectClosestThumbnail =
-    () => {
-      const isHorizontal =
-        getIsHorizontal()
-
-      const viewportRect =
-        viewport.getBoundingClientRect()
-
-
-      const viewportStart =
-        isHorizontal
-          ? viewportRect.left + 12
-          : viewportRect.top + 12
-
-      let closestIndex = 0
-      let closestDistance =
-        Infinity
-
-      thumbnailRefs.current.forEach(
-        (thumbnail, index) => {
-          if (!thumbnail) return
-
-          const rect =
-            thumbnail.getBoundingClientRect()
-
-          const thumbnailStart =
-            isHorizontal
-              ? rect.left
-              : rect.top
-
-          const distance = Math.abs(
-            thumbnailStart -
-              viewportStart
-          )
-
-          if (
-            distance <
-            closestDistance
-          ) {
-            closestDistance =
-              distance
-
-            closestIndex = index
-          }
-        }
-      )
-
-      requestedIndexRef.current =
-        closestIndex
-
-      handleItemClick(
-        closestIndex
-      )
-    }
-
-const scrollToThumbnail = (
-  index
-) => {
-  const thumbnail =
-    thumbnailRefs.current[index]
-
-  if (!thumbnail) return
-
-  const isHorizontal =
-    getIsHorizontal()
-
-  const viewportRect =
-    viewport.getBoundingClientRect()
-
-  const thumbnailRect =
-    thumbnail.getBoundingClientRect()
-
-  const targetPosition =
-    isHorizontal
-      ? viewport.scrollLeft +
-        thumbnailRect.left -
-        viewportRect.left -
-        12
-      : viewport.scrollTop +
-        thumbnailRect.top -
-        viewportRect.top -
-        12
-
-  isProgrammaticScroll = true
-
-  viewport.style.scrollSnapType =
-    "none"
-
-  gsap.killTweensOf(viewport)
-
-  gsap.to(viewport, {
-    ...(isHorizontal
-      ? {
-          scrollLeft:
-            targetPosition,
-        }
-      : {
-          scrollTop:
-            targetPosition,
-        }),
-
-    duration: 0.55,
-    ease: "power2.inOut",
-    overwrite: true,
-
-onComplete: () => {
-  viewport.style.removeProperty(
-    "scroll-snap-type"
-  )
-
-  requestAnimationFrame(() => {
-    isProgrammaticScroll = false
-  })
-},
-  })
-}
-
-const handleGalleryScroll = () => {
-
-  if (getIsHorizontal()) {
-    return
-  }
-
-  if (isProgrammaticScroll) {
-    return
-  }
-
-  window.clearTimeout(
-    galleryScrollTimeoutRef.current
-  )
-
-  galleryScrollTimeoutRef.current =
-    window.setTimeout(
-      selectClosestThumbnail,
-      120
-    )
-}
-const keepWheelLocked = () => {
-  window.clearTimeout(
-    wheelUnlockTimer
-  )
-
-  wheelUnlockTimer =
-    window.setTimeout(() => {
-      wheelLocked = false
-      wheelAccumulator = 0
-    }, 140)
-}
-
-const handleSectionWheel = (
-  event
-) => {
-  
-  if (!isSectionAligned()) {
-    return
-  }
-
-  const delta =
-    Math.abs(event.deltaY) >=
-    Math.abs(event.deltaX)
-      ? event.deltaY
-      : event.deltaX
-
-  if (delta === 0) return
-
-  const currentIndex =
-    requestedIndexRef.current
-
-  const isFirst =
-    currentIndex === 0
-
-  const isLast =
-    currentIndex ===
-    testimonials.length - 1
-
-  if (wheelLocked) {
-    event.preventDefault()
-    event.stopPropagation()
-
-    keepWheelLocked()
-    return
-  }
-
-  if (
-    (delta < 0 && isFirst) ||
-    (delta > 0 && isLast)
-  ) {
-    wheelAccumulator = 0
-    return
-  }
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  wheelAccumulator += delta
-
-  if (
-    Math.abs(wheelAccumulator) <
-    10
-  ) {
-    return
-  }
-
-  const direction =
-    wheelAccumulator > 0
-      ? 1
-      : -1
-
-  const nextIndex = Math.max(
-    0,
-    Math.min(
-      testimonials.length - 1,
-      currentIndex + direction
-    )
-  )
-
-  wheelAccumulator = 0
-  wheelLocked = true
-
-  requestedIndexRef.current =
-    nextIndex
-  handleItemClick(nextIndex)
-  scrollToThumbnail(nextIndex)
-
-
-  keepWheelLocked()
-}
-
-  viewport.addEventListener(
-    "scroll",
-    handleGalleryScroll,
-    {
-      passive: true,
-    }
-  )
-
-section.addEventListener(
-  "wheel",
-  handleSectionWheel,
-  {
-    passive: false,
-    capture: true,
-  }
-)
-
-return () => {
-  window.clearTimeout(
-    galleryScrollTimeoutRef.current
-  )
-
-  window.clearTimeout(
-    wheelUnlockTimer
-  )
-
-  gsap.killTweensOf(viewport)
-
-  viewport.style.removeProperty(
-    "scroll-snap-type"
-  )
-
-  viewport.removeEventListener(
-    "scroll",
-    handleGalleryScroll
-  )
-
-  section.removeEventListener(
-    "wheel",
-    handleSectionWheel,
-    true
-  )
- 
-}
-}, [])
-useEffect(() => {
-  const section =
-    testimonialsSectionRef.current
-
-  const viewport =
-    galleryViewportRef.current
-
-  const mobileQuery =
-    window.matchMedia(
-      "(max-width: 900px)"
-    )
-
-  if (
-    !section ||
-    !viewport ||
-    !mobileQuery.matches
-  ) {
-    return undefined
-  }
-
-  let touchStartX = 0
-  let touchStartY = 0
-  let gestureHandled = false
-  let gestureControlsGallery = false
-
-  const scrollToMobileThumbnail = (
-    index
-  ) => {
-    const thumbnail =
-      thumbnailRefs.current[index]
-
-    if (!thumbnail) return
-
-    const viewportRect =
-      viewport.getBoundingClientRect()
-
-    const thumbnailRect =
-      thumbnail.getBoundingClientRect()
-
-    const targetScrollLeft =
-      viewport.scrollLeft +
-      thumbnailRect.left -
-      viewportRect.left -
-      12
-
-    gsap.killTweensOf(viewport)
-
-    gsap.to(viewport, {
-      scrollLeft:
-        targetScrollLeft,
-
-      duration: 0.5,
-      ease: "power2.inOut",
-      overwrite: true,
-    })
-  }
-
-  return () => {
-    gsap.killTweensOf(viewport)
-  
-  }
-}, [])
-const handleItemClick = (nextIndex) => {
-  requestedIndexRef.current =
-    nextIndex
-
-  if (
-    nextIndex ===
-      activeIndexRef.current ||
-    isAnimating.current
-  ) {
-    return
-  }
-
-  isAnimating.current = true
-
-  const previousIndex =
-    activeIndexRef.current
-
-  activeIndexRef.current =
-    nextIndex
-
-  const previousBackground =
-    backgroundRefs.current[
-      previousIndex
-    ]
-
-  const nextBackground =
-    backgroundRefs.current[
-      nextIndex
-    ]
-
-  setActiveIndex(nextIndex)
-
-  gsap.killTweensOf([
-    previousBackground,
-    nextBackground,
-  ])
-
-  if (nextBackground) {
-    gsap.set(nextBackground, {
-      visibility: "visible",
-    })
-
-    gsap.to(nextBackground, {
-      opacity: 1,
-      delay: 0.5,
-      duration: .5,
-      ease: "power2.inOut",
-    })
-  }
-
-  if (previousBackground) {
-    gsap.to(previousBackground, {
-      opacity: 0,
-      delay: 0.5,
-      duration: .5,
-      ease: "power2.inOut",
-
-      onComplete: () => {
-        gsap.set(
-          previousBackground,
-          {
-            visibility: "hidden",
-          }
-        )
-      },
-    })
-  }
-
-  const textTargets =
-    getTextTargets()
-
-  const outgoingTimeline =
-    gsap.timeline({
-      onComplete: () => {
-        shouldAnimateIn.current =
-          true
-
-        setDisplayedIndex(nextIndex)
-      },
-    })
-
-  outgoingTimeline.to(
-    textTargets,
-    {
-      y: -60,
-      duration: .5,
-      ease: "power4.in",
-      stagger: 0.05,
-    },
-    0
-  )
-
-  outgoingTimeline.to(
-    projectImageElementRef.current,
-    {
-      scale: 2,
-      duration: .5,
-      ease: "power4.in",
-    },
-    0
-  )
-
-  outgoingTimeline.to(
-    projectImageRef.current,
-    {
-      scale: 0,
-      bottom: "10em",
-      duration: .5,
-      ease: "power4.in",
-    },
-    0
-  )
-}
-
-  return (
-<div className="relative w-full">
-<section
-  ref={introSectionRef}
-  className="
-    intro relative z-0
-    h-screen w-full max-w-full
-    overflow-hidden
-    max-[900px]:h-svh
-  "
->
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <JanusFace />
-        </div>
-
-        <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] flex-col md:flex-row">
-          <div className="hidden min-h-screen md:block md:w-1/2" />
-
-          <div className="flex min-h-screen w-full items-center justify-center px-6 md:w-1/2 md:px-0">
-            <div className="w-full max-w-[1200px]">
-              <TerminalPreloader />
-            </div>
-          </div>
-        </div>
-      </section>
-
-<main
-  ref={testimonialsSectionRef}
-  className="
-    relative z-10
-    flex h-screen
-    w-full max-w-full
-    origin-bottom
-    overflow-hidden
-    bg-[#0f0f0f]
-
-    will-change-transform
-    [backface-visibility:hidden]
-
-    max-[900px]:sticky
-    max-[900px]:top-0
-    max-[900px]:h-[100dvh]
-    max-[900px]:min-h-[100dvh]
-    max-[900px]:flex-col
-    max-[900px]:will-change-auto
-    max-[900px]:[backface-visibility:visible]
-  "
->
-
-<div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
-  <div
-    className="
-      absolute -inset-[16%]
-      scale-110
-      overflow-hidden
-      blur-[100px]
-      transform-gpu
-    "
-  >
-    {testimonials.map(
-      (testimonial, index) => (
-        <img
-          key={`background-${testimonial.name}-${index}`}
-          ref={(element) => {
-            backgroundRefs.current[
-              index
-            ] = element
-          }}
-          src={testimonial.image}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{
-            opacity:
-              index === 0 ? 1 : 0,
-
-            visibility:
-              index === 0
-                ? "visible"
-                : "hidden",
-
-            zIndex:
-              index === 0 ? 2 : 0,
-          }}
-        />
-      )
-    )}
-  </div>
-
-  <div className="absolute inset-0 bg-white/40" />
-</div>
-
-  
-<div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
-
-      <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
-
-
-  <FreySmilesGrid />
-</div>
-
-      </div>
-
-{/* Active testimonial */}
-<div className="relative flex-[2] p-4">
-<div
-  aria-hidden="true"
-  className="
-    pointer-events-none
-    absolute inset-0 z-0
-    border-y border-white/15
-    bg-white/[0.15]
-    shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
-    backdrop-blur-[22px]
-    backdrop-saturate-[115%]
-    max-[900px]:hidden
-  "
-/>
-  <div
-  className="
-    relative z-10
-    translate-y-16
-    font-anton
-    text-[18px]
-    uppercase
-    opacity-70
-
-    max-[900px]:translate-y-4
-    max-[900px]:text-[16px]
-  "
->
-  A visual archive of selected patient
-  treatment outcomes.
-</div>
-  {/* Testimonial details */}
-  <div
-    key={`details-${displayedIndex}`}
-    className="absolute left-8 top-12 w-[min(34rem,calc(100%_-_4rem))] text-left max-[900px]:left-4 max-[900px]:top-8 max-[900px]:w-[calc(100%_-_2rem)]"
-  >
-    <div className="flex flex-col gap-4">
-
-<div className="flex translate-y-[10vh]   max-[900px]:translate-y-[4vh] flex-col gap-4 font-neueroman text-[15px] uppercase">
-
-  <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
-    <div className="overflow-hidden">
-      <span
-        ref={projectNumberRef}
-        aria-hidden="true"
-        className="relative inline-block text-base leading-[1] opacity-70 will-change-transform"
-      >
-  <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-
-      </span>
-    </div>
-
-    <div className="overflow-hidden">
-      <div
-        ref={titleRef}
-        className="relative block text-left text-[14px] opacity-70 will-change-transform "
-      >
-        {displayedTestimonial.project}
-      </div>
-    </div>
-  </div>
-
-<div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
-  <div className="overflow-hidden">
-    <span
-      ref={treatmentNumberRef}
-      aria-hidden="true"
-      className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
-    >
- <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-
-    </span>
-  </div>
-
-  <div className="overflow-hidden">
-    <p
-      ref={infoRef}
-      className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
-    >
-      {displayedTestimonial.type ||
-        "Treatment outcome"}
-    </p>
-  </div>
-
-<div
-  aria-hidden="true"
-className="
-  pointer-events-none
-  absolute bottom-0 left-[-2rem]
-  z-10 h-[12px]
-  w-[calc(100%+2rem)]
-
-  max-[900px]:left-[-1rem]
-  max-[900px]:w-[calc(100%+1rem)]
-"
->
-  {/* Moves left */}
-  <div
-    className="
-      absolute left-0 top-0
-      h-[2px] w-full
-      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
-      [background-size:5px_1px]
-      bg-repeat-x
-      animate-[dotted-line-left_1.2s_linear_infinite]
-      will-change-[background-position]
-      motion-reduce:animate-none
-    "
-  />
-
-  {/* Moves right */}
-  <div
-    className="
-      absolute left-0 top-[10px]
-      h-[2px] w-full
-      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
-      [background-size:5px_1px]
-      bg-repeat-x
-      animate-[dotted-line-right_1.2s_linear_infinite]
-      will-change-[background-position]
-      motion-reduce:animate-none
-    "
-  />
-</div>
-</div>
-</div>
-    </div>
-  </div>
-
-<div
-  key={`image-${displayedIndex}`}
-  ref={projectImageRef}
-  className="
-    absolute bottom-[12%] left-4
-    h-1/2 w-3/4
-    overflow-hidden
-    will-change-transform
-
-    max-[900px]:bottom-[14%]
-    max-[900px]:left-4
-    max-[900px]:right-4
-    max-[900px]:w-auto
-  "
->
-
-<img
-  src={displayedTestimonial.image}
-  alt=""
-  className="
-    testimonial-image-clip
-    z-[16]
-    h-full
-    w-full
-    origin-center
-    object-cover
-  "
-/>
-  </div>
-</div>
-
-<div
-  ref={galleryViewportRef}
-  className="
-    relative z-20
-    h-full w-[124px] shrink-0
-    snap-y snap-mandatory
-    scroll-pt-3
-    overflow-y-auto overflow-x-hidden
-overscroll-y-contain
-max-[900px]:overscroll-y-auto
-max-[900px]:overscroll-x-contain
-    border-l border-white/10
-    bg-white/30
-    p-3
-    backdrop-blur-[20px]
-    [scrollbar-width:none]
-    [&::-webkit-scrollbar]:hidden
-
-    max-[900px]:h-[112px]
-    max-[900px]:w-full
-   max-[900px]:snap-none
-max-[900px]:overflow-x-hidden
-    max-[900px]:overflow-y-hidden
-    max-[900px]:border-l-0
-    max-[900px]:border-t
-  "
->
-<div
-  className="
-    flex min-h-max w-full
-    flex-col gap-3
-    pb-[calc(100vh-174px)]
-
-    max-[900px]:h-full
-    max-[900px]:min-h-0
-    max-[900px]:w-max
-    max-[900px]:flex-row
-    max-[900px]:pb-0
-    max-[900px]:pr-[calc(100vw-144px)]
-  "
->
-    {testimonials.map(
-      (testimonial, index) => {
-        const isActive =
-          index === activeIndex
-
-        return (
-          <button
-            key={`gallery-${testimonial.name}-${index}`}
-            ref={(element) => {
-              thumbnailRefs.current[
-                index
-              ] = element
-            }}
-            type="button"
-            className={[
-              "treatment-thumbnail",
-              "relative",
-              "block",
-              "h-[150px]",
-              "w-full",
-              "shrink-0",
-              "snap-start",
-              "overflow-hidden",
-              "border-0",
-              "bg-[#aeaeae]",
-              "p-0",
-
-              "max-[900px]:h-full",
-              "max-[900px]:w-[120px]",
-
-              "after:pointer-events-none",
-              "after:absolute",
-              "after:inset-0",
-              "after:z-10",
-              "after:content-['']",
-              "after:transition-colors",
-              "after:delay-500",
-              "after:duration-500",
-
-              isActive
-                ? "after:bg-black/0"
-                : "after:bg-black/65",
-            ].join(" ")}
-            onClick={() => {
-              requestedIndexRef.current =
-                index
-
-              handleItemClick(index)
-            }}
-            aria-label={`View ${testimonial.name}`}
-            aria-pressed={isActive}
-          >
-            <img
-              src={testimonial.image}
-              alt=""
-              className="absolute inset-0 block !h-full !w-full !object-cover"
-              style={{
-                display: "block",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </button>
-        )
-      }
-    )}
-  </div>
-</div>
-    </main>
-</div>
-  )
-}
-
-
 const reviews = [
   {
     name: "James Pica",
@@ -3475,379 +4458,3 @@ const reviews = [
     color: "bg-[#49ABA3]",
   },
 ];
-
-
-
-function JanusFace() {
-  const [leftShapes, setLeftShapes] = useState([]);
-  const [rightShapes, setRightShapes] = useState([]);
-
-  const r = (from, to) => Math.random() * (to - from) + from;
-  const ri = (from, to) => ~~r(from, to);
-  const pick = (...args) => args[ri(0, args.length)];
-
-  const symbols = [
-    "□",
-    "▢",
-    "▭",
-    "▯",
-
-    "○",
-    "◯",
-    "◌",
-
-    "△",
-    "▽",
-    "▷",
-    "◁",
-
-    "◇",
-    "◊",
-
-    "◅",
-    "▻",
-  ];
-
-  const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
-    return Array.from({ length }, (_, i) => {
-      const shouldBlink = !isMobile && (i + rowIndex) % 2 === 0;
-
-      return (
-        <span
-          key={i}
-          className={shouldBlink ? "symbol symbol-blink" : "symbol"}
-          style={
-            shouldBlink
-              ? {
-                  "--blink-delay": `${(i * 0.09 + rowIndex * 0.17) % 4}s`,
-
-                  "--blink-duration": `${3.5 + ((i + rowIndex) % 4) * 0.4}s`,
-                }
-              : undefined
-          }
-        >
-          {pick(...symbols)}
-        </span>
-      );
-    });
-  };
-  const generateBaseParagraphs = (isMobile = false) => {
-    const paragraphs = [];
-
-    const rowCount = 50;
-
-    for (let i = 0; i < rowCount; i++) {
-      const offset = r(45, 95);
-      const color = "#AAA6E3";
-
-      const textLength = isMobile ? ri(18, 34) : ri(25, 95);
-
-      paragraphs.push({
-        offset,
-        color,
-        textLength,
-        key: i,
-      });
-    }
-
-    return paragraphs;
-  };
-
-  const build = () => {
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    const baseData = generateBaseParagraphs(isMobile);
-
-    const leftParas = baseData.map((data, i) => (
-      <div
-        key={i}
-        className="text-line"
-        style={{
-          "--offset": data.offset,
-          color: data.color,
-          textAlign: "left",
-          mask: `linear-gradient(
-          to right,
-          #fff,
-          transparent calc(var(--offset) * 1%)
-        )`,
-        }}
-      >
-        {generateText(data.textLength, i, isMobile)}
-      </div>
-    ));
-
-    const rightParas = baseData.map((data, i) => (
-      <div
-        key={`r${i}`}
-        className="text-line"
-        style={{
-          "--offset": data.offset,
-          color: data.color,
-          textAlign: "right",
-          mask: `linear-gradient(
-          to left,
-          #fff,
-          transparent calc(var(--offset) * 1%)
-        )`,
-        }}
-      >
-        {generateText(data.textLength, i, isMobile)}
-      </div>
-    ));
-
-    setLeftShapes(leftParas);
-    setRightShapes(rightParas);
-  };
-
-  useEffect(() => {
-    build();
-  }, []);
-
-  const shapePath =
-    "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
-
-  const mirrorPolygon = (poly) => {
-    return poly
-      .split(",")
-      .map((pt) => pt.trim())
-      .map((pt) => {
-        const [xRaw, y] = pt.split(/\s+/);
-        const xPercent = parseFloat(xRaw);
-        const mirroredX = (100 - xPercent).toFixed(2) + "%";
-        return `${mirroredX} ${y}`;
-      })
-      .join(", ");
-  };
-
-  const leftShapePath = mirrorPolygon(shapePath);
-
-  return (
-    <div className="janus-main" onClick={build} style={{ cursor: "pointer" }}>
-      <div className="janus-container">
-        {/* Left Face */}
-        <div className="face-container left-face">
-          <div
-            className="janus-shape left-shape"
-            style={{ shapeOutside: `polygon(${leftShapePath})` }}
-          />
-          <div className="text-container left-text">{leftShapes}</div>
-        </div>
-
-        {/* Right Face */}
-        <div className="face-container right-face">
-          <div
-            className="janus-shape right-shape"
-            style={{ shapeOutside: `polygon(${shapePath})` }}
-          />
-          <div className="text-container right-text">{rightShapes}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const Testimonials = () => {
-  const textRef = useRef(null);
-  const bgTextColor = "#CECED3";
-  const fgTextColor = "#161818";
-  const [disableFluid, setDisableFluid] = useState(false);
-  useEffect(() => {
-    if (!textRef.current) return;
-
-    const split = new SplitText(textRef.current, { type: "words, chars" });
-
-    gsap.fromTo(
-      split.chars,
-      { color: bgTextColor },
-      {
-        color: fgTextColor,
-        stagger: 0.03,
-        duration: 1,
-        ease: "power2.out",
-      },
-    );
-
-    return () => split.revert();
-  }, []);
-  const gradient1Ref = useRef(null);
-  const image1Ref = useRef(null);
-  const text1Ref = useRef(null);
-
-  useEffect(() => {
-    if (!gradient1Ref.current || !image1Ref.current) return;
-
-    gsap.to(".gradient-col", {
-      y: "-20%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: gradient1Ref.current,
-        scroller: "#right-column",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 4,
-      },
-    });
-
-    gsap.to(image1Ref.current, {
-      y: "-60%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: image1Ref.current,
-        scroller: "#right-column",
-        start: "top 70%",
-        end: "bottom top",
-        scrub: 1,
-      },
-    });
-    gsap.to(text1Ref.current, {
-      y: "-60%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: image1Ref.current,
-        scroller: "#right-column",
-        start: "top 70%",
-        end: "bottom top",
-        scrub: 1,
-      },
-    });
-  }, []);
-
-  const listRefs = useRef([]);
-
-  useEffect(() => {
-    listRefs.current.forEach((el, i) => {
-      gsap.fromTo(
-        el,
-        { filter: "blur(8px)", opacity: 0 },
-        {
-          filter: "blur(0px)",
-          opacity: 1,
-          scrollTrigger: {
-            trigger: el,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
-          },
-          duration: 0.6,
-          ease: "power2.out",
-        },
-      );
-    });
-  }, []);
-
-  useEffect(() => {
-    const lines = gsap.utils.toArray("#smile-scroll-section .line");
-
-    lines.forEach((line, index) => {
-      const direction = index % 2 === 0 ? -1 : 1;
-
-      gsap.to(line, {
-        xPercent: direction * 50,
-        ease: "none",
-        scrollTrigger: {
-          trigger: "#smile-scroll-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
-      });
-    });
-  }, []);
-
-  const textRefs = useRef([]);
-
-  useEffect(() => {
-    textRefs.current.forEach((el, i) => {
-      gsap.fromTo(
-        el,
-        { filter: "blur(8px)", opacity: 0 },
-        {
-          filter: "blur(0px)",
-          opacity: 1,
-          scrollTrigger: {
-            trigger: el,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
-          },
-          duration: 0.6,
-          ease: "power2.out",
-        },
-      );
-    });
-  }, []);
-
-  const movingBlobRef = useRef(null);
-
-  const points = [
-    { x: 150, y: 60 },
-    { x: 210, y: 110 },
-    { x: 200, y: 190 },
-    { x: 120, y: 210 },
-    { x: 70, y: 140 },
-    { x: 100, y: 100 },
-  ];
-
-  useLayoutEffect(() => {
-    const tl = gsap.timeline({
-      repeat: -1,
-      defaults: { ease: "sine.inOut", duration: 1.6 },
-    });
-
-    points.forEach((p) => {
-      tl.to(movingBlobRef.current, {
-        attr: { cx: p.x, cy: p.y },
-      });
-    });
-  }, []);
-
-  return (
-    <>
-      {/* <FluidSimulation disabled={disableFluid} /> */}
-      <List onInteractionChange={setDisableFluid} />
-
-      <Background />
-
-      {/* <section className="w-full py-12">
-        <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
-          <div className="flex items-center justify-between py-10 w-full">
-            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 13 12"
-                fill="none"
-                className="w-full h-full"
-              >
-                <path
-                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                  fill="#000"
-                />
-              </svg>
-            </span>
-
-            <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 13 12"
-                fill="none"
-                className="w-full h-full"
-              >
-                <path
-                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                  fill="#000"
-                />
-              </svg>
-            </span>
-          </div>
-
-          <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
-            Every smile tells a story — these are some of our favorites.
-          </div>
-
-        </section>
-      </section> */}
-    </>
-  );
-};
-
-export default Testimonials;
