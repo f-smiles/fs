@@ -7687,15 +7687,12 @@ animation-delay:
     drop-shadow(0 0 8px rgba(255, 255, 255, 0.55));
 }
 
-/* ---------- Reveal (erased by the closing brackets) ---------- */
-
 .testimonial-image-clip-reveal {
   position: absolute;
   inset: 0;
   clip-path: inset(calc(50% * var(--close)));
 }
 
-/* ---------- Photo + shape morph ---------- */
 
 .testimonial-image-clip-photo {
   position: relative;

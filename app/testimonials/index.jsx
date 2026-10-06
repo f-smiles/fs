@@ -1837,7 +1837,8 @@ const List = ({ onInteractionChange }) => {
   const galleryRunwayRef = useRef(null);
   const treatmentNumberRef = useRef(null);
   const displayedTestimonial = testimonials[displayedIndex];
-
+const mobileGalleryGoToRef = useRef(null);
+const snapMarkerRefs = useRef([]);
   const getTextTargets = () => {
     return [
       projectNumberRef.current,
@@ -1848,352 +1849,150 @@ const List = ({ onInteractionChange }) => {
     ].filter(Boolean);
   };
 
-  useLayoutEffect(() => {
-    const intro = introSectionRef.current;
-    const main = testimonialsSectionRef.current;
+useLayoutEffect(() => {
+  const intro = introSectionRef.current;
+  const main = testimonialsSectionRef.current;
 
-    if (!intro || !main) {
-      return undefined;
-    }
-    const media = gsap.matchMedia();
+  if (!intro || !main) {
+    return undefined;
+  }
+  const media = gsap.matchMedia();
 
-    media.add("(min-width: 901px)", () => {
-      const timeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: intro,
-          start: "top top",
-
-          end: () => `+=${intro.offsetHeight}`,
-
-          pin: intro,
-          pinSpacing: false,
-          scrub: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      timeline.fromTo(
-        main,
-        {
-          rotationX: 8,
-
-          transformOrigin: "50% 100%",
-
-          transformPerspective: 1600,
-
-          backfaceVisibility: "hidden",
-        },
-        {
-          rotationX: 0,
-          ease: "none",
-        },
-        0,
-      );
-    });
-
-    media.add("(max-width: 900px)", () => {
-      const viewport = galleryViewportRef.current;
-      const runway = galleryRunwayRef.current;
-
-      if (!viewport || !runway) {
-        return undefined;
-      }
-
-      const debugEl = document.createElement("pre");
-
-      Object.assign(debugEl.style, {
-        position: "fixed",
-        left: "0",
-        right: "0",
-        bottom: "0",
-        maxHeight: "45vh",
-        overflow: "hidden",
-        margin: "0",
-        padding: "6px",
-        font: "10px/1.3 monospace",
-        background: "rgba(0,0,0,0.85)",
-        color: "#0f0",
-        zIndex: "99999",
-        pointerEvents: "none",
-        whiteSpace: "pre-wrap",
-      });
-
-      document.body.appendChild(debugEl);
-
-      const debugLines = [];
-      const debugStart = performance.now();
-
-      const debug = (...args) => {
-        const t = ((performance.now() - debugStart) / 1000).toFixed(2);
-
-        debugLines.push(
-          `${t}s ` +
-            args
-              .map((a) =>
-                typeof a === "object" ? JSON.stringify(a) : String(a),
-              )
-              .join(" "),
-        );
-
-        if (debugLines.length > 20) debugLines.shift();
-        debugEl.textContent = debugLines.join("\n");
-      };
-
-      const y = () => Math.round(window.scrollY);
-
-      gsap.set(main, {
-        clearProps:
-          "transform,transformOrigin,transformPerspective,backfaceVisibility",
-        willChange: "auto",
-      });
-
-      const introPin = ScrollTrigger.create({
+  media.add("(min-width: 901px)", () => {
+    const timeline = gsap.timeline({
+      scrollTrigger: {
         trigger: intro,
         start: "top top",
-        end: () => `+=${intro.offsetHeight + window.innerHeight}`,
+        end: () => `+=${intro.offsetHeight}`,
         pin: intro,
         pinSpacing: false,
+        scrub: true,
         anticipatePin: 1,
         invalidateOnRefresh: true,
-      });
-      const steps = testimonials.length - 1;
-
-      const getStepDistance = () => Math.max(main.offsetHeight * 0.35, 240);
-
-      const updateRunwayHeight = () => {
-        runway.style.height = `${main.offsetHeight + steps * getStepDistance()}px`;
-      };
-
-      const scrollThumbnailToIndex = (index) => {
-        const thumbnail = thumbnailRefs.current[index];
-        if (!thumbnail) return;
-
-        const viewportRect = viewport.getBoundingClientRect();
-        const thumbnailRect = thumbnail.getBoundingClientRect();
-
-        gsap.to(viewport, {
-          scrollLeft:
-            viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12,
-          duration: 0.3,
-          ease: "power2.out",
-          overwrite: true,
-        });
-      };
-
-      updateRunwayHeight();
-
-      const root = document.documentElement;
-      let locked = false;
-      let galleryState = null;
-
-      const lockScroll = () => {
-        if (locked || steps < 1) return;
-        locked = true;
-
-        debug("LOCK", { y: y() });
-
-        root.style.overflow = "hidden";
-        main.style.touchAction = "none";
-      };
-
-      const unlockScroll = () => {
-        if (!locked) return;
-        locked = false;
-
-        debug("UNLOCK", { y: y() });
-
-        root.style.removeProperty("overflow");
-        main.style.removeProperty("touch-action");
-      };
-
-      const enterGallery = (fromBelow) => {
-        lockScroll();
-
-        window.scrollTo(
-          0,
-          fromBelow ? galleryState.end - 1 : galleryState.start + 1,
-        );
-      };
-
-      const exit = (direction) => {
-        debug("EXIT", { direction });
-
-        unlockScroll();
-
-        window.scrollTo(
-          0,
-          direction > 0 ? galleryState.end - 1 : galleryState.start + 1,
-        );
-
-        requestAnimationFrame(() => {
-          window.scrollTo({
-            top:
-              direction > 0
-                ? galleryState.end + window.innerHeight * 0.3
-                : galleryState.start - window.innerHeight * 0.3,
-            behavior: "smooth",
-          });
-        });
-      };
-
-      const go = (direction) => {
-        debug("go", {
-          direction,
-          locked,
-          active: activeIndexRef.current,
-          animating: isAnimating.current,
-        });
-
-        if (!locked) return;
-
-        const next = activeIndexRef.current + direction;
-
-        if (next < 0 || next > steps) {
-          exit(direction);
-          return;
-        }
-
-        handleItemClick(next);
-
-        debug("after click", {
-          active: activeIndexRef.current,
-          animating: isAnimating.current,
-        });
-
-        scrollThumbnailToIndex(next);
-      };
-
-      let touchStartY = null;
-      let gestureHandled = false;
-      let moveLogged = false;
-      let touchDownY = null;
-
-      const onTouchStart = (event) => {
-        touchDownY = event.touches[0].clientY;
-        touchStartY = locked ? event.touches[0].clientY : null;
-        gestureHandled = false;
-        moveLogged = false;
-
-        debug("touchstart", {
-          locked,
-          y: y(),
-          start: Math.round(galleryState.start),
-        });
-      };
-
-      const onTouchMove = (event) => {
-        if (!locked) {
-          if (!moveLogged) {
-            moveLogged = true;
-            debug("move: NOT locked → page scrolls", { y: y() });
-          }
-          return;
-        }
-
-        if (event.cancelable) event.preventDefault();
-
-        if (touchStartY === null) {
-          if (!moveLogged) {
-            moveLogged = true;
-            debug("move: locked but NO start point (touch began before lock)");
-          }
-          return;
-        }
-
-        if (gestureHandled) return;
-
-        const delta = touchStartY - event.touches[0].clientY;
-
-        if (Math.abs(delta) < 12) return;
-
-        gestureHandled = true; // one step per swipe
-        go(delta > 0 ? 1 : -1);
-      };
-
-      const onTouchEnd = (event) => {
-        const endY = event.changedTouches[0]?.clientY;
-
-        debug("touchend", {
-          handled: gestureHandled,
-          moved:
-            touchDownY !== null && endY != null
-              ? Math.round(touchDownY - endY)
-              : null,
-          locked,
-        });
-
-        touchStartY = null;
-        touchDownY = null;
-        gestureHandled = false;
-      };
-
-      main.addEventListener("touchstart", onTouchStart, { passive: true });
-      main.addEventListener("touchmove", onTouchMove, { passive: false });
-      main.addEventListener("touchend", onTouchEnd, { passive: true });
-      main.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
-      galleryState = ScrollTrigger.create({
-        trigger: runway,
-        start: "top top",
-        end: "bottom bottom",
-        invalidateOnRefresh: true,
-        onRefreshInit: updateRunwayHeight,
-
-        onRefresh: (self) =>
-          debug("refresh", {
-            start: Math.round(self.start),
-            end: Math.round(self.end),
-          }),
-
-        onEnter: () => {
-          debug("onEnter", { y: y() });
-          enterGallery(false);
-        },
-        onEnterBack: () => {
-          debug("onEnterBack", { y: y() });
-          enterGallery(true);
-        },
-        onLeave: () => {
-          debug("onLeave", { y: y() });
-          unlockScroll();
-        },
-        onLeaveBack: () => {
-          debug("onLeaveBack", { y: y() });
-          unlockScroll();
-        },
-      });
-
-      debug("setup", {
-        start: Math.round(galleryState.start),
-        end: Math.round(galleryState.end),
-        steps,
-      });
-
-      return () => {
-        main.removeEventListener("touchstart", onTouchStart);
-        main.removeEventListener("touchmove", onTouchMove);
-        main.removeEventListener("touchend", onTouchEnd);
-        main.removeEventListener("touchcancel", onTouchEnd);
-
-        unlockScroll();
-        introPin.kill();
-        galleryState.kill();
-        gsap.killTweensOf(viewport);
-        runway.style.removeProperty("height");
-
-        debugEl.remove();
-      };
+      },
     });
-    const refreshFrame = requestAnimationFrame(() => {
-      ScrollTrigger.refresh();
+
+    timeline.fromTo(
+      main,
+      {
+        rotationX: 8,
+        transformOrigin: "50% 100%",
+        transformPerspective: 1600,
+        backfaceVisibility: "hidden",
+      },
+      {
+        rotationX: 0,
+        ease: "none",
+      },
+      0,
+    );
+  });
+
+  media.add("(max-width: 900px)", () => {
+    const viewport = galleryViewportRef.current;
+    const runway = galleryRunwayRef.current;
+
+    if (!viewport || !runway) {
+      return undefined;
+    }
+
+    gsap.set(main, {
+      clearProps:
+        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+      willChange: "auto",
     });
+
+    const introPin = ScrollTrigger.create({
+      trigger: intro,
+      start: "top top",
+      end: () => `+=${intro.offsetHeight + window.innerHeight}`,
+      pin: intro,
+      pinSpacing: false,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    });
+
+    const steps = testimonials.length - 1;
+    const root = document.documentElement;
+
+    const getStepDistance = () => Math.max(main.offsetHeight * 0.35, 240);
+
+    const updateRunwayHeight = () => {
+      const step = getStepDistance();
+      runway.style.height = `${main.offsetHeight + steps * step}px`;
+
+      snapMarkerRefs.current.forEach((marker, index) => {
+        if (marker) marker.style.top = `${index * step}px`;
+      });
+    };
+
+    const scrollThumbnailToIndex = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+      if (!thumbnail) return;
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      gsap.to(viewport, {
+        scrollLeft:
+          viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    };
+
+    updateRunwayHeight();
+
+    root.style.scrollSnapType = "y proximity";
+
+    let lastIndex = activeIndexRef.current;
+
+    const galleryState = ScrollTrigger.create({
+      trigger: runway,
+      start: "top top",
+      end: "bottom bottom",
+      invalidateOnRefresh: true,
+      onRefreshInit: updateRunwayHeight,
+      onUpdate: (self) => {
+        const index = Math.round(self.progress * steps);
+        if (index === lastIndex) return;
+
+        lastIndex = index;
+        handleItemClick(index);
+        scrollThumbnailToIndex(index);
+      },
+    });
+
+    mobileGalleryGoToRef.current = (index) => {
+      window.scrollTo({
+        top: galleryState.start + index * getStepDistance(),
+        behavior: "smooth",
+      });
+    };
 
     return () => {
-      cancelAnimationFrame(refreshFrame);
-      media.revert();
+      mobileGalleryGoToRef.current = null;
+      root.style.removeProperty("scroll-snap-type");
+      introPin.kill();
+      galleryState.kill();
+      gsap.killTweensOf(viewport);
+      runway.style.removeProperty("height");
+      snapMarkerRefs.current.forEach((marker) => {
+        marker?.style.removeProperty("top");
+      });
     };
-  }, []);
+  });
+
+  const refreshFrame = requestAnimationFrame(() => {
+    ScrollTrigger.refresh();
+  });
+
+  return () => {
+    cancelAnimationFrame(refreshFrame);
+    media.revert();
+  };
+}, []);
 
   useLayoutEffect(() => {
     if (!infoRef.current) {
@@ -2667,7 +2466,23 @@ const List = ({ onInteractionChange }) => {
           </div>
         </div>
       </section>
-      <div ref={galleryRunwayRef} className="relative">
+ <div ref={galleryRunwayRef} className="relative">
+
+        {testimonials.map((testimonial, index) => (
+          <div
+            key={`snap-${testimonial.name}-${index}`}
+            ref={(element) => {
+              snapMarkerRefs.current[index] = element;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 hidden h-px w-px max-[900px]:block"
+            style={{
+              scrollSnapAlign: "start",
+              scrollSnapStop: "always",
+            }}
+          />
+        ))}
+
         <main
           ref={testimonialsSectionRef}
           className="
@@ -2724,6 +2539,7 @@ const List = ({ onInteractionChange }) => {
 
             <div className="absolute inset-0 bg-white/40" />
           </div>
+
 
           <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
             <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
@@ -3001,11 +2817,15 @@ max-[900px]:overflow-x-hidden
 
                       isActive ? "after:bg-black/0" : "after:bg-black/65",
                     ].join(" ")}
-                    onClick={() => {
-                      requestedIndexRef.current = index;
+                onClick={() => {
+  if (mobileGalleryGoToRef.current) {
+    mobileGalleryGoToRef.current(index);
+    return;
+  }
 
-                      handleItemClick(index);
-                    }}
+  requestedIndexRef.current = index;
+  handleItemClick(index);
+}}
                     aria-label={`View ${testimonial.name}`}
                     aria-pressed={isActive}
                   >
