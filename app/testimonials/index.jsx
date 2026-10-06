@@ -49,7 +49,7 @@ if (typeof window !== "undefined") {
 
 ScrollTrigger.config({
   ignoreMobileResize: true,
-})
+});
 function Background() {
   const canvasRef = useRef(null);
 
@@ -1816,17 +1816,13 @@ export function renderCircuit(svg, subject = DEFAULT_SUBJECT) {
 }
 const List = ({ onInteractionChange }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-
   const [displayedIndex, setDisplayedIndex] = useState(0);
   const introSectionRef = useRef(null);
   const testimonialsSectionRef = useRef(null);
-
   const galleryViewportRef = useRef(null);
   const thumbnailRefs = useRef([]);
-
   const activeIndexRef = useRef(0);
   const requestedIndexRef = useRef(0);
-
   const galleryScrollTimeoutRef = useRef(null);
   const backgroundRefs = useRef([]);
   const titleRef = useRef(null);
@@ -1834,13 +1830,11 @@ const List = ({ onInteractionChange }) => {
   const creditsRef = useRef(null);
   const projectImageRef = useRef(null);
   const projectImageElementRef = useRef(null);
-
   const infoSplitRef = useRef(null);
   const isAnimating = useRef(false);
   const shouldAnimateIn = useRef(false);
   const projectNumberRef = useRef(null);
-const galleryRunwayRef =
-  useRef(null)
+  const galleryRunwayRef = useRef(null);
   const treatmentNumberRef = useRef(null);
   const displayedTestimonial = testimonials[displayedIndex];
 
@@ -1856,13 +1850,11 @@ const galleryRunwayRef =
 
   useLayoutEffect(() => {
     const intro = introSectionRef.current;
-
     const main = testimonialsSectionRef.current;
 
     if (!intro || !main) {
       return undefined;
     }
-
     const media = gsap.matchMedia();
 
     media.add("(min-width: 901px)", () => {
@@ -1900,318 +1892,309 @@ const galleryRunwayRef =
       );
     });
 
-media.add(
-  "(max-width: 900px)",
-  () => {
-    const viewport =
-      galleryViewportRef.current
+    media.add("(max-width: 900px)", () => {
+      const viewport = galleryViewportRef.current;
+      const runway = galleryRunwayRef.current;
 
-    const runway =
-      galleryRunwayRef.current
+      if (!viewport || !runway) {
+        return undefined;
+      }
 
-    if (!viewport || !runway) {
-      return undefined
-    }
+      const debugEl = document.createElement("pre");
 
-    gsap.set(main, {
-      clearProps:
-        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+      Object.assign(debugEl.style, {
+        position: "fixed",
+        left: "0",
+        right: "0",
+        bottom: "0",
+        maxHeight: "45vh",
+        overflow: "hidden",
+        margin: "0",
+        padding: "6px",
+        font: "10px/1.3 monospace",
+        background: "rgba(0,0,0,0.85)",
+        color: "#0f0",
+        zIndex: "99999",
+        pointerEvents: "none",
+        whiteSpace: "pre-wrap",
+      });
 
-      willChange: "auto",
-    })
+      document.body.appendChild(debugEl);
 
+      const debugLines = [];
+      const debugStart = performance.now();
 
-    const introPin =
-      ScrollTrigger.create({
+      const debug = (...args) => {
+        const t = ((performance.now() - debugStart) / 1000).toFixed(2);
+
+        debugLines.push(
+          `${t}s ` +
+            args
+              .map((a) =>
+                typeof a === "object" ? JSON.stringify(a) : String(a),
+              )
+              .join(" "),
+        );
+
+        if (debugLines.length > 20) debugLines.shift();
+        debugEl.textContent = debugLines.join("\n");
+      };
+
+      const y = () => Math.round(window.scrollY);
+
+      gsap.set(main, {
+        clearProps:
+          "transform,transformOrigin,transformPerspective,backfaceVisibility",
+        willChange: "auto",
+      });
+
+      const introPin = ScrollTrigger.create({
         trigger: intro,
         start: "top top",
-
-        end: () =>
-          `+=${intro.offsetHeight}`,
-
+        end: () => `+=${intro.offsetHeight + window.innerHeight}`,
         pin: intro,
         pinSpacing: false,
         anticipatePin: 1,
         invalidateOnRefresh: true,
-      })
+      });
+      const steps = testimonials.length - 1;
 
-    const getStepDistance = () =>
-      Math.max(
-        main.offsetHeight * 0.35,
-        240
-      )
+      const getStepDistance = () => Math.max(main.offsetHeight * 0.35, 240);
 
-    const updateRunwayHeight = () => {
-      const testimonialDistance =
-        (
-          testimonials.length -
-          1
-        ) *
-        getStepDistance()
+      const updateRunwayHeight = () => {
+        runway.style.height = `${main.offsetHeight + steps * getStepDistance()}px`;
+      };
 
-      runway.style.height =
-        `${
-          main.offsetHeight +
-          testimonialDistance
-        }px`
-    }
+      const scrollThumbnailToIndex = (index) => {
+        const thumbnail = thumbnailRefs.current[index];
+        if (!thumbnail) return;
 
-    const scrollThumbnailToIndex = (
-      index
-    ) => {
-      const thumbnail =
-        thumbnailRefs.current[index]
+        const viewportRect = viewport.getBoundingClientRect();
+        const thumbnailRect = thumbnail.getBoundingClientRect();
 
-      if (!thumbnail) return
+        gsap.to(viewport, {
+          scrollLeft:
+            viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      };
 
-      const viewportRect =
-        viewport.getBoundingClientRect()
+      updateRunwayHeight();
 
-      const thumbnailRect =
-        thumbnail.getBoundingClientRect()
+      const root = document.documentElement;
+      let locked = false;
+      let galleryState = null;
 
-      const targetScrollLeft =
-        viewport.scrollLeft +
-        thumbnailRect.left -
-        viewportRect.left -
-        12
+      const lockScroll = () => {
+        if (locked || steps < 1) return;
+        locked = true;
 
-      gsap.killTweensOf(viewport)
+        debug("LOCK", { y: y() });
 
-      gsap.to(viewport, {
-        scrollLeft:
-          targetScrollLeft,
+        root.style.overflow = "hidden";
+        main.style.touchAction = "none";
+      };
 
-        duration: 0.3,
-        ease: "power2.out",
-        overwrite: true,
-      })
-    }
+      const unlockScroll = () => {
+        if (!locked) return;
+        locked = false;
 
-    updateRunwayHeight()
+        debug("UNLOCK", { y: y() });
 
+        root.style.removeProperty("overflow");
+        main.style.removeProperty("touch-action");
+      };
 
-    
+      const enterGallery = (fromBelow) => {
+        lockScroll();
 
-const galleryState =
-  ScrollTrigger.create({
-    trigger: runway,
-    start: "top top",
-    end: "bottom bottom",
+        window.scrollTo(
+          0,
+          fromBelow ? galleryState.end - 1 : galleryState.start + 1,
+        );
+      };
 
-    invalidateOnRefresh: true,
-    onRefreshInit:
-      updateRunwayHeight,
-  })
+      const exit = (direction) => {
+        debug("EXIT", { direction });
 
+        unlockScroll();
 
-    let touchStartX = 0
-    let touchStartY = 0
-    let touchHandled = false
+        window.scrollTo(
+          0,
+          direction > 0 ? galleryState.end - 1 : galleryState.start + 1,
+        );
 
-const handleTouchStart = (event) => {
-  const touch = event.touches[0]
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top:
+              direction > 0
+                ? galleryState.end + window.innerHeight * 0.3
+                : galleryState.start - window.innerHeight * 0.3,
+            behavior: "smooth",
+          });
+        });
+      };
 
-  if (!touch) return
+      const go = (direction) => {
+        debug("go", {
+          direction,
+          locked,
+          active: activeIndexRef.current,
+          animating: isAnimating.current,
+        });
 
-  touchStartX = touch.clientX
-  touchStartY = touch.clientY
-  touchHandled = false
-}
+        if (!locked) return;
 
-const handleTouchMove = (event) => {
-  const touch = event.touches[0]
+        const next = activeIndexRef.current + direction;
 
-  if (!touch) return
+        if (next < 0 || next > steps) {
+          exit(direction);
+          return;
+        }
 
-  const rect =
-    main.getBoundingClientRect()
+        handleItemClick(next);
 
-  const viewportHeight =
-    window.visualViewport?.height ??
-    window.innerHeight
+        debug("after click", {
+          active: activeIndexRef.current,
+          animating: isAnimating.current,
+        });
 
-  const galleryControlsGesture =
-    rect.top <= 16 &&
-    rect.bottom >=
-      viewportHeight * 0.75
+        scrollThumbnailToIndex(next);
+      };
 
-  if (!galleryControlsGesture) {
-    return
-  }
+      let touchStartY = null;
+      let gestureHandled = false;
+      let moveLogged = false;
+      let touchDownY = null;
 
-  const consumeGesture = () => {
-    if (event.cancelable) {
-      event.preventDefault()
-    }
+      const onTouchStart = (event) => {
+        touchDownY = event.touches[0].clientY;
+        touchStartY = locked ? event.touches[0].clientY : null;
+        gestureHandled = false;
+        moveLogged = false;
 
-    event.stopPropagation()
-  }
+        debug("touchstart", {
+          locked,
+          y: y(),
+          start: Math.round(galleryState.start),
+        });
+      };
 
-  if (touchHandled) {
-    consumeGesture()
-    return
-  }
+      const onTouchMove = (event) => {
+        if (!locked) {
+          if (!moveLogged) {
+            moveLogged = true;
+            debug("move: NOT locked → page scrolls", { y: y() });
+          }
+          return;
+        }
 
-  const deltaX =
-    touchStartX - touch.clientX
+        if (event.cancelable) event.preventDefault();
 
-  const deltaY =
-    touchStartY - touch.clientY
+        if (touchStartY === null) {
+          if (!moveLogged) {
+            moveLogged = true;
+            debug("move: locked but NO start point (touch began before lock)");
+          }
+          return;
+        }
 
-  const absoluteX =
-    Math.abs(deltaX)
+        if (gestureHandled) return;
 
-  const absoluteY =
-    Math.abs(deltaY)
+        const delta = touchStartY - event.touches[0].clientY;
 
-  if (
-    absoluteX < 6 &&
-    absoluteY < 6
-  ) {
-    return
-  }
+        if (Math.abs(delta) < 12) return;
 
-  if (absoluteX > absoluteY) {
-    return
-  }
+        gestureHandled = true; // one step per swipe
+        go(delta > 0 ? 1 : -1);
+      };
 
-  consumeGesture()
+      const onTouchEnd = (event) => {
+        const endY = event.changedTouches[0]?.clientY;
 
-  if (absoluteY < 10) {
-    return
-  }
+        debug("touchend", {
+          handled: gestureHandled,
+          moved:
+            touchDownY !== null && endY != null
+              ? Math.round(touchDownY - endY)
+              : null,
+          locked,
+        });
 
-  touchHandled = true
+        touchStartY = null;
+        touchDownY = null;
+        gestureHandled = false;
+      };
 
-  const currentIndex =
-    activeIndexRef.current
+      main.addEventListener("touchstart", onTouchStart, { passive: true });
+      main.addEventListener("touchmove", onTouchMove, { passive: false });
+      main.addEventListener("touchend", onTouchEnd, { passive: true });
+      main.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
-  const direction =
-    deltaY > 0 ? 1 : -1
+      galleryState = ScrollTrigger.create({
+        trigger: runway,
+        start: "top top",
+        end: "bottom bottom",
+        invalidateOnRefresh: true,
+        onRefreshInit: updateRunwayHeight,
 
-  const isFirst =
-    currentIndex === 0
+        onRefresh: (self) =>
+          debug("refresh", {
+            start: Math.round(self.start),
+            end: Math.round(self.end),
+          }),
 
-  const isLast =
-    currentIndex ===
-    testimonials.length - 1
+        onEnter: () => {
+          debug("onEnter", { y: y() });
+          enterGallery(false);
+        },
+        onEnterBack: () => {
+          debug("onEnterBack", { y: y() });
+          enterGallery(true);
+        },
+        onLeave: () => {
+          debug("onLeave", { y: y() });
+          unlockScroll();
+        },
+        onLeaveBack: () => {
+          debug("onLeaveBack", { y: y() });
+          unlockScroll();
+        },
+      });
 
-  if (
-    direction < 0 &&
-    isFirst
-  ) {
-    window.scrollTo({
-      top: galleryState.start - 2,
-      behavior: "auto",
-    })
+      debug("setup", {
+        start: Math.round(galleryState.start),
+        end: Math.round(galleryState.end),
+        steps,
+      });
 
-    return
-  }
+      return () => {
+        main.removeEventListener("touchstart", onTouchStart);
+        main.removeEventListener("touchmove", onTouchMove);
+        main.removeEventListener("touchend", onTouchEnd);
+        main.removeEventListener("touchcancel", onTouchEnd);
 
-  if (
-    direction > 0 &&
-    isLast
-  ) {
-    window.scrollTo({
-      top: galleryState.end + 2,
-      behavior: "auto",
-    })
+        unlockScroll();
+        introPin.kill();
+        galleryState.kill();
+        gsap.killTweensOf(viewport);
+        runway.style.removeProperty("height");
 
-    return
-  }
-
-  const nextIndex =
-    currentIndex + direction
-
-  requestedIndexRef.current =
-    nextIndex
-
-  handleItemClick(nextIndex)
-  scrollThumbnailToIndex(nextIndex)
-}
-
-    const resetTouch = () => {
-      touchStartX = 0
-      touchStartY = 0
-      touchHandled = false
-    }
-
-    main.addEventListener(
-      "touchstart",
-      handleTouchStart,
-      {
-        passive: true,
-      }
-    )
-
-    main.addEventListener(
-      "touchmove",
-      handleTouchMove,
-      {
-        passive: false,
-      }
-    )
-
-    main.addEventListener(
-      "touchend",
-      resetTouch,
-      {
-        passive: true,
-      }
-    )
-
-    main.addEventListener(
-      "touchcancel",
-      resetTouch,
-      {
-        passive: true,
-      }
-    )
-
-    return () => {
-      main.removeEventListener(
-        "touchstart",
-        handleTouchStart
-      )
-
-      main.removeEventListener(
-        "touchmove",
-        handleTouchMove
-      )
-
-      main.removeEventListener(
-        "touchend",
-        resetTouch
-      )
-
-      main.removeEventListener(
-        "touchcancel",
-        resetTouch
-      )
-
-
-      introPin.kill()
-      galleryState.kill()
-
-      gsap.killTweensOf(viewport)
-
-      runway.style.removeProperty(
-        "height"
-      )
-    }
-  }
-)
+        debugEl.remove();
+      };
+    });
     const refreshFrame = requestAnimationFrame(() => {
       ScrollTrigger.refresh();
     });
 
     return () => {
       cancelAnimationFrame(refreshFrame);
-
       media.revert();
     };
   }, []);
+
   useLayoutEffect(() => {
     if (!infoRef.current) {
       return undefined;
@@ -2231,7 +2214,6 @@ const handleTouchMove = (event) => {
       const imageBottom = window.matchMedia("(max-width: 900px)").matches
         ? "14%"
         : "12%";
-
 
       gsap.set(imageFrame, {
         scale: 1,
@@ -2257,11 +2239,6 @@ const handleTouchMove = (event) => {
       }
       const timeline = gsap.timeline();
 
-      /*
-       * Open the new image first. Interaction
-       * unlocks as soon as this short reveal
-       * finishes.
-       */
       timeline.fromTo(
         imageFrame,
         {
@@ -2272,13 +2249,15 @@ const handleTouchMove = (event) => {
           duration: 0.25,
           ease: "power4.out",
           overwrite: "auto",
-
           onComplete: () => {
             shouldAnimateIn.current = false;
-
             isAnimating.current = false;
 
-            requestedIndexRef.current = activeIndexRef.current;
+            const pending = requestedIndexRef.current;
+
+            if (pending !== activeIndexRef.current) {
+              handleItemClick(pending);
+            }
           },
         },
         0,
@@ -2688,13 +2667,10 @@ const handleTouchMove = (event) => {
           </div>
         </div>
       </section>
-<div
-  ref={galleryRunwayRef}
-  className="relative"
->
-      <main
-        ref={testimonialsSectionRef}
-        className="
+      <div ref={galleryRunwayRef} className="relative">
+        <main
+          ref={testimonialsSectionRef}
+          className="
     relative z-10
     flex h-screen
     w-full max-w-full
@@ -2714,52 +2690,52 @@ const handleTouchMove = (event) => {
     max-[900px]:[backface-visibility:visible]
 
   "
-      >
-        <div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
-          <div
-            className="
+        >
+          <div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
+            <div
+              className="
       absolute -inset-[16%]
       scale-110
       overflow-hidden
       blur-[100px]
       transform-gpu
     "
-          >
-            {testimonials.map((testimonial, index) => (
-              <img
-                key={`background-${testimonial.name}-${index}`}
-                ref={(element) => {
-                  backgroundRefs.current[index] = element;
-                }}
-                src={testimonial.image}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{
-                  opacity: index === 0 ? 1 : 0,
+            >
+              {testimonials.map((testimonial, index) => (
+                <img
+                  key={`background-${testimonial.name}-${index}`}
+                  ref={(element) => {
+                    backgroundRefs.current[index] = element;
+                  }}
+                  src={testimonial.image}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{
+                    opacity: index === 0 ? 1 : 0,
 
-                  visibility: index === 0 ? "visible" : "hidden",
+                    visibility: index === 0 ? "visible" : "hidden",
 
-                  zIndex: index === 0 ? 2 : 0,
-                }}
-              />
-            ))}
+                    zIndex: index === 0 ? 2 : 0,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="absolute inset-0 bg-white/40" />
           </div>
 
-          <div className="absolute inset-0 bg-white/40" />
-        </div>
-
-        <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
-          <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
-            <FreySmilesGrid />
+          <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
+            <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
+              <FreySmilesGrid />
+            </div>
           </div>
-        </div>
 
-        {/* Active testimonial */}
-        <div className="relative flex-[2] p-4">
-          <div
-            aria-hidden="true"
-            className="
+          {/* Active testimonial */}
+          <div className="relative flex-[2] p-4">
+            <div
+              aria-hidden="true"
+              className="
     pointer-events-none
     absolute inset-0 z-0
     border-y border-white/15
@@ -2769,9 +2745,9 @@ const handleTouchMove = (event) => {
     backdrop-saturate-[115%]
     max-[900px]:hidden
   "
-          />
-          <div
-            className="
+            />
+            <div
+              className="
     relative z-10
     translate-y-16
     font-anton
@@ -2782,14 +2758,14 @@ const handleTouchMove = (event) => {
     max-[900px]:translate-y-4
     max-[900px]:text-[16px]
   "
-          >
-            A visual archive of selected patient treatment outcomes.
-          </div>
+            >
+              A visual archive of selected patient treatment outcomes.
+            </div>
 
-          {/* Testimonial details */}
-          <div
-            key={`details-${displayedIndex}`}
-            className="
+            {/* Testimonial details */}
+            <div
+              key={`details-${displayedIndex}`}
+              className="
     absolute left-8 top-12
     w-[min(34rem,calc(100%_-_4rem))]
     text-left
@@ -2800,10 +2776,10 @@ const handleTouchMove = (event) => {
 
     max-[380px]:top-[6.5rem]
   "
-          >
-            <div className="flex flex-col gap-4">
-              <div
-                className="
+            >
+              <div className="flex flex-col gap-4">
+                <div
+                  className="
         flex translate-y-[10vh]
         flex-col gap-4
         font-neueroman
@@ -2812,50 +2788,50 @@ const handleTouchMove = (event) => {
 
         max-[900px]:translate-y-0
       "
-              >
-                <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
-                  <div className="overflow-hidden">
-                    <span
-                      ref={projectNumberRef}
-                      aria-hidden="true"
-                      className="relative inline-block text-base leading-none opacity-70 will-change-transform"
-                    >
-                      <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-                    </span>
-                  </div>
+                >
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={projectNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-none opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
 
-                  <div className="overflow-hidden">
-                    <div
-                      ref={titleRef}
-                      className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
-                    >
-                      {displayedTestimonial.project}
+                    <div className="overflow-hidden">
+                      <div
+                        ref={titleRef}
+                        className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.project}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
-                  <div className="overflow-hidden">
-                    <span
-                      ref={treatmentNumberRef}
+                  <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={treatmentNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <p
+                        ref={infoRef}
+                        className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.type || "Treatment outcome"}
+                      </p>
+                    </div>
+
+                    <div
                       aria-hidden="true"
-                      className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
-                    >
-                      <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-                    </span>
-                  </div>
-
-                  <div className="overflow-hidden">
-                    <p
-                      ref={infoRef}
-                      className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
-                    >
-                      {displayedTestimonial.type || "Treatment outcome"}
-                    </p>
-                  </div>
-
-                  <div
-                    aria-hidden="true"
-                    className="
+                      className="
   pointer-events-none
   absolute bottom-0 left-[-2rem]
   z-10 h-[12px]
@@ -2864,10 +2840,10 @@ const handleTouchMove = (event) => {
   max-[900px]:left-[-1rem]
   max-[900px]:w-[calc(100%+1rem)]
 "
-                  >
-                    {/* Moves left */}
-                    <div
-                      className="
+                    >
+                      {/* Moves left */}
+                      <div
+                        className="
       absolute left-0 top-0
       h-[2px] w-full
       bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
@@ -2877,11 +2853,11 @@ const handleTouchMove = (event) => {
       will-change-[background-position]
       motion-reduce:animate-none
     "
-                    />
+                      />
 
-                    {/* Moves right */}
-                    <div
-                      className="
+                      {/* Moves right */}
+                      <div
+                        className="
       absolute left-0 top-[10px]
       h-[2px] w-full
       bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
@@ -2891,16 +2867,16 @@ const handleTouchMove = (event) => {
       will-change-[background-position]
       motion-reduce:animate-none
     "
-                    />
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div
-            key={`image-${displayedIndex}`}
-            ref={projectImageRef}
-            className="
+            <div
+              key={`image-${displayedIndex}`}
+              ref={projectImageRef}
+              className="
     testimonial-image-clip-frame
     absolute bottom-[12%] left-4
     h-1/2 w-3/4
@@ -2911,45 +2887,45 @@ const handleTouchMove = (event) => {
     max-[900px]:right-4
     max-[900px]:w-auto
   "
-          >
-            <div className="testimonial-image-clip-reveal">
-              <div className="testimonial-image-clip-photo h-full w-full">
-                <img
-                  src={displayedTestimonial.image}
-                  alt=""
-                  className="h-full w-full origin-center object-cover"
-                />
+            >
+              <div className="testimonial-image-clip-reveal">
+                <div className="testimonial-image-clip-photo h-full w-full">
+                  <img
+                    src={displayedTestimonial.image}
+                    alt=""
+                    className="h-full w-full origin-center object-cover"
+                  />
 
-                <div className="testimonial-image-clip-scan" />
+                  <div className="testimonial-image-clip-scan" />
 
-                <svg
-                  ref={circuitRef}
-                  className="testimonial-image-clip-circ"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                />
+                  <svg
+                    ref={circuitRef}
+                    className="testimonial-image-clip-circ"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div
-              className="
+              <div
+                className="
       testimonial-image-clip-bracket
       testimonial-image-clip-bracket-tl
     "
-            />
+              />
 
-            <div
-              className="
+              <div
+                className="
       testimonial-image-clip-bracket
       testimonial-image-clip-bracket-br
     "
-            />
+              />
+            </div>
           </div>
-        </div>
 
-        <div
-          ref={galleryViewportRef}
-          className="
+          <div
+            ref={galleryViewportRef}
+            className="
     relative z-20
     h-full w-[124px] shrink-0
     snap-y snap-mandatory
@@ -2973,9 +2949,9 @@ max-[900px]:overflow-x-hidden
     max-[900px]:border-l-0
     max-[900px]:border-t
   "
-        >
-          <div
-            className="
+          >
+            <div
+              className="
     flex min-h-max w-full
     flex-col gap-3
     pb-[calc(100vh-174px)]
@@ -2987,69 +2963,69 @@ max-[900px]:overflow-x-hidden
     max-[900px]:pb-0
     max-[900px]:pr-[calc(100vw-144px)]
   "
-          >
-            {testimonials.map((testimonial, index) => {
-              const isActive = index === activeIndex;
+            >
+              {testimonials.map((testimonial, index) => {
+                const isActive = index === activeIndex;
 
-              return (
-                <button
-                  key={`gallery-${testimonial.name}-${index}`}
-                  ref={(element) => {
-                    thumbnailRefs.current[index] = element;
-                  }}
-                  type="button"
-                  className={[
-                    "treatment-thumbnail",
-                    "relative",
-                    "block",
-                    "h-[150px]",
-                    "w-full",
-                    "shrink-0",
-                    "snap-start",
-                    "overflow-hidden",
-                    "border-0",
-                    "bg-[#aeaeae]",
-                    "p-0",
-
-                    "max-[900px]:h-full",
-                    "max-[900px]:w-[120px]",
-
-                    "after:pointer-events-none",
-                    "after:absolute",
-                    "after:inset-0",
-                    "after:z-10",
-                    "after:content-['']",
-                    "after:transition-colors",
-                    "after:delay-500",
-                    "after:duration-500",
-
-                    isActive ? "after:bg-black/0" : "after:bg-black/65",
-                  ].join(" ")}
-                  onClick={() => {
-                    requestedIndexRef.current = index;
-
-                    handleItemClick(index);
-                  }}
-                  aria-label={`View ${testimonial.name}`}
-                  aria-pressed={isActive}
-                >
-                  <img
-                    src={testimonial.image}
-                    alt=""
-                    className="absolute inset-0 block !h-full !w-full !object-cover"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
+                return (
+                  <button
+                    key={`gallery-${testimonial.name}-${index}`}
+                    ref={(element) => {
+                      thumbnailRefs.current[index] = element;
                     }}
-                  />
-                </button>
-              );
-            })}
+                    type="button"
+                    className={[
+                      "treatment-thumbnail",
+                      "relative",
+                      "block",
+                      "h-[150px]",
+                      "w-full",
+                      "shrink-0",
+                      "snap-start",
+                      "overflow-hidden",
+                      "border-0",
+                      "bg-[#aeaeae]",
+                      "p-0",
+
+                      "max-[900px]:h-full",
+                      "max-[900px]:w-[120px]",
+
+                      "after:pointer-events-none",
+                      "after:absolute",
+                      "after:inset-0",
+                      "after:z-10",
+                      "after:content-['']",
+                      "after:transition-colors",
+                      "after:delay-500",
+                      "after:duration-500",
+
+                      isActive ? "after:bg-black/0" : "after:bg-black/65",
+                    ].join(" ")}
+                    onClick={() => {
+                      requestedIndexRef.current = index;
+
+                      handleItemClick(index);
+                    }}
+                    aria-label={`View ${testimonial.name}`}
+                    aria-pressed={isActive}
+                  >
+                    <img
+                      src={testimonial.image}
+                      alt=""
+                      className="absolute inset-0 block !h-full !w-full !object-cover"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
       </div>
     </div>
   );
@@ -3247,8 +3223,6 @@ const Testimonials = () => {
 
     return () => split.revert();
   }, []);
-
-
 
   const listRefs = useRef([]);
 
