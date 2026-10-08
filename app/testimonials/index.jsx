@@ -2,7 +2,7 @@
 import { easing, geometry } from "maath";
 import { Flip } from "gsap/Flip";
 import { Renderer, Program, Color, Mesh, Triangle, Vec2 } from "ogl";
-import { motion } from "motion/react"
+
 import {
   Canvas,
   useFrame,
@@ -21,16 +21,9 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
-import {
-  EffectComposer,
-  Bloom,
-  Outline,
-  ChromaticAberration,
-} from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import gsap from "gsap";
-import { SplitText } from "gsap/SplitText";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { SplitText } from "gsap/all";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import {
   OrbitControls,
@@ -45,13 +38,3150 @@ import {
   useScroll,
 } from "@react-three/drei";
 import * as THREE from "three";
-// import { useControls } from "leva";
 import { MeshStandardMaterial } from "three";
+import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
 import ScrollList from "./scroll-list.jsx";
-import { ArrowRightIcon } from "lucide-react";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
+}
+
+ScrollTrigger.config({
+  ignoreMobileResize: true,
+});
+function Background() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const renderer = new Renderer({
+      dpr: isMobile ? 0.75 : Math.min(window.devicePixelRatio, 1.5),
+
+      canvas: canvasRef.current,
+
+      width: window.innerWidth,
+
+      height: window.innerHeight,
+    });
+
+    const { gl } = renderer;
+
+    gl.clearColor(0.74, 0.745, 0.75, 1);
+
+    const geometry = new Triangle(gl);
+
+    const vertex = `
+      attribute vec2 uv;
+      attribute vec2 position;
+      uniform vec2 uResolution;
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+
+    const fragment = `
+  precision mediump float;
+
+  uniform float uTime;
+  uniform float uScroll;
+  uniform vec2 uResolution;
+
+  uniform vec3 uPeach;
+  uniform vec3 uRose;
+  uniform vec3 uGray;
+  uniform vec3 uPearl;
+
+  varying vec2 vUv;
+
+  float random(vec2 point) {
+    return fract(
+      sin(
+        dot(
+          point,
+          vec2(127.1, 311.7)
+        )
+      ) * 43758.5453123
+    );
+  }
+
+  float noise(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 local = fract(point);
+
+    local =
+      local *
+      local *
+      (3.0 - 2.0 * local);
+
+    float bottomLeft =
+      random(cell);
+
+    float bottomRight =
+      random(
+        cell +
+        vec2(1.0, 0.0)
+      );
+
+    float topLeft =
+      random(
+        cell +
+        vec2(0.0, 1.0)
+      );
+
+    float topRight =
+      random(
+        cell +
+        vec2(1.0, 1.0)
+      );
+
+    return mix(
+      mix(
+        bottomLeft,
+        bottomRight,
+        local.x
+      ),
+      mix(
+        topLeft,
+        topRight,
+        local.x
+      ),
+      local.y
+    );
+  }
+
+  float fbm(vec2 point) {
+    float value = 0.0;
+    float amplitude = 0.5;
+
+    for (
+      int octave = 0;
+      octave < 4;
+      octave++
+    ) {
+      value +=
+        amplitude *
+        noise(point);
+
+      point =
+        point * 2.03 +
+        vec2(4.1, 2.7);
+
+      amplitude *= 0.5;
+    }
+
+    return value;
+  }
+
+  void main() {
+    vec2 uv = vUv;
+
+    float aspect =
+      uResolution.x /
+      uResolution.y;
+
+    vec2 point =
+      uv - 0.5;
+
+    point.x *= aspect;
+
+    float time =
+      uTime * 0.16;
+
+    /*
+     * Large, slowly moving field.
+     */
+    float organicField =
+      fbm(
+        point * 1.75 +
+        vec2(
+          time * 0.16,
+          -time * 0.11
+        )
+      );
+
+    /*
+     * Smaller-scale surface movement.
+     */
+    float fineField =
+      fbm(
+        point * 3.8 +
+        vec2(
+          -time * 0.12,
+          time * 0.15
+        )
+      );
+float verticalLight =
+  smoothstep(
+    -0.7,
+    0.8,
+    point.y +
+    organicField * 0.16
+  );
+
+vec3 color = mix(
+  uGray,
+  uPearl,
+  0.18 +
+  verticalLight * 0.42
+);
+
+/*
+ * Stronger white mist creates visible
+ * cloudy areas without adding saturation.
+ */
+float mist =
+  fbm(
+    point * 1.2 +
+    vec2(
+      time * 0.05,
+      time * 0.035
+    )
+  );
+
+float mistStrength =
+  smoothstep(
+    0.48,
+    0.9,
+    mist
+  );
+
+color = mix(
+  color,
+  vec3(0.94, 0.94, 0.93),
+  mistStrength * 0.28
+);
+
+/*
+ * Main flowing current.
+ */
+float peachAxis =
+  point.y +
+  0.19 *
+  sin(
+    point.x * 2.4 +
+    time +
+    organicField * 2.0
+  ) +
+  0.07 *
+  sin(
+    point.x * 6.5 -
+    time * 0.8
+  ) +
+  uScroll * 0.28;
+
+float peachRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis +
+        0.06
+      ) / 0.14,
+      2.0
+    )
+  );
+
+peachRibbon *=
+  0.62 +
+  fineField * 0.38;
+
+/*
+ * Secondary current.
+ */
+float roseAxis =
+  point.y -
+  0.22 *
+  sin(
+    point.x * 1.8 -
+    time * 0.7 +
+    organicField * 1.7
+  ) +
+  0.13 +
+  uScroll * 0.2;
+
+float roseRibbon =
+  exp(
+    -pow(
+      roseAxis / 0.085,
+      2.0
+    )
+  );
+
+/*
+ * White ribbon beside the warmer current.
+ */
+float whiteRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis -
+        0.16
+      ) / 0.075,
+      2.0
+    )
+  );
+
+color = mix(
+  color,
+  uPeach,
+  peachRibbon * 0.24
+);
+
+color = mix(
+  color,
+  uRose,
+  roseRibbon * 0.11
+);
+
+color = mix(
+  color,
+  vec3(0.97, 0.97, 0.96),
+  whiteRibbon * 0.24
+);
+
+/*
+ * More visible surface variation.
+ */
+color +=
+  (
+    fineField - 0.5
+  ) * 0.02;
+
+color = clamp(
+  color,
+  0.0,
+  1.0
+);
+
+gl_FragColor =
+  vec4(color, 1.0);
+  }
+`;
+
+    const program = new Program(gl, {
+      vertex,
+      fragment,
+      uniforms: {
+        uTime: {
+          value: 0,
+        },
+
+        uScroll: {
+          value: 0,
+        },
+        uPeach: {
+          value: new Color("#d5b7b2"),
+        },
+
+        uRose: {
+          value: new Color("#e4dae0"),
+        },
+
+        uGray: {
+          value: new Color("#b2b7be"),
+        },
+
+        uPearl: {
+          value: new Color("#e5e5e3"),
+        },
+
+        uResolution: {
+          value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight),
+        },
+      },
+    });
+
+    const mesh = new Mesh(gl, { geometry, program });
+
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      renderer.setSize(width, height);
+      program.uniforms.uResolution.value.set(width, height);
+    };
+
+    let targetScroll = 0;
+    let currentScroll = 0;
+    let frameId = null;
+    let previousTime = 0;
+    let destroyed = false;
+
+    const handleScroll = () => {
+      targetScroll = window.scrollY * 0.00015;
+    };
+
+    const loop = (time) => {
+      if (destroyed) return;
+
+      frameId = requestAnimationFrame(loop);
+
+      const minimumFrameTime = isMobile ? 1000 / 30 : 0;
+
+      if (time - previousTime < minimumFrameTime) return;
+
+      previousTime = time;
+
+      program.uniforms.uTime.value = time * 0.001;
+
+      currentScroll += (targetScroll - currentScroll) * 0.06;
+      program.uniforms.uScroll.value = currentScroll;
+
+      renderer.render({ scene: mesh });
+    };
+
+    handleResize();
+    handleScroll();
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    frameId = requestAnimationFrame(loop);
+
+    return () => {
+      destroyed = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10"
+    />
+  );
+}
+
+const TerminalPreloader = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  const containerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const updateViewport = () => {
+      setIsMobile(mediaQuery.matches);
+    };
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewport);
+    };
+  }, []);
+
+  const lines = isMobile
+    ? [
+        {
+          id: "mobile",
+          text: "We are committed to setting the highest standard through exceptional service. That commitment is supported by our use of state-of-the-art technology and strengthened by the expertise that comes from unmatched experience",
+          top: 0,
+        },
+      ]
+    : [
+        {
+          id: 1,
+          text: "We are committed to setting the highest standard through exceptional service",
+          top: 0,
+        },
+        {
+          id: 2,
+          text: "That commitment is supported by our use of state-of-the-art technology",
+          top: 20,
+        },
+        {
+          id: 3,
+          text: "And strengthened by the expertise that comes from unmatched experience",
+          top: 40,
+        },
+      ];
+
+  const MAX_CELL_ITERATIONS = 30;
+  const CELL_INTERVAL = 15;
+  const LINE_DELAY = 180;
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const lineElements = Array.from(
+      container.querySelectorAll(".terminal-line"),
+    );
+
+    const animatedLines = lineElements.map((lineElement, lineIndex) => {
+      const cellElements = Array.from(
+        lineElement.querySelectorAll(".terminal-cell"),
+      );
+
+      return {
+        startDelay: lineIndex * LINE_DELAY,
+        lastTick: 0,
+        finished: false,
+
+        cells: cellElements.map((element) => ({
+          element,
+          original: element.dataset.character ?? "",
+          signal: "",
+          displayedValue: null,
+          iterations: 0,
+          finished: false,
+        })),
+      };
+    });
+
+    const renderCell = (cell, value) => {
+      const displayedValue = cell.original === " " ? " " : value || "\u00A0";
+
+      // Avoid rewriting the DOM when the value hasn't changed.
+      if (cell.displayedValue === displayedValue) return;
+
+      cell.element.textContent = displayedValue;
+      cell.displayedValue = displayedValue;
+    };
+
+    const finishCell = (cell) => {
+      cell.finished = true;
+      cell.signal = cell.original;
+      renderCell(cell, cell.original);
+    };
+
+    // Immediately display the final text for reduced-motion users.
+    if (reduceMotion) {
+      animatedLines.forEach(({ cells }) => {
+        cells.forEach(finishCell);
+      });
+
+      return;
+    }
+
+    // Clear all characters before starting.
+    animatedLines.forEach(({ cells }) => {
+      cells.forEach((cell) => {
+        cell.signal = "";
+        cell.iterations = 0;
+        cell.finished = false;
+        renderCell(cell, "");
+      });
+    });
+
+    let frameId = null;
+    let startTime = null;
+    let cancelled = false;
+
+    const updateLine = (line, time) => {
+      const previousSignals = line.cells.map((cell) => cell.signal);
+
+      line.cells.forEach((cell, index) => {
+        if (cell.finished) return;
+
+        const nextSignal =
+          index === 0
+            ? Math.random() < 0.5
+              ? "*"
+              : ":"
+            : previousSignals[index - 1];
+
+        cell.signal = nextSignal;
+        renderCell(cell, nextSignal);
+
+        if (nextSignal) {
+          cell.iterations += 1;
+        }
+
+        if (cell.iterations >= MAX_CELL_ITERATIONS) {
+          finishCell(cell);
+        }
+      });
+
+      line.finished = line.cells.every((cell) => cell.finished);
+      line.lastTick = time;
+    };
+
+    const animate = (time) => {
+      if (cancelled) return;
+
+      if (startTime === null) {
+        startTime = time;
+      }
+
+      const elapsed = time - startTime;
+
+      animatedLines.forEach((line) => {
+        if (line.finished || elapsed < line.startDelay) return;
+
+        if (line.lastTick === 0 || time - line.lastTick >= CELL_INTERVAL) {
+          updateLine(line, time);
+        }
+      });
+
+      const allLinesFinished = animatedLines.every((line) => line.finished);
+
+      if (!allLinesFinished) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelled = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isMobile]);
+
+  const renderLine = (line) => {
+    const words = line.text.split(" ");
+    let characterPosition = 0;
+
+    return words.map((word, wordIndex) => {
+      const wordCharacters = Array.from(word);
+
+      const renderedWord = (
+        <span key={`${line.id}-word-${wordIndex}`} className="terminal-word">
+          {wordCharacters.map((character) => {
+            const position = characterPosition;
+            characterPosition += 1;
+
+            return (
+              <span
+                key={`${line.id}-${position}`}
+                className="terminal-cell"
+                data-character={character}
+                aria-hidden="true"
+              >
+                {character}
+              </span>
+            );
+          })}
+        </span>
+      );
+
+      if (wordIndex === words.length - 1) {
+        return renderedWord;
+      }
+
+      const spacePosition = characterPosition;
+      characterPosition += 1;
+
+      return (
+        <React.Fragment key={`${line.id}-group-${wordIndex}`}>
+          {renderedWord}
+
+          <span
+            key={`${line.id}-${spacePosition}`}
+            className="terminal-cell terminal-space"
+            data-character=" "
+            aria-hidden="true"
+          >
+            {" "}
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  return (
+    <div className="terminal-preloader font-ibmplex-extralight uppercase">
+      <div ref={containerRef} className="terminal-container">
+        {lines.map((line) => (
+          <div
+            key={line.id}
+            className="terminal-line"
+            style={{ top: `${line.top}px` }}
+            aria-label={line.text}
+          >
+            {renderLine(line)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const testimonials = [
+  {
+    name: "Lainie",
+    image: "../images/testimonials/lainielandscape.png",
+    type: "Deep bite and dental crowding corrected in 18 months with self-ligating braces and orthodontic elastics.",
+    project: "Lainie",
+  },
+  {
+    name: "James",
+    image: "../images/testimonials/Jamescontrast.png",
+    type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
+    project: "James",
+  },
+  {
+    name: "Ron L.",
+    image: "../images/testimonials/Ronlandscape.png",
+    type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
+    project: "Ron",
+  },
+  {
+    name: "Elizabeth",
+    image: "../images/testimonials/elizabethmask.png",
+    type: "Mandibular retrognathia corrected in 30 months with a functional appliance, self-ligating braces, and Invisalign",
+    project: "Elizabeth",
+  },
+  {
+    name: "Ashley",
+    image: "../images/testimonials/ashleylandscape.png",
+    type: "Posterior cross bite and crowding corrected with braces in 22 months",
+    project: "Ashley",
+  },
+  //   {
+  //   name: "Amandeep",
+  //   image: "../images/IMG_9527.PNG.jpg",
+  //   type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
+  //   project: "Amandeep",
+
+  // },
+  {
+    name: "Chase",
+    image: "../images/testimonials/kasprenski.png",
+    type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
+    project: "Chase",
+  },
+  {
+    name: "Leanne",
+    image: "../images/testimonials/Leannelandscape.png",
+    type: "Crowding and constricted arches corrected in 12 months with Invisalign",
+    project: "Leanne",
+  },
+  {
+    name: "Harold",
+    image: "../images/testimonials/harold.png",
+    type: "Overbite and spacing corrected in 14 months with Invisalign",
+    project: "Harold",
+  },
+  {
+    name: "Abigail",
+    image: "../images/testimonials/Abigaillandscape.png",
+    type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
+    project: "Abigail",
+  },
+  {
+    name: "Madi",
+    image: "../images/testimonials/madilandscape.png",
+    type: "Crowding corrected with self-ligating braces in two years",
+    project: "Madi",
+  },
+  {
+    name: "Justin",
+    image: "../images/testimonials/hurlburt.png",
+    type: "Deep bite corrected with Invisalign in 2 years",
+    project: "Justin",
+  },
+  {
+    name: "Jillian",
+    image: "../images/testimonials/jillianlandscape.png",
+    type: "Cross bite and crowding corrected with self ligating braces in 2 years.",
+    project: "Jillian",
+  },
+
+  {
+    name: "Sophia",
+    image: "../images/testimonials/Sophialandscape.png",
+    type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
+    project: "Sophia",
+  },
+
+  {
+    name: "Sabrina",
+    image: "../images/testimonials/sabrinalandscape.png",
+    type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
+    project: "Sabrina",
+  },
+
+  {
+    name: "Jackson",
+    image: "../images/testimonials/Jacksonlandscape.png",
+    type: "Moderate deep bite & mild crowding corrected with Invisalign",
+    project: "Jackson",
+  },
+  {
+    name: "Nilaya",
+    image: "../images/testimonials/Nilayalandscape.png",
+    type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
+    project: "Nilaya",
+  },
+];
+
+const WORD = "freysmiles";
+const REPEAT_COUNT = 11;
+const COLUMN_COUNT = 11;
+
+const characters = Array.from(
+  {
+    length: REPEAT_COUNT,
+  },
+  () => WORD,
+)
+  .join("")
+  .split("");
+
+function FreySmilesGrid() {
+  const gridRef = useRef(null);
+  const characterRefs = useRef([]);
+  const measurementsRef = useRef([]);
+  const pointerRef = useRef({
+    x: 0,
+    y: 0,
+  });
+  const frameRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+
+    if (!grid) {
+      return undefined;
+    }
+
+    const measureCharacters = () => {
+      measurementsRef.current = characterRefs.current
+        .map((element) => {
+          if (!element) return null;
+
+          const rect = element.getBoundingClientRect();
+
+          return {
+            element,
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+          };
+        })
+        .filter(Boolean);
+    };
+
+    const recalculateDistances = (x, y) => {
+      const containerRect = grid.getBoundingClientRect();
+
+      const diagonal = Math.hypot(containerRect.width, containerRect.height);
+
+      if (diagonal === 0) return;
+
+      measurementsRef.current.forEach((measurement) => {
+        const distance = Math.hypot(measurement.x - x, measurement.y - y);
+
+        const normalizedDistance = 1 - distance / diagonal;
+
+        const intensity = Math.max(Math.pow(normalizedDistance, 3), 0);
+
+        measurement.element.style.setProperty("--distance", intensity);
+      });
+    };
+
+    const updatePointerEffect = () => {
+      frameRef.current = null;
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const handlePointerMove = (event) => {
+      pointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+
+      if (frameRef.current !== null) {
+        return;
+      }
+
+      frameRef.current = requestAnimationFrame(updatePointerEffect);
+    };
+
+    const handleLayoutChange = () => {
+      measureCharacters();
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const resizeObserver = new ResizeObserver(handleLayoutChange);
+
+    resizeObserver.observe(grid);
+
+    measureCharacters();
+
+    document.fonts?.ready.then(() => {
+      measureCharacters();
+    });
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+
+    window.addEventListener("resize", handleLayoutChange);
+
+    window.addEventListener("scroll", handleLayoutChange, {
+      passive: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+
+      window.removeEventListener("pointermove", handlePointerMove);
+
+      window.removeEventListener("resize", handleLayoutChange);
+
+      window.removeEventListener("scroll", handleLayoutChange);
+
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <section className="grid min-h-screen cursor-crosshair place-items-center  text-white">
+      <div
+        ref={gridRef}
+        className="lowercase frey-text-grid font-ibmplex-extralight"
+        style={{
+          "--chars": COLUMN_COUNT,
+        }}
+        aria-label={Array.from(
+          {
+            length: REPEAT_COUNT,
+          },
+          () => WORD,
+        ).join(" ")}
+      >
+        {characters.map((character, index) => {
+          const rowIndex = Math.floor(index / COLUMN_COUNT);
+
+          const columnIndex = index % COLUMN_COUNT;
+
+          const isCutout = rowIndex < 3 && columnIndex >= COLUMN_COUNT - 4;
+
+          return (
+            <span
+              key={`${character}-${index}`}
+              ref={(element) => {
+                characterRefs.current[index] = isCutout ? null : element;
+              }}
+              className={[
+                "frey-text-grid__char",
+                isCutout ? "invisible pointer-events-none" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-hidden="true"
+              style={{
+                "--i": index,
+                "--row": rowIndex,
+              }}
+            >
+              {character}
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+const NS = "http://www.w3.org/2000/svg";
+
+const R = (a, b) => a + Math.random() * (b - a);
+const RI = (a, b) => Math.floor(R(a, b + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const chance = (p) => Math.random() < p;
+
+const EDGES = ["L", "L", "R", "R", "T", "B"];
+
+const DEFAULT_SUBJECT = {
+  head: { x: 50, y: 42, rx: 22, ry: 30 },
+  torso: { x1: 22, x2: 78, top: 66 },
+};
+
+const CIRCUIT_CLASSES = {
+  tr: "testimonial-image-clip-circ-trace",
+  pu: "testimonial-image-clip-circ-pulse",
+  in: "testimonial-image-clip-circ-in",
+  node: "testimonial-image-clip-circ-node",
+  fill: "testimonial-image-clip-circ-dot",
+  ring: "testimonial-image-clip-circ-ring",
+  t1: "testimonial-image-clip-circ-tone-1",
+  t2: "testimonial-image-clip-circ-tone-2",
+};
+
+/* ---------- Spatial grid ---------- */
+
+class Occupancy {
+  constructor(cell = 2.5) {
+    this.cell = cell;
+    this.map = new Map();
+  }
+
+  key(i, j) {
+    return `${i},${j}`;
+  }
+
+  add(x, y) {
+    const key = this.key(Math.floor(x / this.cell), Math.floor(y / this.cell));
+
+    let list = this.map.get(key);
+
+    if (!list) {
+      list = [];
+      this.map.set(key, list);
+    }
+
+    list.push([x, y]);
+  }
+
+  near(x, y, distance) {
+    const i = Math.floor(x / this.cell);
+    const j = Math.floor(y / this.cell);
+    const radius = Math.ceil(distance / this.cell);
+
+    for (let a = -radius; a <= radius; a++) {
+      for (let b = -radius; b <= radius; b++) {
+        const list = this.map.get(this.key(i + a, j + b));
+
+        if (!list) continue;
+
+        for (const [px, py] of list) {
+          if (Math.hypot(px - x, py - y) < distance) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+}
+
+function makeBlocker(H, subject) {
+  const k = H / 100;
+  const head = subject.head;
+  const torso = subject.torso;
+  const PAD = 2.5;
+
+  return (x, y) => {
+    const yp = y / k;
+
+    if (x < 0.8 || x > 99.2 || y < 0.8 || y > H - 0.8) {
+      return true;
+    }
+
+    // Approximate exclusions for the morphing frame corners.
+    if (
+      (x < 15 && yp < 9) ||
+      (x > 66 && yp < 15) ||
+      (x > 85 && yp > 77 && yp < 87) ||
+      (x > 85 && yp > 90) ||
+      (x < 40 && (yp > 78 + x || yp > 83 + 0.45 * x))
+    ) {
+      return true;
+    }
+
+    if (head) {
+      const dx = (x - head.x) / (head.rx + PAD);
+      const dy = (y - head.y * k) / (head.ry * k + PAD);
+
+      if (dx * dx + dy * dy < 1) {
+        return true;
+      }
+
+      if (
+        torso &&
+        Math.abs(x - head.x) < head.rx * 0.55 + PAD &&
+        y > head.y * k &&
+        y < torso.top * k + PAD
+      ) {
+        return true;
+      }
+    }
+
+    if (
+      torso &&
+      x > torso.x1 - PAD &&
+      x < torso.x2 + PAD &&
+      y > torso.top * k - PAD
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+}
+
+/* ---------- Geometry ---------- */
+
+function samplePath(points, step = 0.8) {
+  const samples = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const [a, b] = points[k - 1];
+    const [c, d] = points[k];
+
+    const count = Math.max(1, Math.ceil(Math.hypot(c - a, d - b) / step));
+
+    for (let j = k === 1 ? 0 : 1; j <= count; j++) {
+      samples.push([a + ((c - a) * j) / count, b + ((d - b) * j) / count]);
+    }
+  }
+
+  return samples;
+}
+
+// Create a parallel polyline with mitered corners.
+// Reject degenerate paths and offsets that fold back.
+function offsetPath(points, offset) {
+  if (points.length < 2) return null;
+
+  const directions = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const dx = points[k][0] - points[k - 1][0];
+    const dy = points[k][1] - points[k - 1][1];
+    const length = Math.hypot(dx, dy);
+
+    if (length < 0.0001) return null;
+
+    directions.push([dx / length, dy / length]);
+  }
+
+  const normal = ([x, y]) => [-y, x];
+  const result = [];
+
+  for (let k = 0; k < points.length; k++) {
+    const [x, y] = points[k];
+
+    if (k === 0 || k === points.length - 1) {
+      const direction = k === 0 ? directions[0] : directions[k - 1];
+
+      const [nx, ny] = normal(direction);
+
+      result.push([x + nx * offset, y + ny * offset]);
+
+      continue;
+    }
+
+    const a = normal(directions[k - 1]);
+    const b = normal(directions[k]);
+    const denominator = 1 + a[0] * b[0] + a[1] * b[1];
+
+    if (Math.abs(denominator) < 0.0001) return null;
+
+    result.push([
+      x + ((a[0] + b[0]) / denominator) * offset,
+      y + ((a[1] + b[1]) / denominator) * offset,
+    ]);
+  }
+
+  for (let k = 1; k < result.length; k++) {
+    const along =
+      (result[k][0] - result[k - 1][0]) * directions[k - 1][0] +
+      (result[k][1] - result[k - 1][1]) * directions[k - 1][1];
+
+    if (along < 0.8) return null;
+  }
+
+  return result;
+}
+
+function walk(edge, H, big) {
+  let x;
+  let y;
+  let dx = 0;
+  let dy = 0;
+
+  if (edge === "L") {
+    x = 0;
+    y = R(0.1, 0.8) * H;
+    dx = 1;
+  } else if (edge === "R") {
+    x = 100;
+    y = R(0.18, 0.76) * H;
+    dx = -1;
+  } else if (edge === "T") {
+    x = R(16, 64);
+    y = 0;
+    dy = 1;
+  } else {
+    x = R(36, 85);
+    y = H;
+    dy = -1;
+  }
+
+  const points = [[x, y]];
+
+  let length = big ? R(6, 14) : R(4, 14);
+
+  x += dx * length;
+  y += dy * length;
+  points.push([x, y]);
+
+  const bends = RI(1, 2);
+
+  for (let k = 0; k < bends; k++) {
+    const sign = chance(0.5) ? 1 : -1;
+    const px = dy !== 0 ? sign : 0;
+    const py = dx !== 0 ? sign : 0;
+    const diagonal = big ? R(4, 8) : R(2, 7);
+
+    x += (dx + px) * diagonal;
+    y += (dy + py) * diagonal;
+    points.push([x, y]);
+
+    if (chance(0.4)) {
+      dx = px;
+      dy = py;
+    }
+
+    length = big ? R(6, 12) : R(3, 12);
+
+    x += dx * length;
+    y += dy * length;
+    points.push([x, y]);
+  }
+
+  return points;
+}
+
+function generate(H, blocked) {
+  const occupancy = new Occupancy();
+
+  const layout = {
+    buses: [],
+    singles: [],
+    bells: [],
+    details: [],
+  };
+
+  const fits = (points, skipStart, gap) => {
+    const [sx, sy] = points[0];
+
+    for (const [x, y] of samplePath(points)) {
+      if (skipStart && Math.hypot(x - sx, y - sy) < 1.2) {
+        continue;
+      }
+
+      if (blocked(x, y) || occupancy.near(x, y, gap)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const commit = (points) => {
+    for (const [x, y] of samplePath(points)) {
+      occupancy.add(x, y);
+    }
+  };
+
+  // Buses: parallel lanes with staggered endpoints.
+  let tries = 0;
+  const busCount = RI(3, 5);
+
+  while (layout.buses.length < busCount && tries++ < 160) {
+    const center = walk(pick(EDGES), H, true);
+    const count = RI(3, 6);
+    const spacing = R(1.7, 2.2);
+    const lanes = [];
+
+    for (let i = 0; i < count; i++) {
+      const lane = offsetPath(center, (i - (count - 1) / 2) * spacing);
+
+      if (!lane) continue;
+
+      const last = lane.length - 1;
+      const a = lane[last - 1];
+      const b = lane[last];
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+      const extension = i % 2 ? R(1.6, 2.8) : R(-0.4, 0.4);
+
+      lane[last] = [
+        b[0] + ((b[0] - a[0]) / length) * extension,
+        b[1] + ((b[1] - a[1]) / length) * extension,
+      ];
+
+      if (fits(lane, true, 1.3)) {
+        lanes.push(lane);
+      }
+    }
+
+    if (lanes.length >= 2) {
+      lanes.forEach(commit);
+
+      layout.buses.push({
+        lanes,
+        tone: pick(["t1", "t2"]),
+        end: pick(["ring", "ring", "square", "dot"]),
+      });
+    }
+  }
+
+  // Single traces.
+  tries = 0;
+  const singleCount = RI(6, 10);
+
+  while (layout.singles.length < singleCount && tries++ < 220) {
+    const points = walk(pick(EDGES), H, false);
+
+    if (fits(points, true, 1.6)) {
+      commit(points);
+
+      layout.singles.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+        weight: chance(0.3) ? 2.1 : 1.5,
+        end: pick(["ring", "ring", "dot", "square"]),
+      });
+    }
+  }
+
+  // Short connectors with a ring at each end.
+  tries = 0;
+  const bellCount = RI(4, 8);
+
+  while (layout.bells.length < bellCount && tries++ < 220) {
+    const x = R(3, 97);
+    const y = R(3, H - 3);
+    const angle = (pick([0, 45, 90, 135]) * Math.PI) / 180;
+    const length = R(2.5, 6);
+
+    const points = [
+      [x, y],
+      [x + Math.cos(angle) * length, y + Math.sin(angle) * length],
+    ];
+
+    if (fits(points, false, 2.2)) {
+      commit(points);
+
+      layout.bells.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  // Component details.
+  tries = 0;
+  const detailCount = RI(2, 4);
+
+  const radii = {
+    dots: 2.4,
+    pads: 2.4,
+    ringpads: 3.4,
+    oval: 4.6,
+  };
+
+  while (layout.details.length < detailCount && tries++ < 220) {
+    const type = pick(["dots", "pads", "ringpads", "oval"]);
+    const x = R(4, 96);
+    const y = R(4, H - 4);
+    const radius = radii[type];
+    const probes = [[x, y]];
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+
+      probes.push([x + Math.cos(angle) * radius, y + Math.sin(angle) * radius]);
+
+      probes.push([
+        x + (Math.cos(angle) * radius) / 2,
+        y + (Math.sin(angle) * radius) / 2,
+      ]);
+    }
+
+    const available = probes.every(
+      ([qx, qy]) => !blocked(qx, qy) && !occupancy.near(qx, qy, 1.3),
+    );
+
+    if (available) {
+      probes.forEach(([qx, qy]) => occupancy.add(qx, qy));
+
+      layout.details.push({
+        type,
+        x,
+        y,
+        vertical: chance(0.5),
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  return layout;
+}
+
+function el(parent, tag, attrs = {}, styles = {}) {
+  const element = document.createElementNS(NS, tag);
+
+  const classes = String(attrs.class || "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const hasEcho = classes.includes("echo");
+
+  for (const [name, value] of Object.entries(attrs)) {
+    if (name === "class" || name === "stroke-width") continue;
+    element.setAttribute(name, String(value));
+  }
+
+  element.setAttribute(
+    "class",
+    classes
+      .filter((name) => name !== "echo")
+      .map((name) => CIRCUIT_CLASSES[name] || name)
+      .join(" "),
+  );
+
+  for (const [name, value] of Object.entries(styles)) {
+    element.style.setProperty(name, String(value));
+  }
+
+  if (attrs["stroke-width"] != null) {
+    element.style.setProperty("stroke-width", String(attrs["stroke-width"]));
+  }
+
+  if (hasEcho) {
+    const echoGroup = document.createElementNS(NS, "g");
+
+    echoGroup.setAttribute("class", "testimonial-image-clip-circ-echo");
+
+    for (const [name, value] of Object.entries(styles)) {
+      echoGroup.style.setProperty(name, String(value));
+    }
+
+    echoGroup.appendChild(element);
+    parent.appendChild(echoGroup);
+  } else {
+    parent.appendChild(element);
+  }
+
+  return element;
+}
+
+const toD = (points) =>
+  "M" + points.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join("L");
+
+function drawPad(svg, type, x, y, radius, classes, styles) {
+  if (type === "square") {
+    return el(
+      svg,
+      "rect",
+      {
+        x: x - radius,
+        y: y - radius,
+        width: 2 * radius,
+        height: 2 * radius,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  if (type === "dot") {
+    return el(
+      svg,
+      "circle",
+      {
+        cx: x,
+        cy: y,
+        r: radius * 0.85,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  return el(
+    svg,
+    "circle",
+    {
+      cx: x,
+      cy: y,
+      r: radius,
+      class: `${classes} ring`,
+      "stroke-width": 1.3,
+    },
+    styles,
+  );
+}
+
+function drawTrace(svg, points, options) {
+  const d = toD(points);
+  const [endX, endY] = points[points.length - 1];
+  const arrival = options.start + options.dur;
+
+  el(
+    svg,
+    "path",
+    {
+      d,
+      pathLength: 100,
+      class: `tr ${options.tone}`,
+      "stroke-width": options.weight,
+    },
+    {
+      "--draw-delay": `${options.start}s`,
+      "--draw-dur": `${options.dur}s`,
+      "--dim-delay": `${arrival + 0.05}s`,
+    },
+  );
+
+  if (options.cycle) {
+    el(
+      svg,
+      "path",
+      {
+        d,
+        pathLength: 100,
+        class: `pu ${options.tone}${options.outward ? "" : " in"}`,
+        "stroke-width": options.weight * 1.9,
+      },
+      {
+        "--cycle": `${options.cycle}s`,
+        "--pulse-delay": `${options.pulseDelay}s`,
+      },
+    );
+  }
+
+  if (options.startPad) {
+    drawPad(
+      svg,
+      "ring",
+      points[0][0],
+      points[0][1],
+      options.r,
+      `node ${options.tone}`,
+      {
+        "--pop-delay": `${options.start}s`,
+      },
+    );
+  }
+
+  const echo = options.cycle && options.outward ? " echo" : "";
+
+  drawPad(
+    svg,
+    options.end,
+    endX,
+    endY,
+    options.r,
+    `node ${options.tone}${echo}`,
+    {
+      "--pop-delay": `${arrival}s`,
+      "--cycle": `${options.cycle || 1}s`,
+      "--pulse-delay": `${options.pulseDelay || 0}s`,
+    },
+  );
+}
+
+/* ---------- Component details ---------- */
+
+function drawDetail(svg, detail, delay) {
+  const classes = `node ${detail.tone}`;
+  const ax = detail.vertical ? 0 : 1;
+  const ay = detail.vertical ? 1 : 0;
+
+  const pop = (index) => ({
+    "--pop-delay": `${delay + index * 0.06}s`,
+  });
+
+  if (detail.type === "dots") {
+    [-1, 0, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.8,
+          cy: detail.y + ay * j * 1.8,
+          r: 0.5,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
+
+  if (detail.type === "pads") {
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "rect",
+        {
+          x: detail.x + ax * j * 1.4 - 0.8,
+          y: detail.y + ay * j * 1.4 - 0.8,
+          width: 1.6,
+          height: 1.6,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
+
+  if (detail.type === "ringpads") {
+    el(
+      svg,
+      "circle",
+      {
+        cx: detail.x,
+        cy: detail.y,
+        r: 3.1,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
+
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.2,
+          cy: detail.y + ay * j * 1.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+
+  if (detail.type === "oval") {
+    const width = detail.vertical ? 3.6 : 8.4;
+    const height = detail.vertical ? 8.4 : 3.6;
+
+    el(
+      svg,
+      "rect",
+      {
+        x: detail.x - width / 2,
+        y: detail.y - height / 2,
+        width,
+        height,
+        rx: 1.8,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
+
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 2.2,
+          cy: detail.y + ay * j * 2.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+}
+
+export function renderCircuit(svg, subject = DEFAULT_SUBJECT) {
+  let cancelled = false;
+  let frameId = null;
+
+  const build = (attempt = 0) => {
+    if (cancelled || !svg || !svg.isConnected) return;
+
+    // Use layout dimensions so wrapper transforms do not
+    // distort the circuit's coordinate system.
+    const width = svg.clientWidth;
+    const height = svg.clientHeight;
+
+    if (!width || !height) {
+      if (attempt < 10) {
+        frameId = requestAnimationFrame(() => build(attempt + 1));
+      }
+      return;
+    }
+
+    const H = (100 * height) / width;
+
+    svg.setAttribute("viewBox", `0 0 100 ${H}`);
+    svg.replaceChildren();
+
+    const layout = generate(H, makeBlocker(H, subject));
+
+    const groups = [
+      ...layout.buses.map((bus) => ({ bus })),
+      ...layout.singles.map((single) => ({ single })),
+    ];
+
+    // Fisher–Yates shuffle.
+    for (let i = groups.length - 1; i > 0; i--) {
+      const j = RI(0, i);
+      [groups[i], groups[j]] = [groups[j], groups[i]];
+    }
+
+    const gap = R(0.04, 0.08);
+
+    groups.forEach((group, rank) => {
+      const start = 0.35 + rank * gap + R(0, 0.06);
+      const cycle = R(5, 11);
+      const outward = chance(0.65);
+
+      if (group.bus) {
+        const duration = R(0.4, 0.65);
+
+        // Wait until all lanes finish drawing before pulsing.
+        const pulseDelay =
+          start +
+          duration +
+          (group.bus.lanes.length - 1) * 0.03 +
+          0.8 +
+          R(0, cycle);
+
+        group.bus.lanes.forEach((lane, index) => {
+          drawTrace(svg, lane, {
+            tone: group.bus.tone,
+            weight: 1.1,
+            start: start + index * 0.03,
+            dur: duration,
+            cycle,
+            pulseDelay: pulseDelay + index * 0.07,
+            outward,
+            end: group.bus.end,
+            r: 0.75,
+          });
+        });
+      } else {
+        const duration = R(0.35, 0.7);
+
+        drawTrace(svg, group.single.pts, {
+          tone: group.single.tone,
+          weight: group.single.weight,
+          start,
+          dur: duration,
+          cycle,
+          pulseDelay: start + duration + 0.8 + R(0, cycle),
+          outward,
+          end: group.single.end,
+          r: 1.05,
+        });
+      }
+    });
+
+    layout.bells.forEach((bell) => {
+      drawTrace(svg, bell.pts, {
+        tone: bell.tone,
+        weight: 1.1,
+        start: R(0.9, 1.7),
+        dur: 0.3,
+        end: "ring",
+        r: 0.85,
+        startPad: true,
+      });
+    });
+
+    layout.details.forEach((detail) => {
+      drawDetail(svg, detail, R(1.2, 2.1));
+    });
+  };
+
+  build();
+
+  return () => {
+    cancelled = true;
+
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+  };
+}
+const List = ({ onInteractionChange }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [displayedIndex, setDisplayedIndex] = useState(0);
+  const introSectionRef = useRef(null);
+  const testimonialsSectionRef = useRef(null);
+  const galleryViewportRef = useRef(null);
+  const thumbnailRefs = useRef([]);
+  const activeIndexRef = useRef(0);
+  const requestedIndexRef = useRef(0);
+  const galleryScrollTimeoutRef = useRef(null);
+  const backgroundRefs = useRef([]);
+  const titleRef = useRef(null);
+  const infoRef = useRef(null);
+  const creditsRef = useRef(null);
+  const projectImageRef = useRef(null);
+  const projectImageElementRef = useRef(null);
+  const infoSplitRef = useRef(null);
+  const isAnimating = useRef(false);
+  const shouldAnimateIn = useRef(false);
+  const projectNumberRef = useRef(null);
+  const galleryRunwayRef = useRef(null);
+  const treatmentNumberRef = useRef(null);
+  const displayedTestimonial = testimonials[displayedIndex];
+const mobileGalleryGoToRef = useRef(null);
+const snapMarkerRefs = useRef([]);
+  const getTextTargets = () => {
+    return [
+      projectNumberRef.current,
+      titleRef.current,
+      treatmentNumberRef.current,
+      ...(infoSplitRef.current?.lines ?? []),
+      creditsRef.current,
+    ].filter(Boolean);
+  };
+
+useLayoutEffect(() => {
+  const intro = introSectionRef.current;
+  const main = testimonialsSectionRef.current;
+
+  if (!intro || !main) {
+    return undefined;
+  }
+  const media = gsap.matchMedia();
+
+  media.add("(min-width: 901px)", () => {
+    const timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: intro,
+        start: "top top",
+        end: () => `+=${intro.offsetHeight}`,
+        pin: intro,
+        pinSpacing: false,
+        scrub: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+    });
+
+    timeline.fromTo(
+      main,
+      {
+        rotationX: 8,
+        transformOrigin: "50% 100%",
+        transformPerspective: 1600,
+        backfaceVisibility: "hidden",
+      },
+      {
+        rotationX: 0,
+        ease: "none",
+      },
+      0,
+    );
+  });
+
+  media.add("(max-width: 900px)", () => {
+    const viewport = galleryViewportRef.current;
+    const runway = galleryRunwayRef.current;
+
+    if (!viewport || !runway) {
+      return undefined;
+    }
+
+    gsap.set(main, {
+      clearProps:
+        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+      willChange: "auto",
+    });
+
+    const introPin = ScrollTrigger.create({
+      trigger: intro,
+      start: "top top",
+      end: () => `+=${intro.offsetHeight + window.innerHeight}`,
+      pin: intro,
+      pinSpacing: false,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    });
+
+    const steps = testimonials.length - 1;
+    const root = document.documentElement;
+
+    const getStepDistance = () => Math.max(main.offsetHeight * 0.35, 240);
+
+    const updateRunwayHeight = () => {
+      const step = getStepDistance();
+      runway.style.height = `${main.offsetHeight + steps * step}px`;
+
+      snapMarkerRefs.current.forEach((marker, index) => {
+        if (marker) marker.style.top = `${index * step}px`;
+      });
+    };
+
+    const scrollThumbnailToIndex = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+      if (!thumbnail) return;
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      gsap.to(viewport, {
+        scrollLeft:
+          viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    };
+
+    updateRunwayHeight();
+
+    root.style.scrollSnapType = "y proximity";
+
+    let lastIndex = activeIndexRef.current;
+
+    const galleryState = ScrollTrigger.create({
+      trigger: runway,
+      start: "top top",
+      end: "bottom bottom",
+      invalidateOnRefresh: true,
+      onRefreshInit: updateRunwayHeight,
+      onUpdate: (self) => {
+        const index = Math.round(self.progress * steps);
+        if (index === lastIndex) return;
+
+        lastIndex = index;
+        handleItemClick(index);
+        scrollThumbnailToIndex(index);
+      },
+    });
+
+    mobileGalleryGoToRef.current = (index) => {
+      window.scrollTo({
+        top: galleryState.start + index * getStepDistance(),
+        behavior: "smooth",
+      });
+    };
+
+    return () => {
+      mobileGalleryGoToRef.current = null;
+      root.style.removeProperty("scroll-snap-type");
+      introPin.kill();
+      galleryState.kill();
+      gsap.killTweensOf(viewport);
+      runway.style.removeProperty("height");
+      snapMarkerRefs.current.forEach((marker) => {
+        marker?.style.removeProperty("top");
+      });
+    };
+  });
+
+  const refreshFrame = requestAnimationFrame(() => {
+    ScrollTrigger.refresh();
+  });
+
+  return () => {
+    cancelAnimationFrame(refreshFrame);
+    media.revert();
+  };
+}, []);
+
+  useLayoutEffect(() => {
+    if (!infoRef.current) {
+      return undefined;
+    }
+
+    const context = gsap.context(() => {
+      infoSplitRef.current = SplitText.create(infoRef.current, {
+        type: "lines",
+        linesClass: "project-info-line",
+        mask: "lines",
+      });
+
+      const textTargets = getTextTargets();
+      const imageFrame = projectImageRef.current;
+      const imageElement = projectImageElementRef.current;
+
+      const imageBottom = window.matchMedia("(max-width: 900px)").matches
+        ? "14%"
+        : "12%";
+
+      gsap.set(imageFrame, {
+        scale: 1,
+        bottom: imageBottom,
+      });
+
+      if (imageElement) {
+        gsap.set(imageElement, {
+          scale: 1,
+        });
+      }
+
+      if (!shouldAnimateIn.current) {
+        gsap.set(textTargets, {
+          y: 0,
+        });
+
+        gsap.set(imageFrame, {
+          "--close": 0,
+        });
+
+        return;
+      }
+      const timeline = gsap.timeline();
+
+      timeline.fromTo(
+        imageFrame,
+        {
+          "--close": 1,
+        },
+        {
+          "--close": 0,
+          duration: 0.25,
+          ease: "power4.out",
+          overwrite: "auto",
+          onComplete: () => {
+            shouldAnimateIn.current = false;
+            isAnimating.current = false;
+
+            const pending = requestedIndexRef.current;
+
+            if (pending !== activeIndexRef.current) {
+              handleItemClick(pending);
+            }
+          },
+        },
+        0,
+      );
+
+      timeline.fromTo(
+        textTargets,
+        {
+          y: 40,
+        },
+        {
+          y: 0,
+          duration: 0.6,
+          ease: "power4.out",
+          stagger: 0.04,
+          overwrite: "auto",
+        },
+        0,
+      );
+    }, testimonialsSectionRef);
+
+    return () => {
+      context.revert();
+      infoSplitRef.current?.revert();
+      infoSplitRef.current = null;
+    };
+  }, [displayedIndex]);
+
+  useLayoutEffect(() => {
+    return () => {
+      gsap.killTweensOf(backgroundRefs.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = testimonialsSectionRef.current;
+
+    if (!section || !onInteractionChange) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        onInteractionChange(entry.isIntersecting);
+      },
+      {
+        threshold: 0.4,
+      },
+    );
+
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onInteractionChange]);
+
+  useEffect(() => {
+    let isProgrammaticScroll = false;
+    const desktopQuery = window.matchMedia("(min-width: 901px)");
+    const viewport = galleryViewportRef.current;
+
+    const section = testimonialsSectionRef.current;
+
+    if (!viewport || !section) {
+      return undefined;
+    }
+    if (!viewport || !section || !desktopQuery.matches) {
+      return undefined;
+    }
+
+    let wheelAccumulator = 0;
+    let wheelLocked = false;
+    let wheelUnlockTimer = null;
+
+    const getIsHorizontal = () =>
+      window.matchMedia("(max-width: 900px)").matches;
+
+    const isSectionAligned = () => {
+      const rect = section.getBoundingClientRect();
+
+      const tolerance = Math.max(16, window.innerHeight * 0.025);
+
+      return Math.abs(rect.top) <= tolerance;
+    };
+
+    const selectClosestThumbnail = () => {
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const viewportStart = isHorizontal
+        ? viewportRect.left + 12
+        : viewportRect.top + 12;
+
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+
+      thumbnailRefs.current.forEach((thumbnail, index) => {
+        if (!thumbnail) return;
+
+        const rect = thumbnail.getBoundingClientRect();
+
+        const thumbnailStart = isHorizontal ? rect.left : rect.top;
+
+        const distance = Math.abs(thumbnailStart - viewportStart);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+
+          closestIndex = index;
+        }
+      });
+
+      requestedIndexRef.current = closestIndex;
+
+      handleItemClick(closestIndex);
+    };
+
+    const scrollToThumbnail = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+
+      if (!thumbnail) return;
+
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      const targetPosition = isHorizontal
+        ? viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12
+        : viewport.scrollTop + thumbnailRect.top - viewportRect.top - 12;
+
+      isProgrammaticScroll = true;
+
+      viewport.style.scrollSnapType = "none";
+
+      gsap.killTweensOf(viewport);
+
+      gsap.to(viewport, {
+        ...(isHorizontal
+          ? {
+              scrollLeft: targetPosition,
+            }
+          : {
+              scrollTop: targetPosition,
+            }),
+
+        duration: 0.55,
+        ease: "power2.inOut",
+        overwrite: true,
+
+        onComplete: () => {
+          viewport.style.removeProperty("scroll-snap-type");
+
+          requestAnimationFrame(() => {
+            isProgrammaticScroll = false;
+          });
+        },
+      });
+    };
+
+    const handleGalleryScroll = () => {
+      if (getIsHorizontal()) {
+        return;
+      }
+
+      if (isProgrammaticScroll) {
+        return;
+      }
+
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      galleryScrollTimeoutRef.current = window.setTimeout(
+        selectClosestThumbnail,
+        120,
+      );
+    };
+    const keepWheelLocked = () => {
+      window.clearTimeout(wheelUnlockTimer);
+
+      wheelUnlockTimer = window.setTimeout(() => {
+        wheelLocked = false;
+        wheelAccumulator = 0;
+      }, 140);
+    };
+
+    const handleSectionWheel = (event) => {
+      if (!isSectionAligned()) {
+        return;
+      }
+
+      const delta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX;
+
+      if (delta === 0) return;
+
+      const currentIndex = requestedIndexRef.current;
+
+      const isFirst = currentIndex === 0;
+
+      const isLast = currentIndex === testimonials.length - 1;
+
+      if (wheelLocked) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        keepWheelLocked();
+        return;
+      }
+
+      if ((delta < 0 && isFirst) || (delta > 0 && isLast)) {
+        wheelAccumulator = 0;
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      wheelAccumulator += delta;
+
+      if (Math.abs(wheelAccumulator) < 10) {
+        return;
+      }
+
+      const direction = wheelAccumulator > 0 ? 1 : -1;
+
+      const nextIndex = Math.max(
+        0,
+        Math.min(testimonials.length - 1, currentIndex + direction),
+      );
+
+      wheelAccumulator = 0;
+      wheelLocked = true;
+
+      requestedIndexRef.current = nextIndex;
+      handleItemClick(nextIndex);
+      scrollToThumbnail(nextIndex);
+
+      keepWheelLocked();
+    };
+
+    viewport.addEventListener("scroll", handleGalleryScroll, {
+      passive: true,
+    });
+
+    section.addEventListener("wheel", handleSectionWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      window.clearTimeout(wheelUnlockTimer);
+
+      gsap.killTweensOf(viewport);
+
+      viewport.style.removeProperty("scroll-snap-type");
+
+      viewport.removeEventListener("scroll", handleGalleryScroll);
+
+      section.removeEventListener("wheel", handleSectionWheel, true);
+    };
+  }, []);
+
+  const handleItemClick = (nextIndex) => {
+    requestedIndexRef.current = nextIndex;
+
+    if (nextIndex === activeIndexRef.current || isAnimating.current) {
+      return;
+    }
+
+    isAnimating.current = true;
+
+    const previousIndex = activeIndexRef.current;
+    activeIndexRef.current = nextIndex;
+
+    const previousBackground = backgroundRefs.current[previousIndex];
+
+    const nextBackground = backgroundRefs.current[nextIndex];
+
+    setActiveIndex(nextIndex);
+
+    gsap.killTweensOf([previousBackground, nextBackground].filter(Boolean));
+
+    if (nextBackground) {
+      gsap.set(nextBackground, {
+        visibility: "visible",
+      });
+
+      gsap.to(nextBackground, {
+        opacity: 1,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+      });
+    }
+
+    if (previousBackground) {
+      gsap.to(previousBackground, {
+        opacity: 0,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+        onComplete: () => {
+          gsap.set(previousBackground, {
+            visibility: "hidden",
+          });
+        },
+      });
+    }
+
+    const textTargets = getTextTargets();
+
+    const outgoingTimeline = gsap.timeline({
+      onComplete: () => {
+        shouldAnimateIn.current = true;
+        setDisplayedIndex(nextIndex);
+      },
+    });
+
+    outgoingTimeline.to(
+      textTargets,
+      {
+        y: -60,
+        duration: 0.5,
+        ease: "power4.in",
+        stagger: 0.05,
+      },
+      0,
+    );
+    const textExitDuration = 0.5 + Math.max(0, textTargets.length - 1) * 0.05;
+
+    outgoingTimeline.to(
+      projectImageRef.current,
+      {
+        "--close": 1,
+        duration: 0.3,
+        ease: "power2.in",
+      },
+      textExitDuration - 0.3,
+    );
+  };
+  const circuitRef = useRef(null);
+
+  useEffect(() => {
+    const svg = circuitRef.current;
+    if (!svg) return;
+
+    let stopCircuit = () => {};
+    let previousWidth = -1;
+    let previousHeight = -1;
+
+    const rebuild = () => {
+      const width = svg.clientWidth;
+      const height = svg.clientHeight;
+
+      if (!width || !height) return;
+
+      if (width === previousWidth && height === previousHeight) {
+        return;
+      }
+
+      previousWidth = width;
+      previousHeight = height;
+
+      stopCircuit();
+      stopCircuit = renderCircuit(svg);
+    };
+
+    rebuild();
+
+    const observer = new ResizeObserver(rebuild);
+    observer.observe(svg);
+
+    return () => {
+      observer.disconnect();
+      stopCircuit();
+    };
+  }, [displayedIndex]);
+  return (
+    <div className="relative w-full">
+      <section
+        ref={introSectionRef}
+        className="
+    intro relative z-0
+    h-screen w-full max-w-full
+    overflow-hidden
+    max-[900px]:h-svh
+  "
+      >
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <JanusFace />
+        </div>
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] flex-col md:flex-row">
+          <div className="hidden min-h-screen md:block md:w-1/2" />
+
+          <div className="flex min-h-screen w-full items-center justify-center px-6 md:w-1/2 md:px-0">
+            <div className="w-full max-w-[1200px]">
+              <TerminalPreloader />
+            </div>
+          </div>
+        </div>
+      </section>
+ <div ref={galleryRunwayRef} className="relative">
+
+        {testimonials.map((testimonial, index) => (
+          <div
+            key={`snap-${testimonial.name}-${index}`}
+            ref={(element) => {
+              snapMarkerRefs.current[index] = element;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 hidden h-px w-px max-[900px]:block"
+            style={{
+              scrollSnapAlign: "start",
+              scrollSnapStop: "always",
+            }}
+          />
+        ))}
+
+        <main
+          ref={testimonialsSectionRef}
+          className="
+    relative z-10
+    flex h-screen
+    w-full max-w-full
+    origin-bottom
+    overflow-hidden
+    bg-[#0f0f0f]
+
+    will-change-transform
+    [backface-visibility:hidden]
+
+    max-[900px]:sticky
+    max-[900px]:top-0
+    max-[900px]:h-[100svh]
+    max-[900px]:min-h-[100svh]
+    max-[900px]:flex-col
+    max-[900px]:will-change-auto
+    max-[900px]:[backface-visibility:visible]
+
+  "
+        >
+          <div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
+            <div
+              className="
+      absolute -inset-[16%]
+      scale-110
+      overflow-hidden
+      blur-[100px]
+      transform-gpu
+    "
+            >
+              {testimonials.map((testimonial, index) => (
+                <img
+                  key={`background-${testimonial.name}-${index}`}
+                  ref={(element) => {
+                    backgroundRefs.current[index] = element;
+                  }}
+                  src={testimonial.image}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{
+                    opacity: index === 0 ? 1 : 0,
+
+                    visibility: index === 0 ? "visible" : "hidden",
+
+                    zIndex: index === 0 ? 2 : 0,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="absolute inset-0 bg-white/40" />
+          </div>
+
+
+          <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
+            <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
+              <FreySmilesGrid />
+            </div>
+          </div>
+
+          {/* Active testimonial */}
+          <div className="relative flex-[2] p-4">
+            <div
+              aria-hidden="true"
+              className="
+    pointer-events-none
+    absolute inset-0 z-0
+    border-y border-white/15
+    bg-white/[0.15]
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
+    backdrop-blur-[22px]
+    backdrop-saturate-[115%]
+    max-[900px]:hidden
+  "
+            />
+            <div
+              className="
+    relative z-10
+    translate-y-16
+    font-anton
+    text-[18px]
+    uppercase
+    opacity-70
+
+    max-[900px]:translate-y-4
+    max-[900px]:text-[16px]
+  "
+            >
+              A visual archive of selected patient treatment outcomes.
+            </div>
+
+            {/* Testimonial details */}
+            <div
+              key={`details-${displayedIndex}`}
+              className="
+    absolute left-8 top-12
+    w-[min(34rem,calc(100%_-_4rem))]
+    text-left
+
+    max-[900px]:left-4
+    max-[900px]:top-[5.75rem]
+    max-[900px]:w-[calc(100%_-_2rem)]
+
+    max-[380px]:top-[6.5rem]
+  "
+            >
+              <div className="flex flex-col gap-4">
+                <div
+                  className="
+        flex translate-y-[10vh]
+        flex-col gap-4
+        font-neuehaas55
+        text-[15px]
+        uppercase
+
+        max-[900px]:translate-y-0
+      "
+                >
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={projectNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-none opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <div
+                        ref={titleRef}
+                        className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.project}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={treatmentNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <p
+                        ref={infoRef}
+                        className=" relative text-left font-neuehaas55 uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.type || "Treatment outcome"}
+                      </p>
+                    </div>
+
+                    <div
+                      aria-hidden="true"
+                      className="
+  pointer-events-none
+  absolute bottom-0 left-[-2rem]
+  z-10 h-[12px]
+  w-[calc(100%+2rem)]
+
+  max-[900px]:left-[-1rem]
+  max-[900px]:w-[calc(100%+1rem)]
+"
+                    >
+                      {/* Moves left */}
+                      <div
+                        className="
+      absolute left-0 top-0
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-left_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                      />
+
+                      {/* Moves right */}
+                      <div
+                        className="
+      absolute left-0 top-[10px]
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-right_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              key={`image-${displayedIndex}`}
+              ref={projectImageRef}
+              className="
+    testimonial-image-clip-frame
+    absolute bottom-[12%] left-4
+    h-1/2 w-3/4
+    will-change-transform
+
+    max-[900px]:bottom-[14%]
+    max-[900px]:left-4
+    max-[900px]:right-4
+    max-[900px]:w-auto
+  "
+            >
+              <div className="testimonial-image-clip-reveal">
+                <div className="testimonial-image-clip-photo h-full w-full">
+                  <img
+                    src={displayedTestimonial.image}
+                    alt=""
+                    className="h-full w-full origin-center object-cover"
+                  />
+
+                  <div className="testimonial-image-clip-scan" />
+
+                  <svg
+                    ref={circuitRef}
+                    className="testimonial-image-clip-circ"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+
+              <div
+                className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-tl
+    "
+              />
+
+              <div
+                className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-br
+    "
+              />
+            </div>
+          </div>
+
+          <div
+            ref={galleryViewportRef}
+            className="
+    relative z-20
+    h-full w-[124px] shrink-0
+    snap-y snap-mandatory
+    scroll-pt-3
+    overflow-y-auto overflow-x-hidden
+overscroll-y-contain
+max-[900px]:overscroll-y-auto
+max-[900px]:overscroll-x-contain
+    border-l border-white/10
+    bg-white/30
+    p-3
+    backdrop-blur-[20px]
+    [scrollbar-width:none]
+    [&::-webkit-scrollbar]:hidden
+
+    max-[900px]:h-[112px]
+    max-[900px]:w-full
+   max-[900px]:snap-none
+max-[900px]:overflow-x-hidden
+    max-[900px]:overflow-y-hidden
+    max-[900px]:border-l-0
+    max-[900px]:border-t
+  "
+          >
+            <div
+              className="
+    flex min-h-max w-full
+    flex-col gap-3
+    pb-[calc(100vh-174px)]
+
+    max-[900px]:h-full
+    max-[900px]:min-h-0
+    max-[900px]:w-max
+    max-[900px]:flex-row
+    max-[900px]:pb-0
+    max-[900px]:pr-[calc(100vw-144px)]
+  "
+            >
+              {testimonials.map((testimonial, index) => {
+                const isActive = index === activeIndex;
+
+                return (
+                  <button
+                    key={`gallery-${testimonial.name}-${index}`}
+                    ref={(element) => {
+                      thumbnailRefs.current[index] = element;
+                    }}
+                    type="button"
+                    className={[
+                      "treatment-thumbnail",
+                      "relative",
+                      "block",
+                      "h-[150px]",
+                      "w-full",
+                      "shrink-0",
+                      "snap-start",
+                      "overflow-hidden",
+                      "border-0",
+                      "bg-[#aeaeae]",
+                      "p-0",
+
+                      "max-[900px]:h-full",
+                      "max-[900px]:w-[120px]",
+
+                      "after:pointer-events-none",
+                      "after:absolute",
+                      "after:inset-0",
+                      "after:z-10",
+                      "after:content-['']",
+                      "after:transition-colors",
+                      "after:delay-500",
+                      "after:duration-500",
+
+                      isActive ? "after:bg-black/0" : "after:bg-black/65",
+                    ].join(" ")}
+                onClick={() => {
+  if (mobileGalleryGoToRef.current) {
+    mobileGalleryGoToRef.current(index);
+    return;
+  }
+
+  requestedIndexRef.current = index;
+  handleItemClick(index);
+}}
+                    aria-label={`View ${testimonial.name}`}
+                    aria-pressed={isActive}
+                  >
+                    <img
+                      src={testimonial.image}
+                      alt=""
+                      className="absolute inset-0 block !h-full !w-full !object-cover"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+function JanusFace() {
+  const [leftShapes, setLeftShapes] = useState([]);
+  const [rightShapes, setRightShapes] = useState([]);
+
+  const r = (from, to) => Math.random() * (to - from) + from;
+  const ri = (from, to) => ~~r(from, to);
+  const pick = (...args) => args[ri(0, args.length)];
+
+  const symbols = [
+    "□",
+    "▢",
+    "▭",
+    "▯",
+
+    "○",
+    "◯",
+    "◌",
+
+    "△",
+    "▽",
+    "▷",
+    "◁",
+
+    "◇",
+    "◊",
+
+    "◅",
+    "▻",
+  ];
+
+  const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
+    return Array.from({ length }, (_, i) => {
+      const shouldBlink = !isMobile && (i + rowIndex) % 2 === 0;
+
+      return (
+        <span
+          key={i}
+          className={shouldBlink ? "symbol symbol-blink" : "symbol"}
+          style={
+            shouldBlink
+              ? {
+                  "--blink-delay": `${(i * 0.09 + rowIndex * 0.17) % 4}s`,
+
+                  "--blink-duration": `${3.5 + ((i + rowIndex) % 4) * 0.4}s`,
+                }
+              : undefined
+          }
+        >
+          {pick(...symbols)}
+        </span>
+      );
+    });
+  };
+  const generateBaseParagraphs = (isMobile = false) => {
+    const paragraphs = [];
+
+    const rowCount = 50;
+
+    for (let i = 0; i < rowCount; i++) {
+      const offset = r(45, 95);
+      const color = "#AAA6E3";
+
+      const textLength = isMobile ? ri(18, 34) : ri(25, 95);
+
+      paragraphs.push({
+        offset,
+        color,
+        textLength,
+        key: i,
+      });
+    }
+
+    return paragraphs;
+  };
+
+  const build = () => {
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const baseData = generateBaseParagraphs(isMobile);
+
+    const leftParas = baseData.map((data, i) => (
+      <div
+        key={i}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "left",
+          mask: `linear-gradient(
+          to right,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    const rightParas = baseData.map((data, i) => (
+      <div
+        key={`r${i}`}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "right",
+          mask: `linear-gradient(
+          to left,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    setLeftShapes(leftParas);
+    setRightShapes(rightParas);
+  };
+
+  useEffect(() => {
+    build();
+  }, []);
+
+  const shapePath =
+    "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
+
+  const mirrorPolygon = (poly) => {
+    return poly
+      .split(",")
+      .map((pt) => pt.trim())
+      .map((pt) => {
+        const [xRaw, y] = pt.split(/\s+/);
+        const xPercent = parseFloat(xRaw);
+        const mirroredX = (100 - xPercent).toFixed(2) + "%";
+        return `${mirroredX} ${y}`;
+      })
+      .join(", ");
+  };
+
+  const leftShapePath = mirrorPolygon(shapePath);
+
+  return (
+    <div className="janus-main" onClick={build} style={{ cursor: "pointer" }}>
+      <div className="janus-container">
+        {/* Left Face */}
+        <div className="face-container left-face">
+          <div
+            className="janus-shape left-shape"
+            style={{ shapeOutside: `polygon(${leftShapePath})` }}
+          />
+          <div className="text-container left-text">{leftShapes}</div>
+        </div>
+
+        {/* Right Face */}
+        <div className="face-container right-face">
+          <div
+            className="janus-shape right-shape"
+            style={{ shapeOutside: `polygon(${shapePath})` }}
+          />
+          <div className="text-container right-text">{rightShapes}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Testimonials = () => {
+  const textRef = useRef(null);
+  const bgTextColor = "#CECED3";
+  const fgTextColor = "#161818";
+  const [disableFluid, setDisableFluid] = useState(false);
+  useEffect(() => {
+    if (!textRef.current) return;
+
+    const split = new SplitText(textRef.current, { type: "words, chars" });
+
+    gsap.fromTo(
+      split.chars,
+      { color: bgTextColor },
+      {
+        color: fgTextColor,
+        stagger: 0.03,
+        duration: 1,
+        ease: "power2.out",
+      },
+    );
+
+    return () => split.revert();
+  }, []);
+
+  const listRefs = useRef([]);
+
+  useEffect(() => {
+    listRefs.current.forEach((el, i) => {
+      gsap.fromTo(
+        el,
+        { filter: "blur(8px)", opacity: 0 },
+        {
+          filter: "blur(0px)",
+          opacity: 1,
+          scrollTrigger: {
+            trigger: el,
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+          duration: 0.6,
+          ease: "power2.out",
+        },
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    const lines = gsap.utils.toArray("#smile-scroll-section .line");
+
+    lines.forEach((line, index) => {
+      const direction = index % 2 === 0 ? -1 : 1;
+
+      gsap.to(line, {
+        xPercent: direction * 50,
+        ease: "none",
+        scrollTrigger: {
+          trigger: "#smile-scroll-section",
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    });
+  }, []);
+
+  const textRefs = useRef([]);
+
+  useEffect(() => {
+    textRefs.current.forEach((el, i) => {
+      gsap.fromTo(
+        el,
+        { filter: "blur(8px)", opacity: 0 },
+        {
+          filter: "blur(0px)",
+          opacity: 1,
+          scrollTrigger: {
+            trigger: el,
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+          duration: 0.6,
+          ease: "power2.out",
+        },
+      );
+    });
+  }, []);
+
+  const movingBlobRef = useRef(null);
+
+  const points = [
+    { x: 150, y: 60 },
+    { x: 210, y: 110 },
+    { x: 200, y: 190 },
+    { x: 120, y: 210 },
+    { x: 70, y: 140 },
+    { x: 100, y: 100 },
+  ];
+
+  useLayoutEffect(() => {
+    const tl = gsap.timeline({
+      repeat: -1,
+      defaults: { ease: "sine.inOut", duration: 1.6 },
+    });
+
+    points.forEach((p) => {
+      tl.to(movingBlobRef.current, {
+        attr: { cx: p.x, cy: p.y },
+      });
+    });
+  }, []);
+
+  return (
+    <>
+      {/* <FluidSimulation disabled={disableFluid} /> */}
+      <List onInteractionChange={setDisableFluid} />
+
+      <Background />
+    </>
+  );
+};
+
+export default Testimonials;
+
+{
+  /* <section className="w-full py-12">
+        <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
+          <div className="flex items-center justify-between py-10 w-full">
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
+
+            <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
+          </div>
+
+          <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
+            Every smile tells a story — these are some of our favorites.
+          </div>
+
+        </section>
+      </section> */
 }
 
 // const FluidSimulation = ({ disabled }) => {
@@ -1036,997 +4166,6 @@ if (typeof window !== "undefined") {
 //   );
 // };
 
-function Background() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    const renderer = new Renderer({
-      dpr: isMobile ? 0.75 : Math.min(window.devicePixelRatio, 1.5),
-
-      canvas: canvasRef.current,
-
-      width: window.innerWidth,
-
-      height: window.innerHeight,
-    });
-
-    const { gl } = renderer;
-
-    gl.clearColor(0.93, 0.94, 0.96, 1);
-
-    const geometry = new Triangle(gl);
-
-    const vertex = `
-      attribute vec2 uv;
-      attribute vec2 position;
-      uniform vec2 uResolution;
-      varying vec2 vUv;
-
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `;
-
-    const fragment = `
-  precision mediump float;
-
-  uniform float uTime;
-  uniform float uScroll;
-  varying vec2 vUv;
-
-  void main() {
-    vec2 uv = vUv;
-
-    float wave =
-      sin(uv.x * 5.0 + uTime * 0.35) *
-      cos(uv.y * 4.0 - uTime * 0.2);
-
-    float blend = uv.y + wave * 0.06 + uScroll;
-
-    vec3 warm = vec3(0.96, 0.56, 0.25);
-    vec3 pearl = vec3(0.82, 0.84, 0.91);
-    vec3 light = vec3(0.96, 0.95, 0.94);
-
-    vec3 color = mix(warm, pearl, smoothstep(0.0, 0.8, blend));
-    color = mix(color, light, smoothstep(0.55, 1.0, uv.x + wave * 0.1));
-
-    gl_FragColor = vec4(color, 1.0);
-  }
-`;
-
-    const program = new Program(gl, {
-      vertex,
-      fragment,
-      uniforms: {
-        uTime: { value: 0 },
-        uScroll: { value: 0 },
-        uColor1: { value: new Color("#F68128") },
-        uColor2: { value: new Color("#AAAEC3") },
-        uColor3: { value: new Color("#CFC8BE") },
-        uColor4: { value: new Color("#E9E4DC") },
-
-        uResolution: {
-          value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight),
-        },
-      },
-    });
-
-    const mesh = new Mesh(gl, { geometry, program });
-
-    const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      renderer.setSize(width, height);
-      program.uniforms.uResolution.value.set(width, height);
-    };
-
-    let targetScroll = 0;
-    let currentScroll = 0;
-    let frameId = null;
-    let previousTime = 0;
-    let destroyed = false;
-
-    const handleScroll = () => {
-      targetScroll = window.scrollY * 0.00015;
-    };
-
-    const loop = (time) => {
-      if (destroyed) return;
-
-      frameId = requestAnimationFrame(loop);
-
-      const minimumFrameTime = isMobile ? 1000 / 30 : 0;
-
-      if (time - previousTime < minimumFrameTime) return;
-
-      previousTime = time;
-
-      program.uniforms.uTime.value = time * 0.001;
-
-      currentScroll += (targetScroll - currentScroll) * 0.06;
-      program.uniforms.uScroll.value = currentScroll;
-
-      renderer.render({ scene: mesh });
-    };
-
-    handleResize();
-    handleScroll();
-
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    frameId = requestAnimationFrame(loop);
-
-    return () => {
-      destroyed = true;
-
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId);
-      }
-
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10"
-    />
-  );
-}
-
-const TerminalPreloader = () => {
-  const [isMobile, setIsMobile] = useState(null);
-  const containerRef = useRef(null);
-
-useLayoutEffect(() => {
-  const mediaQuery = window.matchMedia("(max-width: 768px)");
-
-  const updateViewport = () => {
-    setIsMobile(mediaQuery.matches);
-  };
-
-  updateViewport();
-
-  mediaQuery.addEventListener("change", updateViewport);
-
-  return () => {
-    mediaQuery.removeEventListener("change", updateViewport);
-  };
-}, []); 
-
-const lines = isMobile
-    ? [
-        {
-          id: "mobile",
-          text: "We are committed to setting the highest standard through exceptional service. That commitment is supported by our use of state-of-the-art technology and strengthened by the expertise that comes from unmatched experience",
-          top: 0,
-        },
-      ]
-    : [
-        {
-          id: 1,
-          text: "We are committed to setting the highest standard through exceptional service",
-          top: 0,
-        },
-        {
-          id: 2,
-          text: "That commitment is supported by our use of state-of-the-art technology",
-          top: 20,
-        },
-        {
-          id: 3,
-          text: "And strengthened by the expertise that comes from unmatched experience",
-          top: 40,
-        },
-      ];
-
-  const MAX_CELL_ITERATIONS = 30;
-  const CELL_INTERVAL = 20;
-  const LINE_DELAY = 180;
-
-useLayoutEffect(() => {
-  if (isMobile === null) return;
-
-  const container = containerRef.current;
-  if (!container) return;
-
-  let frameId;
-  let startTimeout;
-  let cancelled = false;
-
-  const cellElements = Array.from(
-    container.querySelectorAll(".terminal-cell")
-  );
-
-  const cells = cellElements.map((cellElement) => ({
-    element: cellElement,
-    original: cellElement.dataset.character ?? "",
-    signal: "",
-    iterations: 0,
-    finished: false,
-  }));
-
-  const renderCell = (cell, value) => {
-    if (cell.original === " ") {
-      cell.element.textContent = " ";
-      return;
-    }
-
-    cell.element.textContent = value || "\u00A0";
-  };
-
-
-  cells.forEach((cell) => {
-    cell.signal = "";
-    cell.iterations = 0;
-    cell.finished = false;
-    renderCell(cell, "");
-  });
-
-  const previousSignals = new Array(cells.length);
-
-  const startAnimation = () => {
-    if (cancelled) return;
-
-    let lastStepTime = performance.now();
-
-    const tick = (now) => {
-      if (cancelled) return;
-
-      if (now - lastStepTime >= CELL_INTERVAL) {
-        lastStepTime = now;
-
-        for (let i = 0; i < cells.length; i++) {
-          previousSignals[i] = cells[i].signal;
-        }
-
-        for (let index = 0; index < cells.length; index++) {
-          const cell = cells[index];
-
-          const nextSignal =
-            index === 0
-              ? Math.random() < 0.5
-                ? "*"
-                : ":"
-              : previousSignals[index - 1];
-
-          cell.signal = nextSignal;
-
-          if (cell.finished) continue;
-
-          renderCell(cell, nextSignal);
-
-          if (nextSignal) {
-            cell.iterations += 1;
-          }
-
-          if (cell.iterations >= MAX_CELL_ITERATIONS) {
-            cell.finished = true;
-            cell.element.textContent = cell.original;
-          }
-        }
-      }
-
-      const allFinished = cells.every((cell) => cell.finished);
-
-      if (!allFinished) {
-        frameId = requestAnimationFrame(tick);
-      }
-    };
-
-    frameId = requestAnimationFrame(tick);
-  };
-
-  startTimeout = window.setTimeout(startAnimation, 700);
-
-  return () => {
-    cancelled = true;
-    window.clearTimeout(startTimeout);
-
-    if (frameId) {
-      cancelAnimationFrame(frameId);
-    }
-  };
-}, [isMobile]);
-
-  const renderLine = (line) => {
-    const words = line.text.split(" ");
-    let characterPosition = 0;
-
-    return words.map((word, wordIndex) => {
-      const wordCharacters = Array.from(word);
-
-      const renderedWord = (
-        <span
-          key={`${line.id}-word-${wordIndex}`}
-          className="terminal-word"
-        >
-          {wordCharacters.map((character) => {
-            const position = characterPosition;
-            characterPosition += 1;
-
-            return (
-              <span
-                key={`${line.id}-${position}`}
-                className="terminal-cell"
-                data-character={character}
-                aria-hidden="true"
-              >
-                {character}
-              </span>
-            );
-          })}
-        </span>
-      );
-
-      if (wordIndex === words.length - 1) {
-        return renderedWord;
-      }
-
-      const spacePosition = characterPosition;
-      characterPosition += 1;
-
-      return (
-        <React.Fragment key={`${line.id}-group-${wordIndex}`}>
-          {renderedWord}
-
-          <span
-            className="terminal-cell terminal-space"
-            data-character=" "
-            aria-hidden="true"
-            key={`${line.id}-${spacePosition}`}
-          >
-            {" "}
-          </span>
-        </React.Fragment>
-      );
-    });
-  };
-if (isMobile === null) {
-  return (
-    <div className="terminal-preloader">
-      <div className="terminal-container" />
-    </div>
-  );
-}
-  return (
-    <div className="terminal-preloader">
-      <div ref={containerRef} className="terminal-container">
-        {lines.map((line) => (
-          <div
-            key={line.id}
-            className="terminal-line"
-            style={{ top: `${line.top}px` }}
-            aria-label={line.text}
-          >
-            {renderLine(line)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const testimonials = [
-  {
-    name: "Lainie",
-    image: "../images/testimonials/lainielandscape.png",
-    type: "20 months",
-    project: "Lainie",
-  },
-  {
-    name: "James",
-    image: "../images/testimonials/jamescontrast.png",
-    type: "20 months",
-    project: "Sabrinas",
-  },
-  {
-    name: "Ron L.",
-    image: "../images/testimonials/Ronlandscape.png",
-    type: "Invisalign",
-    project: "Ron L.",
-  },
-  {
-    name: "Elizabeth",
-    image: "../images/testimonials/elizabethmask.png",
-    type: "Invisalign",
-    project: "Elizabeth",
-  },
-  {
-    name: "Kinzie",
-    image: "../images/testimonials/kinzie.jpg",
-    type: "Braces, 24 months",
-    project: "Kinzie",
-  },
-  {
-    name: "Kasprenski",
-    image: "../images/testimonials/Kasprenski.png",
-    type: undefined,
-    project: "Kasprenski",
-  },
-  {
-    name: "Leanne",
-    image: "../images/testimonials/Leannelandscape.png",
-    type: "12 months",
-    project: "Leanne",
-  },
-  {
-    name: "Harold",
-    image: "../images/testimonials/harold.png",
-    type: "Invisalign",
-    project: "Harold",
-  },
-  {
-    name: "Abigail",
-    image: "../images/testimonials/Abigailportrait.png",
-    type: undefined,
-    project: "Abigail",
-  },
-  {
-    name: "Madi",
-    image: "../images/testimonials/Madi.png",
-    type: "",
-    project: "Madi",
-  },
-  {
-    name: "Justin",
-    image: "../images/testimonials/hurlburt.png",
-    type: "Invisalign, 2 years",
-    project: "Justin",
-  },
-  {
-    name: "Natalia",
-    image: "../images/testimonials/Natalia.png",
-    type: undefined,
-    project: "Natalia",
-  },
-  {
-    name: "Breanna",
-    image: "../images/testimonials/Breanna.png",
-    type: "2 years, Braces",
-    project: "Breanna",
-  },
-  {
-    name: "Ibis",
-    image: "../images/testimonials/Ibis_Subero.jpg",
-    type: undefined,
-    project: "Ibis",
-  },
-  {
-    name: "Natasha",
-    image: "../images/testimonials/Natasha.png",
-    type: undefined,
-    project: "Natasha",
-  },
-  {
-    name: "Alex",
-    image: "../images/testimonials/Alex.png",
-    type: "2 years, Braces",
-    project: "Alex",
-  },
-  {
-    name: "Nicolle",
-    image: "../images/testimonials/Nicolle.png",
-    type: "Braces",
-    project: "Nilaya",
-  },
-  {
-    name: "Maria A.",
-    image: "../images/testimonials/Maria.png",
-    type: undefined,
-    project: "Maria A.",
-  },
-];
-
-const List = ({ onInteractionChange }) => {
-  const testimonialsSectionRef = useRef(null);
-  const testimonialsListRef = useRef(null);
-  const testimonialPreviewRef = useRef(null);
-  const lastStackedIndex = useRef(null);
-  const testimonialRefs = useRef([]);
-  const nameRefs = useRef([]);
-  const typeRefs = useRef([]);
-  const nameHighlightRefs = useRef([]);
-  const typeHighlightRefs = useRef([]);
-  const outroRef = useRef(null);
-  const lastMousePosition = useRef({ x: 0, y: 0 });
-  const activeTestimonial = useRef(null);
-  const zCounter = useRef(1);
-  const ticking = useRef(false);
-  const isHovering = useRef(false);
-  const lastScrollActive = useRef(null);
-  const highlighterColors = ["neon", "pink", "green"];
-  const scrollTicking = useRef(false);
-
-  const scrambleText = (idx) => {
-    const scramble = {
-      characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-      speed: 0.8,
-      newChars: 0.3,
-      revealDelay: 0,
-      tweenLength: true,
-    };
-
-    const testimonialData = testimonials[idx];
-
-    if (nameRefs.current[idx]) {
-      gsap.to(nameRefs.current[idx], {
-        duration: 1.5,
-        ease: "power2.out",
-        scrambleText: { text: testimonialData.name, ...scramble },
-      });
-    }
-
-    if (typeRefs.current[idx] && testimonialData.type) {
-      gsap.to(typeRefs.current[idx], {
-        duration: 1.5,
-        ease: "power2.out",
-        scrambleText: { text: testimonialData.type, ...scramble },
-      });
-    }
-  };
-
-  const getRandomColorClass = () => {
-    const colors = highlighterColors;
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
-
-  const highlightText = (idx, activate = true) => {
-    if (nameHighlightRefs.current[idx]) {
-      const nameEl = nameHighlightRefs.current[idx];
-      if (activate) {
-        const colorClass = getRandomColorClass();
-        nameEl.classList.add("active", colorClass);
-        nameEl.dataset.color = colorClass;
-      } else {
-        nameEl.classList.remove("active", "neon", "pink", "green");
-        delete nameEl.dataset.color;
-      }
-    }
-
-    if (typeHighlightRefs.current[idx] && testimonials[idx].type) {
-      const typeEl = typeHighlightRefs.current[idx];
-      if (activate) {
-        const colorClass =
-          nameHighlightRefs.current[idx]?.dataset.color ||
-          getRandomColorClass();
-        typeEl.classList.add("active", colorClass);
-      } else {
-        typeEl.classList.remove("active", "neon", "pink", "green");
-      }
-    }
-  };
-
-  const stackImage = (index, source = "scroll") => {
-    const container = testimonialPreviewRef.current;
-    const data = testimonials[index];
-    if (!container || !data?.image) return;
-
-    if (lastStackedIndex.current === index) return;
-
-    const mask = document.createElement("div");
-    mask.className = "preview-mask";
-
-    const img = document.createElement("img");
-    img.src = data.image;
-
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    img.style.transform = "scale(0)";
-    img.style.transformOrigin = "center center";
-    img.style.zIndex = zCounter.current++;
-
-    img.style.clipPath = `
-      polygon(
-        16px 0%,
-        calc(100% - 16px) 0%,
-        calc(100% - 16px) 16px,
-        calc(100% - 16px) 32px,
-        100% 32px,
-        100% calc(100% - 48px),
-        calc(100% - 16px) calc(100% - 48px),
-        calc(100% - 16px) calc(100% - 32px),
-        100% calc(100% - 32px),
-        100% calc(100% - 16px),
-        calc(100% - 16px) calc(100% - 16px),
-        calc(100% - 32px) calc(100% - 16px),
-        calc(100% - 32px) calc(100% - 32px),
-        calc(100% - 16px) calc(100% - 32px),
-        calc(100% - 16px) 100%,
-        0% 100%,
-        0% 16px,
-        16px 16px
-      )
-    `;
-    mask.appendChild(img);
-    container.appendChild(mask);
-
-    gsap.to(img, {
-      scale: 1,
-      duration: 0.35,
-      ease: "power2.out",
-    });
-
-    const images = container.querySelectorAll("img");
-    if (images.length > 6) images[0].remove();
-
-    lastStackedIndex.current = index;
-  };
-
-  const isTestimonialsListActive = () => {
-    const list = testimonialsListRef.current;
-    if (!list) return false;
-
-    const rect = list.getBoundingClientRect();
-
-    const activeTop = window.innerHeight * 0.75;
-    const activeBottom = window.innerHeight * 0.25;
-
-    return rect.top < activeTop && rect.bottom > activeBottom;
-  };
-
-  const updatePreviewOnScroll = () => {
-    if (!isTestimonialsListActive()) {
-      clearPreview();
-      return;
-    }
-    if (isHovering.current) return;
-
-    const sectionTop = testimonialsSectionRef.current.offsetTop;
-    const centerY = window.scrollY + window.innerHeight / 2 - sectionTop;
-
-    let closestIndex = null;
-    let closestDistance = Infinity;
-
-    rowCenters.current.forEach((rowCenter, index) => {
-      if (!rowCenter) return;
-      const distance = Math.abs(rowCenter - centerY);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    if (
-      closestIndex !== null &&
-      closestIndex !== lastScrollActive.current &&
-      closestDistance < 120
-    ) {
-      if (lastScrollActive.current !== null) {
-        highlightText(lastScrollActive.current, false);
-      }
-      highlightText(closestIndex, true);
-      stackImage(closestIndex, "scroll");
-
-      lastScrollActive.current = closestIndex;
-    }
-  };
-
-  const mouseTicking = useRef(false);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      lastMousePosition.current.x = e.clientX;
-      lastMousePosition.current.y = e.clientY;
-
-      if (!isHovering.current) return;
-
-      if (!mouseTicking.current) {
-        requestAnimationFrame(() => {
-          mouseTicking.current = false;
-        });
-        mouseTicking.current = true;
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!isTestimonialsVisible()) {
-        const images = testimonialPreviewRef.current?.querySelectorAll("img");
-        images?.forEach((img) => {
-          gsap.killTweensOf(img);
-          gsap.to(img, {
-            scale: 0,
-            opacity: 0,
-            duration: 0.35,
-            ease: "power2.inOut",
-            onComplete: () => img.remove(),
-          });
-        });
-
-        lastStackedIndex.current = null;
-        zCounter.current = 1;
-
-        activeTestimonial.current = null;
-        isHovering.current = false;
-        lastScrollActive.current = null;
-
-        testimonials.forEach((_, index) => {
-          highlightText(index, false);
-        });
-
-        return;
-      }
-
-      if (!scrollTicking.current) {
-        requestAnimationFrame(() => {
-          updatePreviewOnScroll();
-          scrollTicking.current = false;
-        });
-        scrollTicking.current = true;
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    testimonialRefs.current.forEach((testimonial, index) => {
-      if (!testimonial) return;
-
-      const enter = () => {
-        activeTestimonial.current = index;
-        isHovering.current = true;
-
-        lastStackedIndex.current = null;
-
-        highlightText(index, true);
-        scrambleText(index);
-        stackImage(index, "hover");
-      };
-
-      const leave = () => {
-        activeTestimonial.current = null;
-        isHovering.current = false;
-
-        highlightText(index, false);
-
-        lastStackedIndex.current = null;
-      };
-      testimonial.addEventListener("mouseenter", enter);
-      testimonial.addEventListener("mouseleave", leave);
-
-      return () => {
-        testimonial.removeEventListener("mouseenter", enter);
-        testimonial.removeEventListener("mouseleave", leave);
-      };
-    });
-  }, []);
-
-  const rowCenters = useRef([]);
-  useEffect(() => {
-    const computeCenters = () => {
-      rowCenters.current = testimonialRefs.current.map((el) =>
-        el ? el.offsetTop + el.offsetHeight / 2 : null,
-      );
-    };
-
-    computeCenters();
-    window.addEventListener("resize", computeCenters);
-    return () => window.removeEventListener("resize", computeCenters);
-  }, []);
-
-  const isTestimonialsVisible = () => {
-    if (!testimonialsSectionRef.current) return false;
-
-    const rect = testimonialsSectionRef.current.getBoundingClientRect();
-
-    return rect.bottom > 0 && rect.top < window.innerHeight;
-  };
-
-  const clearPreview = () => {
-    const images =
-      testimonialPreviewRef.current?.querySelectorAll("img");
-
-    images?.forEach((img) => {
-      gsap.killTweensOf(img);
-
-      gsap.to(img, {
-        scale: 0.8,
-        opacity: 0,
-        duration: 0.18,
-        ease: "power2.in",
-        overwrite: true,
-        onComplete: () => img.remove(),
-      });
-    });
-
-    lastStackedIndex.current = null;
-    lastScrollActive.current = null;
-    zCounter.current = 1;
-  };
-
-  useEffect(() => {
-    const list = testimonialsListRef.current;
-    if (!list) return;
-
-    const trigger = ScrollTrigger.create({
-      trigger: list,
-      start: "top 75%",
-      end: "bottom 25%",
-
-      onLeave: clearPreview,
-      onLeaveBack: clearPreview,
-
-      onEnter: updatePreviewOnScroll,
-      onEnterBack: updatePreviewOnScroll,
-    });
-
-    return () => trigger.kill();
-  }, []);
-
-  useEffect(() => {
-    if (!testimonialsSectionRef.current || !onInteractionChange) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        onInteractionChange(entry.isIntersecting);
-      },
-      {
-        threshold: 0.4,
-      },
-    );
-
-    observer.observe(testimonialsSectionRef.current);
-
-    return () => observer.disconnect();
-  }, [onInteractionChange]);
-
-  useEffect(() => {
-    const quotes = gsap.utils.toArray(".SplitText-Reveal")
-
-    function setupSplits() {
-      quotes.forEach((quote) => {
-        if (quote.anim) {
-          quote.anim.progress(1).kill()
-          quote.split.revert()
-        }
-
-        quote.split = SplitText.create(quote, {
-          type: "words, chars",
-          linesClass: "split-line",
-        })
-
-        quote.anim = gsap.from(quote.split.chars, {
-          scrollTrigger: {
-            trigger: quote,
-            toggleActions: "restart pause resume reverse",
-            start: "center center",
-          },
-          duration: 0.6,
-          ease: "power2.in",
-          y: 10,
-          opacity: 0.3,
-          stagger: 0.02,
-        })
-      })
-    }
-
-    setupSplits()
-    ScrollTrigger.addEventListener("refresh", setupSplits)
-    
-    return () => {
-      ScrollTrigger.removeEventListener("refresh", setupSplits)
-      quotes.forEach((quote) => {
-        quote.anim?.kill()
-        quote.split?.revert()
-      })
-      ScrollTrigger.refresh()
-    }
-  }, [])
-
-  return (
-    <div className="testimonialsPage">
-      <section className="intro relative min-h-screen overflow-hidden">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <JanusFace />
-        </div>
-
-        <div className="relative max-w-[1400px] mx-auto w-full flex flex-col md:flex-row">
-          <div className="hidden md:block md:w-1/2 min-h-screen" />
-
-          <div className="w-full md:w-1/2 min-h-screen flex items-center justify-center px-6 md:px-0">
-            <div className="max-w-[1200px] w-full">
-              <div>
-                <TerminalPreloader />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="testimonials" ref={testimonialsSectionRef}>
-        <div className="flex flex-col items-center text-center mb-10 gap-1">
-          <div className="SplitText-Reveal flex font-neuehaas35 text-[22px] gap-2 text-[#e30ad8]">
-            Select Cases
-          </div>
-
-          <span className="SplitText-Reveal text-[18px] font-canela italic text-[#e30ad8] opacity-60">
-            A visual archive of selected treatment outcomes
-          </span>
-        </div>
-        <div className="flex items-center justify-between w-full">
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-
-          <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-        </div>
-        <div className="testimonials-list" ref={testimonialsListRef}>
-          {testimonials.map((testimonial, index) => (
-            <div
-              key={index}
-              className="testimonial"
-              ref={(el) => (testimonialRefs.current[index] = el)}
-            >
-              <div className="testimonial-content">
-                <div className="testimonial-name">
-                  <span
-                    className="highlighted-text col-left"
-                    ref={(el) => (nameHighlightRefs.current[index] = el)}
-                  >
-                    <h1 ref={(el) => (nameRefs.current[index] = el)}>
-                      {testimonial.name}
-                    </h1>
-                  </span>
-                  <span
-                    className="highlighted-text col-right"
-                    ref={(el) => (typeHighlightRefs.current[index] = el)}
-                  >
-                    <h1 ref={(el) => (typeRefs.current[index] = el)}>
-                      {testimonial.type || ""}
-                    </h1>
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div ref={outroRef} className="testimonials-outro-spacer" />
-      <div className="testimonial-preview" ref={testimonialPreviewRef} />
-    </div>
-  );
-};
-
 const reviews = [
   {
     name: "James Pica",
@@ -2112,954 +4251,3 @@ const reviews = [
     color: "bg-[#49ABA3]",
   },
 ];
-
-class BentRoundedPlaneGeometry extends geometry.RoundedPlaneGeometry {
-  constructor(
-    bend = 0.1,
-    width = 1,
-    height = 1,
-    cornerRadius = 0.12,
-    segments = 20,
-  ) {
-    super(width, height, cornerRadius, segments);
-
-    const halfWidth = width * 0.5;
-
-    const a = new THREE.Vector2(-halfWidth, 0);
-    const b = new THREE.Vector2(0, bend);
-    const c = new THREE.Vector2(halfWidth, 0);
-
-    const ab = new THREE.Vector2().subVectors(a, b);
-    const bc = new THREE.Vector2().subVectors(b, c);
-    const ac = new THREE.Vector2().subVectors(a, c);
-
-    const circleRadius =
-      (ab.length() * bc.length() * ac.length()) / (2 * Math.abs(ab.cross(ac)));
-
-    const center = new THREE.Vector2(0, bend - circleRadius);
-    const baseVector = new THREE.Vector2().subVectors(a, center);
-    const baseAngle = baseVector.angle() - Math.PI * 0.5;
-    const arc = baseAngle * 2;
-
-    const position = this.attributes.position;
-    const mainVector = new THREE.Vector2();
-
-    for (let i = 0; i < position.count; i++) {
-      const originalX = position.getX(i);
-      const originalY = position.getY(i);
-
-      const ratio = 1 - (originalX + halfWidth) / width;
-
-      mainVector.copy(c).rotateAround(center, arc * ratio);
-
-      position.setXYZ(i, mainVector.x, originalY, -mainVector.y);
-    }
-
-    position.needsUpdate = true;
-
-    this.computeVertexNormals();
-    this.computeBoundingBox();
-    this.computeBoundingSphere();
-  }
-}
-class MeshSineMaterial extends THREE.MeshBasicMaterial {
-  constructor(parameters = {}) {
-    super(parameters);
-    this.setValues(parameters);
-    this.time = { value: 0 };
-  }
-  onBeforeCompile(shader) {
-    shader.uniforms.time = this.time;
-    shader.vertexShader = `
-      uniform float time;
-      ${shader.vertexShader}
-    `;
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <begin_vertex>",
-      `vec3 transformed = vec3(position.x, position.y + sin(time + uv.x * PI * 4.0) / 4.0, position.z);`,
-    );
-  }
-}
-
-extend({ MeshSineMaterial, BentRoundedPlaneGeometry });
-
-const CarouselComponent = () => (
-  <div className="carousel-canvas">
-    <Canvas camera={{ position: [0, 0, 100], fov: 15 }}>
-      <ResponsiveCamera />
-
-      <ScrollControls pages={2}>
-        <Rig rotation={[0, 0, 0.15]}>
-          <ResponsiveCarousel />
-        </Rig>
-
-        <ResponsiveBanner />
-      </ScrollControls>
-    </Canvas>
-  </div>
-);
-
-function ResponsiveCamera() {
-  const { camera, size } = useThree();
-
-  useEffect(() => {
-    const isSmallMobile = size.width < 480;
-    const isMobile = size.width < 768;
-
-camera.fov = isSmallMobile ? 16 : isMobile ? 16 : 15;
-    camera.updateProjectionMatrix();
-  }, [camera, size.width]);
-
-  return null;
-}
-
-function Rig(props) {
-  const ref = useRef();
-  const scroll = useScroll();
-  const { size } = useThree();
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-
-    const isMobile = size.width < 768;
-
-    ref.current.rotation.y = -scroll.offset * Math.PI * 2;
-
-    state.events.update();
-
-    if (isMobile) {
-      easing.damp3(
-        state.camera.position,
-        [0, 1, 12],
-        0.3,
-        delta,
-      );
-    } else {
-      easing.damp3(
-        state.camera.position,
-        [
-          -state.pointer.x * 2,
-          state.pointer.y + 1.5,
-          10,
-        ],
-        0.3,
-        delta,
-      );
-    }
-
-    state.camera.lookAt(0, 0, 0);
-  });
-
-  return <group ref={ref} {...props} />;
-}
-
-function Carousel({ radius = 1.9 }) {
-  const count = reviews.length;
-
-  return reviews.map((review, i) => (
-    <Card
-      key={`${review.name}-${i}`}
-      url={review.image}
-      name={review.name}
-      text={review.text}
-      position={[
-        Math.sin((i / count) * Math.PI * 2) * radius,
-        0,
-        Math.cos((i / count) * Math.PI * 2) * radius,
-      ]}
-      rotation={[0, Math.PI + (i / count) * Math.PI * 2, 0]}
-    />
-  ));
-}
-function ResponsiveCarousel() {
-  const { size } = useThree();
-
-  const isMobile = size.width < 768;
-  const isSmallMobile = size.width < 480;
-
-  const radius = isSmallMobile ? 1.85 : isMobile ? 1.95 : 1.9;
-
-  return <Carousel radius={radius} />;
-}
-
-function drawTileOverlay(ctx, width, height) {
-  ctx.save();
-
-  ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-  ctx.fillRect(0, 0, width, height);
-
-  const glow = ctx.createRadialGradient(
-    width * 0.3,
-    height * 0.2,
-    0,
-    width * 0.3,
-    height * 0.2,
-    width * 0.65,
-  );
-
-  glow.addColorStop(0, "rgba(255,255,255,0.28)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, width, height);
-
-  const tileSize = 150;
-
-  for (let y = 0; y < height; y += tileSize) {
-    for (let x = 0; x < width; x += tileSize) {
-      const even = (x / tileSize + y / tileSize) % 2 === 0;
-
-      ctx.fillStyle = even
-        ? "rgba(255,255,255,0.18)"
-        : "rgba(255,255,255,0.055)";
-
-      ctx.fillRect(x, y, tileSize, tileSize);
-    }
-  }
-
-  ctx.restore();
-}
-function useCardTexture(imageUrl, name, reviewText) {
-  const [texture, setTexture] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let canvasTexture;
-
-    const createTexture = async () => {
-      await document.fonts.load('italic 44px "Canela"');
-      await document.fonts.load('italic 30px "Canela"');
-
-      const image = new window.Image();
-
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = () =>
-          reject(new Error(`Could not load image: ${imageUrl}`));
-
-        image.src = imageUrl;
-      });
-
-      if (cancelled) return;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = 2048;
-      canvas.height = 2048;
-
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        throw new Error("Could not create canvas context");
-      }
-
-      ctx.save();
-
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-
-      ctx.save();
-      
-const isMobile = window.innerWidth < 768;
-
-ctx.save();
-
-ctx.filter = isMobile
-  ? "blur(32px)"
-  : "blur(64px)";
-
-ctx.drawImage(
-  image,
-  -30,
-  -30,
-  canvas.width + 60,
-  canvas.height + 60
-);
-
-ctx.restore();
-
-drawTileOverlay(ctx, canvas.width, canvas.height);
-
-ctx.textAlign = "center";
-ctx.textBaseline = "middle";
-
-ctx.fillStyle = "#000";
-ctx.font = isMobile
-  ? 'italic 98px "Canela"'
-  : 'italic 88px "Canela"';
-
-ctx.fillText(
-  name,
-  canvas.width / 2,
-  isMobile ? 380 : 360
-);
-
-ctx.fillStyle = "#000";
-ctx.font = isMobile
-  ? 'italic 84px "Canela"'
-  : 'italic 88px "Canela"';
-
-drawWrappedText({
-  ctx,
-  text: reviewText,
-  x: canvas.width / 2,
-  y: isMobile ? 690 : 650,
-  maxWidth: isMobile ? 1550 : 1450,
-  lineHeight: isMobile ? 94 : 86,
-  maxLines: 13,
-});
-
-canvasTexture = new THREE.CanvasTexture(canvas);
-canvasTexture.colorSpace = THREE.SRGBColorSpace;
-canvasTexture.anisotropy = 16;
-canvasTexture.needsUpdate = true;
-
-if (!cancelled) {
-  setTexture(canvasTexture);
-}
-    };
-
-    createTexture().catch((error) => {
-      console.error(`Texture failed for "${name}"`, {
-        imageUrl,
-        error,
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      canvasTexture?.dispose();
-    };
-  }, [imageUrl, name, reviewText]);
-
-  return texture;
-}
-function drawWrappedText({ ctx, text, x, y, maxWidth, lineHeight, maxLines }) {
-  const words = text.split(/\s+/);
-  const lines = [];
-
-  let currentLine = "";
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-
-    const width = ctx.measureText(testLine).width;
-
-    if (width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-
-      if (lines.length === maxLines - 1) {
-        break;
-      }
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine && lines.length < maxLines) {
-    lines.push(currentLine);
-  }
-
-  const renderedText = lines.join(" ");
-  if (renderedText.length < text.length && lines.length) {
-    lines[lines.length - 1] =
-      `${lines[lines.length - 1].replace(/[.,;:!?]$/, "")}…`;
-  }
-
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * lineHeight);
-  });
-}
-function Card({ url, name, text, ...props }) {
-  const texture = useCardTexture(url, name, text);
-  const { size } = useThree();
-
-  if (!texture) return null;
-
-  const isMobile = size.width < 768;
-  const cardSize = isMobile ? 0.9 : 1;
-
-  return (
-    <group {...props}>
-      <mesh>
-        <bentRoundedPlaneGeometry args={[0.1, cardSize, cardSize, 0.12, 20]} />
-
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function Banner({ depthTest = true, depthWrite = true, ...props }) {
-  const ref = useRef();
-  const texture = useTexture("/images/fslogostrip.png");
-
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 16;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-
-  const scroll = useScroll();
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-
-    ref.current.material.time.value += Math.abs(scroll.delta) * 4;
-    ref.current.material.map.offset.x += delta / 2;
-  });
-
-  return (
-    <mesh ref={ref} {...props}>
-      <cylinderGeometry args={[2.1, 2.1, 0.18, 128, 16, true]} />
-
-      <meshSineMaterial
-        map={texture}
-        map-anisotropy={16}
-        map-repeat={[18, 1]}
-        side={THREE.DoubleSide}
-        toneMapped={false}
-        depthTest={depthTest}
-        depthWrite={depthWrite}
-      />
-    </mesh>
-  );
-}
-function ResponsiveBanner() {
-  const { size } = useThree();
-
-  const isMobile = size.width < 768;
-  const isSmallMobile = size.width < 480;
-
-  const carouselRadius = isSmallMobile
-    ? 1.85
-    : isMobile
-      ? 1.95
-      : 1.9;
-
-  const bannerRadius = carouselRadius + 0.2;
-
-  return (
-    <Banner
-      radius={bannerRadius}
-      position={[0, isMobile ? -0.1 : -0.15, 0]}
-      depthTest
-      depthWrite
-    />
-  );
-}
-
-function JanusFace() {
-  const [leftShapes, setLeftShapes] = useState([]);
-  const [rightShapes, setRightShapes] = useState([]);
-
-  const symbols = [
-    "□", "▢", "▭", "▯",
-    "○", "◯", "◌",
-    "△", "▽", "▷", "◁",
-    "◇", "◊",
-    "◅", "▻",
-  ];
-
-  const r = (from, to) => Math.random() * (to - from) + from;
-  const ri = (from, to) => ~~r(from, to);
-  const pick = (...args) => args[ri(0, args.length)];
-
-  const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
-    return Array.from({ length }, (_, i) => {
-      const shouldBlink =
-        !isMobile && (i + rowIndex) % 4 === 0;
-      return (
-        <span
-          key={i}
-          className={shouldBlink ? "symbol symbol-blink" : "symbol"}
-          style={
-            shouldBlink
-              ? {
-                  "--blink-delay": `${
-                    (i * 0.09 + rowIndex * 0.17) % 4
-                  }s`,
-                  "--blink-duration": `${
-                    3.5 + ((i + rowIndex) % 4) * 0.4
-                  }s`,
-                }
-              : undefined
-          }
-        >
-          {pick(...symbols)}
-        </span>
-      );
-    });
-  };
-const generateBaseParagraphs = (isMobile = false) => {
-  const paragraphs = [];
-
-  const rowCount = 50;
-
-  for (let i = 0; i < rowCount; i++) {
-    const offset = r(45, 95);
-const t = i / (rowCount - 1);
-const shade = Math.round(175 + t * 80);
-const color = `rgb(${shade}, ${shade}, ${shade})`;
-
-    const textLength = isMobile ? ri(18, 34) : ri(25, 95);
-
-    paragraphs.push({
-      offset,
-      color,
-      textLength,
-      key: i,
-    });
-  }
-
-  return paragraphs;
-};
-  const build = () => {
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    const baseData = generateBaseParagraphs(isMobile);
-
-    const leftParas = baseData.map((data, i) => (
-      <div
-        key={i}
-        className="text-line"
-        style={{
-          "--offset": data.offset,
-          color: data.color,
-          textAlign: "left",
-          mask: `linear-gradient(
-          to right,
-          #fff,
-          transparent calc(var(--offset) * 1%)
-        )`,
-        }}
-      >
-        {generateText(data.textLength, i, isMobile)}
-      </div>
-    ));
-
-    const rightParas = baseData.map((data, i) => (
-      <div
-        key={`r${i}`}
-        className="text-line"
-        style={{
-          "--offset": data.offset,
-          color: data.color,
-          textAlign: "right",
-          mask: `linear-gradient(
-          to left,
-          #fff,
-          transparent calc(var(--offset) * 1%)
-        )`,
-        }}
-      >
-        {generateText(data.textLength, i, isMobile)}
-      </div>
-    ));
-
-    setLeftShapes(leftParas);
-    setRightShapes(rightParas);
-  };
-
-  useEffect(() => {
-    build();
-  }, []);
-
-  const shapePath =
-    "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
-
-  const mirrorPolygon = (poly) => {
-    return poly
-      .split(",")
-      .map((pt) => pt.trim())
-      .map((pt) => {
-        const [xRaw, y] = pt.split(/\s+/);
-        const xPercent = parseFloat(xRaw);
-        const mirroredX = (100 - xPercent).toFixed(2) + "%";
-        return `${mirroredX} ${y}`;
-      })
-      .join(", ");
-  };
-
-  const leftShapePath = mirrorPolygon(shapePath);
-
-  return (
-    <div className="janus-main" onClick={build} style={{ cursor: "pointer" }}>
-      <div className="janus-container">
-        {/* Left Face */}
-        <div className="face-container left-face">
-          <div
-            className="janus-shape left-shape"
-            style={{ shapeOutside: `polygon(${leftShapePath})` }}
-          />
-          <div className="text-container left-text">{leftShapes}</div>
-        </div>
-
-        {/* Right Face */}
-        <div className="face-container right-face">
-          <div
-            className="janus-shape right-shape"
-            style={{ shapeOutside: `polygon(${shapePath})` }}
-          />
-          <div className="text-container right-text">{rightShapes}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const ScrambleText = ({
-  text,
-  className,
-  scrambleOnLoad = true,
-  charsType = "default", // 'default' | 'numbers' | 'letters'
-}) => {
-  const scrambleRef = useRef(null);
-  const originalText = useRef(text);
-
-  const charSets = {
-    default: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    numbers: "0123456789",
-    letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  };
-
-  const scrambleAnimation = () => {
-    return gsap.to(scrambleRef.current, {
-      duration: 0.8,
-      scrambleText: {
-        text: originalText.current,
-        characters: charSets[charsType],
-        speed: 1,
-        revealDelay: 0.1,
-        delimiter: "",
-        tweenLength: false,
-      },
-      ease: "power1.out",
-    });
-  };
-
-  useEffect(() => {
-    const element = scrambleRef.current;
-    if (!element) return;
-
-    if (scrambleOnLoad) {
-      gsap.set(element, {
-        scrambleText: {
-          text: originalText.current,
-          chars: charSets[charsType],
-          revealDelay: 0.5,
-        },
-      });
-      scrambleAnimation();
-    }
-
-    const handleMouseEnter = () => scrambleAnimation();
-    element.addEventListener("mouseenter", handleMouseEnter);
-
-    return () => {
-      element.removeEventListener("mouseenter", handleMouseEnter);
-    };
-  }, [scrambleOnLoad, charsType]);
-
-  return (
-   <span
-      ref={scrambleRef}
-      className={`scramble-text inline-block ${className || ""}`}
-      style={{ minWidth: `${text.length}ch` }}
-    >
-      {text}
-    </span>
-  );
-};
-
-const Testimonials = () => {
-  const cardsRef = useRef(null);
-  const bannerRef = useRef(null);
-  const textRef = useRef(null);
-  const bgTextColor = "#CECED3";
-  const fgTextColor = "#161818";
-
-  const [disableFluid, setDisableFluid] = useState(false);
-  const [showScheduler, setShowScheduler] = useState(false);
-
-  useEffect(() => {
-    if (!textRef.current) return;
-
-    const split = new SplitText(textRef.current, { type: "words, chars" });
-
-    gsap.fromTo(
-      split.chars,
-      { color: bgTextColor },
-      {
-        color: fgTextColor,
-        stagger: 0.03,
-        duration: 1,
-        ease: "power2.out",
-      },
-    );
-
-    return () => split.revert();
-  }, []);
-
-
-
-  const listRefs = useRef([]);
-
-  useEffect(() => {
-    listRefs.current.forEach((el, i) => {
-      gsap.fromTo(
-        el,
-        { filter: "blur(8px)", opacity: 0 },
-        {
-          filter: "blur(0px)",
-          opacity: 1,
-          scrollTrigger: {
-            trigger: el,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
-          },
-          duration: 0.6,
-          ease: "power2.out",
-        },
-      );
-    });
-  }, []);
-
-  useEffect(() => {
-    const lines = gsap.utils.toArray("#smile-scroll-section .line");
-
-    lines.forEach((line, index) => {
-      const direction = index % 2 === 0 ? -1 : 1;
-
-      gsap.to(line, {
-        xPercent: direction * 50,
-        ease: "none",
-        scrollTrigger: {
-          trigger: "#smile-scroll-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
-      });
-    });
-  }, []);
-
-  const textRefs = useRef([]);
-
-  useEffect(() => {
-    textRefs.current.forEach((el, i) => {
-      gsap.fromTo(
-        el,
-        { filter: "blur(8px)", opacity: 0 },
-        {
-          filter: "blur(0px)",
-          opacity: 1,
-          scrollTrigger: {
-            trigger: el,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
-          },
-          duration: 0.6,
-          ease: "power2.out",
-        },
-      );
-    });
-  }, []);
-
-
-
-useLayoutEffect(() => {
-  if (!cardsRef.current || !bannerRef.current) return;
- gsap.set(cardsRef.current, { clearProps: "all" });
-  gsap.set(bannerRef.current, { clearProps: "all" });
-  const ctx = gsap.context(() => {
-  gsap.set(cardsRef.current, {
-  scale: 1,
-  x: 0,
-  y: 0,
-  transformOrigin: "50% 50%",
-});
-
-gsap.set(bannerRef.current, {
-  scale: 0.65,
-  x: 0,
-  y: 0,
-  opacity: 0,
-  
-  transformOrigin: "50% 50%",
-});
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: cardsRef.current.parentElement,
-        start: "top top",
-        end: "+=100%",
-        scrub: 0.8,
-        pin: true,
-      },
-    });
-
-    tl.to(cardsRef.current, {
-      // scale: 0.8,
-      opacity: 0,
-      ease: "none",
-
-        transformOrigin: "50% 50%",
-    },  );
-
-    tl.to(
-      bannerRef.current,
-      {
-        scale: 1,
-        opacity: 1,
-        ease: "none",
-        transformOrigin: "50% 50%",
-      },
-      "<0.15",
-    );
-
-  });
-
-  return () => ctx.revert();
-}, []);
-
-  return (
-    <>
-      {/* <FluidSimulation disabled={disableFluid} /> */}
-      <List onInteractionChange={setDisableFluid} />
-
-      <Background />
-
-      <section className="w-full py-12">
-        <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
-          <div className="flex items-center justify-between py-10 w-full">
-            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 13 12"
-                fill="none"
-                className="w-full h-full"
-              >
-                <path
-                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                  fill="#000"
-                />
-              </svg>
-            </span>
-
-            <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 13 12"
-                fill="none"
-                className="w-full h-full"
-              >
-                <path
-                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                  fill="#000"
-                />
-              </svg>
-            </span>
-          </div>
-
-          <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
-            Every smile tells a story — these are some of our favorites.
-          </div>
-
-        </section>
-
-      </section>
-<section className="relative w-full h-screen overflow-hidden">
-  <div
-    ref={cardsRef}
-    className="
-      absolute inset-0 m-auto
-      w-full h-full
-      flex items-center justify-center
-    
-    "
-  >
-    <CarouselComponent />
-  </div>
-
-  <div
-    ref={bannerRef}
-    className="
-      absolute inset-0
-      w-full h-full
-      flex items-center justify-center
-      pointer-events-none
-    "
-  >
-    <div className="TestimonialsBookNow-banner container pointer-events-auto">
-      <h2 className="font-canela italic text-5xl text-zinc-800">
-        Let's Get Moving.
-      </h2>
-
-      <button
-        className="TestimonialsBookNow-banner button font-ibmplex-extralight tracking-wide uppercase"
-        onClick={() => setShowScheduler(true)}
-      >
-        <ScrambleText text="Schedule Your Visit" />
-      </button>
-    </div>
-  </div>
-</section>
-      {/* Scheduler Panel */}
-      <div
-        className={`
-          fixed top-0 left-0 right-0 z-[900]
-          transform transition-all duration-500 ease-[cubic-bezier(0.34,1.2,0.64,1)]
-          ${showScheduler ? 'translate-y-0' : '-translate-y-full'}
-        `}
-      >
-        <div className="relative">
-          <div className="bg-white/95 backdrop-blur-md shadow-2xl overflow-hidden">
-            <div className="relative w-full h-[100vh]">
-              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/40 to-transparent z-40 pointer-events-none">
-                <div className="flex justify-end p-6 pointer-events-auto">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setShowScheduler(false)
-                    }}
-                    className="font-neuehaas35 text-[14px] xl:text-[16px] tracking-wide text-white hover:opacity-70 transition-opacity bg-black/20 px-5 rounded-full backdrop-blur-sm cursor-pointer"
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-              </div>
-              <iframe
-                src="https://freysmilesappointments.as.me/"
-                title="Schedule Appointment"
-                className="w-full h-full"
-                allow="payment"
-                style={{ marginTop: 0 }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Backdrop overlay */}
-      <div
-        className={`
-          fixed inset-0 bg-black/20 backdrop-blur-sm z-[99]
-          transition-all duration-500 ease-in-out
-          ${showScheduler ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
-        `}
-        onClick={() => setShowScheduler(false)}
-      />
-    </>
-  );
-};
-
-export default Testimonials;
