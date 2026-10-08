@@ -9,11 +9,13 @@ module.exports = {
   theme: {
   	extend: {
 			fontFamily: {
-				'neuehaas35':['NeueHaasDisplay35', 'sans-serif'],
-				'neuehaas45': ['NeueHaas45', 'sans-serif'],
+				'anton': ['Anton', 'sans-serif'],
 				'canela': ['CanelaThin', 'serif'],
-				'ibmplex-thin': ['IBMPlexMonoThin', 'monospace'],
-				'ibmplex-extralight': ['IBMPlexMonoExtraLight', 'monospace'],
+				'ibmplex-thin': ['IBMPlexMono-Thin', 'monospace'],
+				'ibmplex-extralight': ['IBMPlexMono-ExtraLight', 'monospace'],
+				'neuehaas35':['NeueHaasDisplay35', 'sans-serif'],
+				'neuehaas45': ['NeueHaasDisplay45', 'sans-serif'],
+				'neuehaas55': ['NeueHaasDisplay55', 'sans-serif'],
 			},
   		borderRadius: {
   			lg: 'var(--radius)',
