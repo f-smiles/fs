@@ -1839,6 +1839,7 @@ const List = ({ onInteractionChange }) => {
   const displayedTestimonial = testimonials[displayedIndex];
 const mobileGalleryGoToRef = useRef(null);
 const snapMarkerRefs = useRef([]);
+
   const getTextTargets = () => {
     return [
       projectNumberRef.current,

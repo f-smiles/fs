@@ -7548,10 +7548,6 @@ animation-delay:
     )
   );
 
-  /*
-   * Rest: base scale × 1
-   * Full hover: base scale × 2
-   */
   transform:
     scale(
       calc(
@@ -8006,3 +8002,15 @@ animation-delay:
   border-color: rgba(255, 255, 255, 0.85);
   z-index: 2;
 }
+
+.gooey-copy-line {
+  display: block;
+  overflow: visible;
+}
+
+.gooey-copy-line-inner {
+  display: block;
+  will-change: filter;
+}
+
+
