@@ -41,6 +41,7 @@ import * as THREE from "three";
 import { MeshStandardMaterial } from "three";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
 import ScrollList from "./scroll-list.jsx";
+import "./style.css";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);

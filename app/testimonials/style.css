@@ -152,6 +152,130 @@
   object-fit: cover;
 }
 
+.janus-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100vh;
+
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.janus-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 1200px;
+  height: 600px;
+  flex: 0 0 1200px;
+
+  transform: scale(0.8);
+  transform-origin: center center;
+}
+
+.face-container {
+  position: relative;
+
+  width: 600px;
+  height: 600px;
+  flex: 0 0 600px;
+
+  overflow: hidden;
+}
+
+.left-face {
+  direction: rtl;
+}
+
+.right-face {
+  direction: ltr;
+}
+
+.janus-shape {
+  width: 400px;
+  height: 600px;
+  shape-margin: 10px;
+}
+
+.left-shape {
+  float: left;
+}
+
+.right-shape {
+  float: right;
+}
+
+.text-container {
+  width: 100%;
+  height: 100%;
+}
+
+.text-line {
+  margin: 0;
+  word-break: break-all;
+  line-height: 1.1;
+  font-size: 10px;
+  color: #f0fff3;
+
+  --offset: 50;
+}
+
+.symbol {
+  display: inline-block;
+}
+
+.symbol-blink {
+  animation: symbolBlink var(--blink-duration) ease-in-out infinite;
+  animation-delay: var(--blink-delay);
+}
+
+@keyframes symbolBlink {
+  0%,
+  78%,
+  100% {
+    opacity: 0.85;
+  }
+
+  84% {
+    opacity: 0.18;
+  }
+
+  90% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1024px) {
+  .janus-container {
+    transform: scale(0.7);
+  }
+}
+
+@media (max-width: 768px) {
+  .janus-main {
+    height: 100svh;
+  }
+
+  .janus-container {
+    transform: scale(0.7);
+  }
+}
+
+@media (max-width: 480px) {
+   .face-container {
+    width: 340px;
+    flex: 0 0 340px;
+  }
+  .janus-container {
+    transform: scale(0.6);
+  }
+}
+
+
 .testimonial-image-clip-frame {
   --close: 0;
   --glitch-duration: 10s;
@@ -477,6 +601,162 @@
   transform: none;
   border-color: rgba(255, 255, 255, 0.85);
   z-index: 2;
+}
+
+.frey-text-grid {
+  cursor: crosshair;
+  display: grid;
+  grid-template-columns:
+    repeat(
+      var(--chars),
+      1.2em
+    );
+
+  font-size:
+    calc(
+      70vmin /
+      var(--chars)
+    );
+
+  font-weight: 700;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.frey-text-grid__char {
+  animation:
+  frey-resting-shimmer
+6.8s
+  ease-in-out
+  infinite;
+
+animation-delay:
+  calc(var(--i) * -45ms);
+  --d:
+    max(
+      0.25,
+      var(--distance, 0)
+    );
+
+  --hover-progress:
+    clamp(
+      0,
+      calc(
+        (var(--d) - 0.25) /
+        0.75
+      ),
+      1
+    );
+
+
+  --base-scale:
+    calc(
+      0.28 +
+      var(--row) * 0.012
+    );
+
+  display: inline-grid;
+  place-items: center;
+
+  opacity:
+    calc(
+      0.55 +
+      var(--hover-progress) *
+      0.45
+    );
+
+  color: rgb(
+    calc(
+      207 -
+      118 *
+      var(--hover-progress)
+    )
+    calc(
+      202 -
+      134 *
+      var(--hover-progress)
+    )
+    calc(
+      240 -
+      75 *
+      var(--hover-progress)
+    )
+  );
+
+  transform:
+    scale(
+      calc(
+        var(--base-scale) *
+        (
+          1 +
+          var(--hover-progress)
+        )
+      )
+    );
+
+  transform-origin: center;
+
+  transition:
+    color 200ms linear,
+    opacity 200ms linear;
+
+  will-change:
+    transform,
+    opacity,
+    color;
+}
+@keyframes frey-resting-shimmer {
+  0%,
+  100% {
+    text-shadow:
+      0 0 0
+      rgba(235, 229, 255, 0);
+
+    filter: brightness(1);
+  }
+
+  45% {
+    text-shadow:
+      0 0 3px
+      rgba(235, 229, 255, 0.08);
+
+    filter: brightness(1.015);
+  }
+
+  52% {
+    text-shadow:
+      0 0 7px
+      rgba(245, 241, 255, 0.22);
+
+    filter: brightness(1.08);
+  }
+
+  60% {
+    text-shadow:
+      0 0 2px
+      rgba(235, 229, 255, 0.06);
+
+    filter: brightness(1.01);
+  }
+}
+@keyframes dotted-line-left {
+  from {
+    background-position: 0 center;
+  }
+
+  to {
+    background-position: -10px center;
+  }
+}
+
+@keyframes dotted-line-right {
+  from {
+    background-position: 0 center;
+  }
+
+  to {
+    background-position: 10px center;
+  }
 }
 
 .TestimonialsBookNow-banner {
