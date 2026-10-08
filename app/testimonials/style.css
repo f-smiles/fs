@@ -276,6 +276,52 @@
 }
 
 
+.terminal-preloader {
+  position: relative;
+}
+
+.terminal-container {
+  position: relative;
+}
+
+.terminal-line {
+  position: absolute;
+  left: 0;
+  font-size: 13px;
+  color: white;
+  display: flex;
+  white-space: nowrap;
+  font-family: "IBMPlexMono-ExtraLight";
+  text-transform: uppercase;
+}
+
+.terminal-cell {
+  display: inline-block;
+  min-width: 1ch;
+}
+
+@media (max-width: 768px) {
+  .terminal-line {
+    top: 0 !important;
+    width: calc(100vw - 48px);
+    flex-wrap: wrap;
+    white-space: normal;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .terminal-word {
+    display: inline-flex;
+    white-space: nowrap;
+
+  }
+
+  .terminal-cell {
+    min-width: 0.9ch;
+  }
+}
+
+
 .testimonial-image-clip-frame {
   --close: 0;
   --glitch-duration: 10s;

@@ -702,7 +702,7 @@ const TerminalPreloader = () => {
   };
 
   return (
-    <div className="terminal-preloader font-ibmplex-extralight uppercase">
+    <div className="terminal-preloader">
       <div ref={containerRef} className="terminal-container">
         {lines.map((line) => (
           <div
