@@ -1,7 +1,7 @@
 import { Fragment } from "react"
 import { Html, Tailwind, Section, Row, Text, Hr, Column, } from "@react-email/components"
 
-interface ApplicationTemplateProps {
+export interface ApplicationTemplateProps {
   name: string;
   contactInfo: {
     email: string;

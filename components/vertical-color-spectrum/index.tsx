@@ -8,6 +8,8 @@ export default function VerticalColorSpectrum() {
   const svgContainer = useRef(null)
 
   useEffect(() => {
+    if (!animationSection.current) return
+    
     const animation = gsap.context(() => {
       let tl = gsap.timeline()
       tl.to(".svg-container", { autoAlpha: 1, duration: 0.01 }, 0)
