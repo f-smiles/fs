@@ -89,6 +89,7 @@ export const products = pgTable("products", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   price: real("price").notNull(),
+  category: text("category").notNull(),
   created: timestamp("created").defaultNow(),
 })
 

@@ -89,27 +89,35 @@ const holoOverlayStyle: React.CSSProperties = {
       rgba(216, 117, 255, 0.55) calc(5% * 6),
       rgba(255, 119, 115, 0.55) calc(5% * 7)
     ),
-    repeating-linear-gradient(
-      133deg,
-      rgba(14, 21, 46, 0.4) 0%,
-      rgba(143, 163, 163, 0.5) 3.8%,
-      rgba(143, 193, 193, 0.5) 4.5%,
-      rgba(143, 163, 163, 0.5) 5.2%,
-      rgba(14, 21, 46, 0.4) 10%,
-      rgba(14, 21, 46, 0.4) 12%
-    ),
-    radial-gradient(
-      farthest-corner circle at var(--mx) var(--my),
-      rgb(0 0 0 / 0.05) 10%,
-      rgb(0 0 0 / 0.12) 25%,
-      rgb(0 0 0 / 0.25) 120%
-    )
+repeating-linear-gradient(
+  133deg,
+  rgba(16, 18, 42, 0.35) 0%,
+
+  rgba(155, 140, 255, 0.5) 6%,
+  rgba(140, 190, 255, 0.5) 7%,
+  rgba(170, 140, 255, 0.5) 8%,
+
+  rgba(16, 18, 42, 0.35) 14%,
+  rgba(16, 18, 42, 0.35) 30%
+),
+radial-gradient(
+  farthest-corner circle at var(--mx) var(--my),
+  rgba(200, 230, 255, 0.55) 0%,
+  rgba(180, 215, 255, 0.35) 25%,
+  rgba(170, 200, 245, 0.18) 55%,
+  rgba(255, 255, 255, 0.06) 100%
+)
   `,
   backgroundSize: `50%, 200% 700%, 300%, 200%`,
   backgroundPosition: `center, 0% var(--posy), var(--posx) var(--posy), var(--posx) var(--posy)`,
   backgroundBlendMode: `exclusion, hue, hard-light, exclusion`,
   mixBlendMode: "color-dodge",
-  filter: `brightness(calc((var(--hyp) * 0.35) + 0.8)) contrast(1.7) saturate(1.8)`,
+filter: `
+  blur(0.3px)
+  brightness(calc((var(--hyp) * 0.3) + 0.7))
+  contrast(1.5)
+  saturate(1.8)
+`,
   opacity: 0.8,
   transition: "background-position 0.25s ease, filter 0.25s ease",
 };
@@ -165,7 +173,7 @@ style={{
 
 <figure className="flex items-center justify-center h-[300px] w-full px-6">
   <Image
-    src={variant.variantImages[0].url}
+    src={variant.variantImages[1].url}
     alt={`${variant.product.title} - ${variant.variantName}`}
     width={500}
     height={500}
@@ -208,21 +216,20 @@ export default function Variants({ variants }: ProductVariantsProps) {
   const row3ItemRefs = useRef<HTMLDivElement[]>([])
   const row4ItemRefs = useRef<HTMLDivElement[]>([])
 
-  const row1 = variants.filter(v => v.productID === 1)
-  const row2 = variants.filter(v => v.productID === 2)
-  const row3 = variants.filter(v => v.productID === 3 || v.productID === 4)
-  const row4 = variants.filter(v => v.productID === 5 || v.productID === 6 || v.productID === 7)
+const row1 = variants.filter(v => v.product.category === "devices")
+  const row2 = variants.filter(v => v.product.category === "whitening")
+  const row3 = variants.filter(v => v.product.category === "floss")
+  const row4 = variants.filter(v => v.product.category === "cases")
 
   const rows = [
-    { id: 'devices', variants: row4 },
-    { id: 'floss', variants: row2 },
-    { id: 'whitening', variants: row3 },
-    { id: 'cases', variants: row1 },
+    { id: 'devices', variants: row1 },
+    { id: 'whitening', variants: row2 },
+    { id: 'floss', variants: row3 },
+    { id: 'cases', variants: row4 },
   ]
 
-
   return (
-    <div ref={containerRef} className="relative bg-white">
+    <div ref={containerRef} className="relative min-h-screen flex flex-col justify-center">
       {rows.map((row, rowIndex) => {
         const rowRef = useRef<HTMLDivElement>(null)
 
@@ -244,8 +251,8 @@ const isInView = useInView(rowRef, {
             }}
            className="relative overflow-hidden"
           >
-            <div className="grid grid-cols-4 h-full w-full border-r border-black/10">
-        {row.variants.slice(0, 4).map((variant, itemIndex) => (
+<div className="grid grid-cols-4 justify-center gap-2 w-full">
+        {row.variants.map((variant, itemIndex) => (
   <motion.div
     key={variant.id}
     ref={el => {
@@ -255,7 +262,7 @@ const isInView = useInView(rowRef, {
       if (rowIndex === 2) row3ItemRefs.current[itemIndex] = el
       if (rowIndex === 3) row4ItemRefs.current[itemIndex] = el
     }}
-    className="px-4 flex items-start justify-center relative"
+    className="flex items-start justify-center relative"
     initial={{ y: "45vh", opacity: 0, scale: 0.92 }}
     animate={isInView ? { y: 0, opacity: 1, scale: 1 } : {}}
     transition={{
@@ -282,7 +289,7 @@ const isInView = useInView(rowRef, {
     >
       <ProductCard
         variant={variant}
-        backgroundUrl="/images/_mesh_gradients/metallicdream.png"
+        backgroundUrl="/images/_mesh_gradients/purplepeachy.png"
       />
 
 

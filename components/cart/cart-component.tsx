@@ -22,7 +22,7 @@ export default function CartComponent({ isScrolled }: CartComponentProps) {
     <Sheet open={cartOpen} onOpenChange={setCartOpen}>
       <SheetTrigger>
         <div className="relative mx-4">
-    <AnimatePresence>
+    {/* <AnimatePresence>
   {cart.length > 0 && (
     <motion.span
       key="cart-badge"
@@ -42,7 +42,7 @@ export default function CartComponent({ isScrolled }: CartComponentProps) {
   >
     <ShoppingBagIcon className="w-6 h-6 text-zinc-900 dark:text-zinc-50" strokeWidth={1.5} />
   </motion.div>
-</AnimatePresence>
+</AnimatePresence> */}
         </div>
       </SheetTrigger>
 

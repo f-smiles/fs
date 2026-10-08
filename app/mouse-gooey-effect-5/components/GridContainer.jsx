@@ -1,10 +1,160 @@
 'use client'
-import React, { useEffect, useRef, useLayoutEffect, forwardRef, useImperativeHandle} from 'react'
+import * as THREE from "three";
+import React, { useEffect, useRef, useLayoutEffect, forwardRef, useImperativeHandle, useMemo} from 'react'
 import gsap from 'gsap'
 import { LinearFilter, Mesh, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, TextureLoader, Vector2, WebGLRenderer } from 'three'
 import ScrollTrigger from 'gsap/ScrollTrigger'
+import {
+  Canvas,
+  useFrame,
+  useThree,
+  useLoader,
+  extend,
+} from "@react-three/fiber";
 
 gsap.registerPlugin(ScrollTrigger)
+
+
+
+function createTextTexture(text, width = 1024, height = 512) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  // ctx.fillStyle = "#111";
+  // ctx.fillRect(0, 0, width, height);
+ctx.fillStyle = "#fff";
+ctx.font = "550 70px 'NeueHaasGroteskDisplayPro45Light'";
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+
+const lines = text.split("\n");
+
+lines.forEach((line, i) => {
+  ctx.fillText(
+    line,
+    width / 2,
+    height / 2 + i * 72 - (lines.length - 1) * 36
+  );
+});
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+const vertex = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`
+
+const fragment = `
+uniform sampler2D uTexture;
+uniform vec2 uMouse;
+uniform float uRadius;
+uniform float uStrength;
+uniform vec2 uPlaneSize;
+uniform float uOpacity;
+
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 center = uMouse;
+
+  // Convert UV to plane-relative space
+  vec2 tc = (uv - center) * uPlaneSize;
+  float dist = length(tc);
+
+
+  float radius = uRadius * 1.4;
+
+  if (dist < radius) {
+
+    float percent = (radius - dist) / radius;
+    percent = clamp(percent, 0.0, 1.0);
+
+    float theta = percent * percent * uStrength;
+
+    float s = sin(theta);
+    float c = cos(theta);
+
+    tc = vec2(
+      tc.x * c - tc.y * s,
+      tc.x * s + tc.y * c
+    );
+
+
+    vec2 dir = normalize(tc + 0.0001);
+    float pull = pow(percent, 2.0) * 0.45;
+    tc -= dir * pull;
+
+    float bulge = percent * percent * 0.18;
+    tc *= 1.0 + bulge;
+
+    float micro = sin(tc.x * 14.0 + tc.y * 9.0) * 0.004;
+    tc += dir * micro * percent;
+  }
+
+
+  vec2 finalUV = tc / uPlaneSize + center;
+
+  vec4 color = texture2D(uTexture, finalUV);
+  gl_FragColor = color;
+  gl_FragColor.a *= uOpacity;
+}
+`;
+const SwirlTextPlane = forwardRef(function SwirlTextPlane({ text }, ref) {
+  const meshRef = useRef();
+
+  const texture = useMemo(() => createTextTexture(text), [text]);
+  const planeSize = useMemo(() => new THREE.Vector2(20, 12), []);
+
+  const uniforms = useMemo(
+    () => ({
+      uOpacity: { value: 1 },
+      uTexture: { value: texture },
+      uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+      uRadius: { value: 0.0 },
+      uStrength: { value: 0.0 },
+      uPlaneSize: { value: planeSize },
+    }),
+    [texture, planeSize]
+  );
+
+  // expose to parent
+  useImperativeHandle(ref, () => ({
+    uniforms,
+    mesh: meshRef.current,
+  }));
+
+  const onPointerMove = (e) => {
+    if (!e.uv) return; // safety
+    uniforms.uMouse.value.copy(e.uv);
+
+    gsap.to(uniforms.uRadius, { value: 2.5, duration: 0.4 });
+    gsap.to(uniforms.uStrength, { value: 3.0, duration: 0.4 });
+  };
+
+  const onPointerOut = () => {
+    gsap.to(uniforms.uRadius, { value: 0.0, duration: 0.6 });
+    gsap.to(uniforms.uStrength, { value: 0.0, duration: 0.6 });
+  };
+
+  return (
+    <mesh ref={meshRef} onPointerMove={onPointerMove} onPointerOut={onPointerOut}>
+      <planeGeometry args={[20, 10]} />
+      <shaderMaterial
+        uniforms={uniforms}
+        vertexShader={vertex}
+        fragmentShader={fragment}
+        transparent
+      />
+    </mesh>
+  );
+});
 export const items = [
   {
     // src: '/images/members/edit/adriana-blurry-distortion-effect-1920px-1.jpg',
@@ -88,7 +238,6 @@ const fragmentShader = `
     return fract(vec2((p3.x + p3.y) * p3.z, (p3.x + p3.z) * p3.y));
   }
 
-  // Simplex noise - smoother than Perlin, better for organic patterns
   float simplex_noise(vec3 p) {
     const float K1 = 0.333333333;
     const float K2 = 0.166666667;
@@ -441,19 +590,33 @@ export default forwardRef(function GridContainer(props, ref) {
 
   useImperativeHandle(ref, () => ({
     getCards: () => cardsRef.current.filter(Boolean),
-    getScroller: () => membersRef.current,   //  expose the container
+    getScroller: () => membersRef.current,  
   }));
 
   return (
     <section className="layout">
       <div className="grid-container-wrapper">
-        <div className="font-canelathin grid-copy">
-          <h3><span></span>Our team at Frey Smiles is built around care, clarity, and craft.</h3>
-          <p className="font-khteka uppercase text-[12px]">
+        {/* <div className="font-canelathin grid-copy">
+          <h3>Our team at Frey Smiles is built around care, clarity, and craft.</h3>
+          <p className="font-ibmplex uppercase text-[12px]">
             Behind every visit is a group of people who care deeply about how things feel, how they flow, and how you’re treated.
             We’re here to make every visit feel smooth, personal, and easy from start to finish.
           </p>
-        </div>
+        </div> */}
+  {/* <Canvas
+    className="absolute inset-0 z-30"
+    orthographic
+    camera={{ position: [0, 0, 5], zoom: 50 }}
+  >
+    <SwirlTextPlane
+
+      text={`EVERY SINGLE VISIT 
+    IS GUIDED BY A TEAM 
+    FOCUSED ON HOW IT 
+      FEELS, HOW IT FLOWS, 
+      FROM START TO FINISH.`}
+    />
+  </Canvas> */}
 
     <div ref={membersRef} className="members-section">
   <div className="members-track">

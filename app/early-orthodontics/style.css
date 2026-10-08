@@ -1,29 +1,60 @@
 :root {
-  --terra: #F0E4E8;
-  --brightgreen: #71BA04;
-  --purple: #C7C6FE;
-  --white:#FFFAF1;
+  --terra: #cf3476;
+  --brightgreen: #7c6265;
+  --purple: #c7c6fe;
+  --white: #fffaf1;
   --black: #0e0e0e;
-  --eggshellgrey: #D5DDDD;
-  --hotpink: #cf3476;
+  --eggshellgrey: #deaaff;
+  --hotpink: #e27c46;
+    --app-height: 100vh;
 }
 
-/* #755958 */
+/* #E4D0DA */
+/* #71BA04 */
+/* #D5DDDD */
 /* #DFE8E6 */
- /* #CEC1DA */
 
+.image-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.base-image,
+.profile-image,
+.overlay-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-image {
+  z-index: 1;
+}
+
+.overlay-lines {
+  z-index: 2;
+  pointer-events: none;
+}
 
 /********************
  *  ==============   *
  ********************/
- .MainSection-headerTitle {
+.MainSection-headerTitle {
   display: flex;
   gap: 12px;
   font-family: "Canela-ThinItalic";
 }
+.MainSection-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
 .MainSection-headerTitle .chars-wrapper {
   display: inline-block;
-  font-size: clamp(56px, 4vw, 96px);
+  font-size: clamp(26px, 4vw, 32px);
   line-height: clamp(96px, 4vw, 100px);
 }
 .MainSectionItem-contentTitle > h3,
@@ -34,43 +65,50 @@
 
 
 /********************
- *  MOBILE    *
+ *  MOBILE 
  ********************/
 @media screen and (max-width: 1079px) {
+
   .MainSection-headerTitle {
     padding: 6rem 2rem 2rem 2rem;
   }
 
   .MainSectionItem-inner.--inner-first {
-    height: 200vh;
+    height: calc(var(--app-height) * 2);
     z-index: 10;
   }
+
   .MainSectionItem-inner.--inner-between {
-    height: 200vh;
-    margin-top: -100vh;
+    height: calc(var(--app-height) * 2);
+    margin-top: calc(var(--app-height) * -1);
     z-index: 20;
   }
+
   .MainSectionItem-inner.--inner-last {
-    height: 100vh;
-    margin-top: -100vh;
+    height: var(--app-height);
+    margin-top: calc(var(--app-height) * -1);
     z-index: 30;
   }
 
+
   .MainSectionItem-innerSticky {
     position: relative;
+    /* min-height: var(--app-height); */
+
     display: flex;
     flex-direction: column-reverse;
     gap: 2rem;
     padding: 6rem 2rem;
+
+    transform: translate3d(0, 0, 0);
   }
+
   .MainSectionItem-background {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
+    inset: 0;
     z-index: -10;
   }
+
   .MainSectionItem-contentTitle {
     display: flex;
     flex-direction: row-reverse;
@@ -80,12 +118,11 @@
   }
 }
 
-
 /********************
  *  MOBILE ROTATE & TABLET    *
  ********************/
 @media screen and (min-width: 1080px) and (max-width: 1439px) {
-   .MainSection-headerTitle {
+  .MainSection-headerTitle {
     padding: 6rem 2rem 2rem 6rem;
   }
 
@@ -108,7 +145,7 @@
     width: 50%;
     padding: 3rem;
   }
-   .MainSectionItem-contentTitle {
+  .MainSectionItem-contentTitle {
     flex-direction: row;
     justify-content: flex-start;
     margin-bottom: 0.8rem;
@@ -128,7 +165,6 @@
   }
 }
 
-
 /********************
  *  DESKTOP & LARGER SCREENS    *
  ********************/
@@ -145,7 +181,7 @@
   .MainSection-header {
     position: absolute;
     top: 15vh;
-    left: 16rem;
+    left: 6rem;
     width: 100%;
     height: 100%;
     z-index: 10;
@@ -178,7 +214,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    padding: 10vh 16rem;
+    padding: 10vh 8rem;
   }
   .MainSectionItem-background {
     position: absolute;
@@ -189,7 +225,7 @@
   }
   .MainSectionItem-content {
     position: absolute;
-    left: 16rem;
+    left: 6rem;
     top: 33%;
     width: 27%;
     /* margin-top: -23rem; */
@@ -200,12 +236,12 @@
     margin-bottom: 1.5rem;
   }
   .MainSectionItem-contentTitle > h3 {
-    font-size: clamp(24px, 4vw, 32px);
-    line-height: clamp(32px, 4vw, 40px);
+    font-size: clamp(16px, 4vw, 20px);
+    line-height: clamp(32px, 4vw, 32px);
   }
   .MainSectionItem-contentText > p {
-    font-size: clamp(16px, 4vw, 24px);
-    line-height: clamp(24px, 4vw, 32px);
+    font-size: clamp(12px, 4vw, 13px);
+    line-height: clamp(16px, 4vw, 18px);
   }
   .MainSectionItem-index {
     display: none;

@@ -125,7 +125,19 @@ export default function EditProductForm() {
               </FormItem>
             )}
           />
-
+<FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <Input placeholder="" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <Button
             type="submit"
             className="w-full lg:w-max"

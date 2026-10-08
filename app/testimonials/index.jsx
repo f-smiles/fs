@@ -1,18 +1,8 @@
 "use client";
-
-import { Flip } from 'gsap/Flip';
-import MouseTrail from "./mouse.jsx";
+import { easing, geometry } from "maath";
+import { Flip } from "gsap/Flip";
 import { Renderer, Program, Color, Mesh, Triangle, Vec2 } from "ogl";
-import {
-  motion,
-  useInView,
-  AnimatePresence,
-  useMotionValue,
-  useSpring,
-  useMotionValueEvent,
-  useScroll
-} from "framer-motion";
-import Lenis from "@studio-freight/lenis";
+
 import {
   Canvas,
   useFrame,
@@ -29,14 +19,8 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useLayoutEffect,
-  useCallback
+  useCallback,
 } from "react";
-import {
-  EffectComposer,
-  Bloom,
-  Outline,
-  ChromaticAberration,
-} from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import gsap from "gsap";
 import { SplitText } from "gsap/all";
@@ -47,6 +31,11 @@ import {
   MeshTransmissionMaterial,
   Environment,
   shaderMaterial,
+  Text,
+  useTexture,
+  Image,
+  ScrollControls,
+  useScroll,
 } from "@react-three/drei";
 import * as THREE from "three";
 import { useControls } from "leva";
@@ -58,1004 +47,30 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
 }
 
-
-const FluidSimulation = ({ disabled }) => {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-
-    const config = {
-      TEXTURE_DOWNSAMPLE: 1,
-      DENSITY_DISSIPATION: 0.98,
-      VELOCITY_DISSIPATION: 0.99,
-      PRESSURE_DISSIPATION: 0.8,
-      PRESSURE_ITERATIONS: 25,
-      CURL: 28,
-      SPLAT_RADIUS: 0.0008,
-    };
-
-    let pointers = [];
-    let splatStack = [];
-
-    const { gl, ext } = getWebGLContext(canvas);
-
-    function getWebGLContext(canvas) {
-      const params = {
-        alpha: true,
-        depth: false,
-        stencil: false,
-        antialias: false,
-      };
-
-      let gl = canvas.getContext("webgl2", params);
-      const isWebGL2 = !!gl;
-      if (!isWebGL2)
-        gl =
-          canvas.getContext("webgl", params) ||
-          canvas.getContext("experimental-webgl", params);
-
-      let halfFloat;
-      let supportLinearFiltering;
-      if (isWebGL2) {
-        gl.getExtension("EXT_color_buffer_float");
-        supportLinearFiltering = gl.getExtension("OES_texture_float_linear");
-      } else {
-        halfFloat = gl.getExtension("OES_texture_half_float");
-        supportLinearFiltering = gl.getExtension(
-          "OES_texture_half_float_linear"
-        );
-      }
-
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-      const halfFloatTexType = isWebGL2
-        ? gl.HALF_FLOAT
-        : halfFloat.HALF_FLOAT_OES;
-      let formatRGBA;
-      let formatRG;
-      let formatR;
-
-      if (isWebGL2) {
-        formatRGBA = getSupportedFormat(
-          gl,
-          gl.RGBA16F,
-          gl.RGBA,
-          halfFloatTexType
-        );
-        formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
-      } else {
-        formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-      }
-
-      return {
-        gl,
-        ext: {
-          formatRGBA,
-          formatRG,
-          formatR,
-          halfFloatTexType,
-          supportLinearFiltering,
-        },
-      };
-    }
-
-    function getSupportedFormat(gl, internalFormat, format, type) {
-      if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
-        switch (internalFormat) {
-          case gl.R16F:
-            return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
-          case gl.RG16F:
-            return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
-          default:
-            return null;
-        }
-      }
-
-      return {
-        internalFormat,
-        format,
-      };
-    }
-
-    function supportRenderTextureFormat(gl, internalFormat, format, type) {
-      let texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        internalFormat,
-        4,
-        4,
-        0,
-        format,
-        type,
-        null
-      );
-
-      let fbo = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        texture,
-        0
-      );
-
-      const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-      if (status != gl.FRAMEBUFFER_COMPLETE) return false;
-      return true;
-    }
-
-    function pointerPrototype() {
-      this.id = -1;
-      this.x = 0;
-      this.y = 0;
-      this.dx = 0;
-      this.dy = 0;
-      this.down = false;
-      this.moved = false;
-      this.color = [30, 0, 300];
-    }
-
-    pointers.push(new pointerPrototype());
-
-    class GLProgram {
-      constructor(vertexShader, fragmentShader) {
-        this.uniforms = {};
-        this.program = gl.createProgram();
-
-        gl.attachShader(this.program, vertexShader);
-        gl.attachShader(this.program, fragmentShader);
-        gl.linkProgram(this.program);
-
-        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))
-          throw gl.getProgramInfoLog(this.program);
-
-        const uniformCount = gl.getProgramParameter(
-          this.program,
-          gl.ACTIVE_UNIFORMS
-        );
-        for (let i = 0; i < uniformCount; i++) {
-          const uniformName = gl.getActiveUniform(this.program, i).name;
-          this.uniforms[uniformName] = gl.getUniformLocation(
-            this.program,
-            uniformName
-          );
-        }
-      }
-
-      bind() {
-        gl.useProgram(this.program);
-      }
-    }
-
-    function compileShader(type, source) {
-      const shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-        throw gl.getShaderInfoLog(shader);
-
-      return shader;
-    }
-
-    const baseVertexShader = compileShader(
-      gl.VERTEX_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      attribute vec2 aPosition;
-      varying vec2 vUv;
-      varying vec2 vL;
-      varying vec2 vR;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform vec2 texelSize;
-
-      void main () {
-          vUv = aPosition * 0.5 + 0.5;
-          vL = vUv - vec2(texelSize.x, 0.0);
-          vR = vUv + vec2(texelSize.x, 0.0);
-          vT = vUv + vec2(0.0, texelSize.y);
-          vB = vUv - vec2(0.0, texelSize.y);
-          gl_Position = vec4(aPosition, 0.0, 1.0);
-      }
-    `
-    );
-
-    const clearShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      uniform sampler2D uTexture;
-      uniform float value;
-
-      void main () {
-          gl_FragColor = value * texture2D(uTexture, vUv);
-      }
-    `
-    );
-
-    const displayShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      uniform sampler2D uTexture;
-void main() {
-    vec3 rawColor = texture2D(uTexture, vUv).rgb;
-
-    // Tone down bright white centers
-    rawColor = clamp(rawColor, 0.0, 0.6);
-
-    // More pink, less orange: soft pastel pink
-    vec3 pinkTint = vec3(1.0, 0.75, 0.9);  // Reddish-pink tone
-
-    // Blend the raw color and pink tint
-    vec3 color = mix(rawColor, pinkTint, 0.4);  // Slightly more tinting
-
-    // Feathered alpha for a wispy look
-    float intensity = length(rawColor);
-    float alpha = pow(intensity, 1.2) * smoothstep(0.0, 0.4, intensity);
-    alpha = clamp(alpha, 0.0, 1.0);
-
-    gl_FragColor = vec4(color, alpha * 0.7);  // Slightly softer visibility
-}
-    `
-    );
-
-    const splatShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      uniform sampler2D uTarget;
-      uniform float aspectRatio;
-      uniform vec3 color;
-      uniform vec2 point;
-      uniform float radius;
-
-      void main () {
-          vec2 p = vUv - point.xy;
-          p.x *= aspectRatio;
-          vec3 splat = exp(-dot(p, p) / radius) * color;
-          vec3 base = texture2D(uTarget, vUv).xyz;
-          gl_FragColor = vec4(base + splat, 1.0);
-      }
-    `
-    );
-
-    const advectionManualFilteringShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      uniform sampler2D uVelocity;
-      uniform sampler2D uSource;
-      uniform vec2 texelSize;
-      uniform float dt;
-      uniform float dissipation;
-
-      vec4 bilerp (in sampler2D sam, in vec2 p) {
-          vec4 st;
-          st.xy = floor(p - 0.5) + 0.5;
-          st.zw = st.xy + 1.0;
-          vec4 uv = st * texelSize.xyxy;
-          vec4 a = texture2D(sam, uv.xy);
-          vec4 b = texture2D(sam, uv.zy);
-          vec4 c = texture2D(sam, uv.xw);
-          vec4 d = texture2D(sam, uv.zw);
-          vec2 f = p - st.xy;
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-      }
-
-      void main () {
-          vec2 coord = gl_FragCoord.xy - dt * texture2D(uVelocity, vUv).xy;
-          gl_FragColor = dissipation * bilerp(uSource, coord);
-          gl_FragColor.a = 1.0;
-      }
-    `
-    );
-
-    const advectionShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      uniform sampler2D uVelocity;
-      uniform sampler2D uSource;
-      uniform vec2 texelSize;
-      uniform float dt;
-      uniform float dissipation;
-
-      void main () {
-          vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
-          gl_FragColor = dissipation * texture2D(uSource, coord);
-          gl_FragColor.a = 1.0;
-      }
-    `
-    );
-
-    const divergenceShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      varying vec2 vL;
-      varying vec2 vR;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform sampler2D uVelocity;
-
-      vec2 sampleVelocity (in vec2 uv) {
-          vec2 multiplier = vec2(1.0, 1.0);
-          if (uv.x < 0.0) { uv.x = 0.0; multiplier.x = -1.0; }
-          if (uv.x > 1.0) { uv.x = 1.0; multiplier.x = -1.0; }
-          if (uv.y < 0.0) { uv.y = 0.0; multiplier.y = -1.0; }
-          if (uv.y > 1.0) { uv.y = 1.0; multiplier.y = -1.0; }
-          return multiplier * texture2D(uVelocity, uv).xy;
-      }
-
-      void main () {
-          float L = sampleVelocity(vL).x;
-          float R = sampleVelocity(vR).x;
-          float T = sampleVelocity(vT).y;
-          float B = sampleVelocity(vB).y;
-          float div = 0.5 * (R - L + T - B);
-          gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
-      }
-    `
-    );
-
-    const curlShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      varying vec2 vL;
-      varying vec2 vR;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform sampler2D uVelocity;
-
-      void main () {
-          float L = texture2D(uVelocity, vL).y;
-          float R = texture2D(uVelocity, vR).y;
-          float T = texture2D(uVelocity, vT).x;
-          float B = texture2D(uVelocity, vB).x;
-          float vorticity = R - L - T + B;
-          gl_FragColor = vec4(vorticity, 0.0, 0.0, 1.0);
-      }
-    `
-    );
-
-    const vorticityShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform sampler2D uVelocity;
-      uniform sampler2D uCurl;
-      uniform float curl;
-      uniform float dt;
-
-      void main () {
-          float T = texture2D(uCurl, vT).x;
-          float B = texture2D(uCurl, vB).x;
-          float C = texture2D(uCurl, vUv).x;
-          vec2 force = vec2(abs(T) - abs(B), 0.0);
-          force *= 1.0 / length(force + 0.00001) * curl * C;
-          vec2 vel = texture2D(uVelocity, vUv).xy;
-          gl_FragColor = vec4(vel + force * dt, 0.0, 1.0);
-      }
-    `
-    );
-
-    const pressureShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      varying vec2 vL;
-      varying vec2 vR;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform sampler2D uPressure;
-      uniform sampler2D uDivergence;
-
-      vec2 boundary (in vec2 uv) {
-          uv = min(max(uv, 0.0), 1.0);
-          return uv;
-      }
-
-      void main () {
-          float L = texture2D(uPressure, boundary(vL)).x;
-          float R = texture2D(uPressure, boundary(vR)).x;
-          float T = texture2D(uPressure, boundary(vT)).x;
-          float B = texture2D(uPressure, boundary(vB)).x;
-          float C = texture2D(uPressure, vUv).x;
-          float divergence = texture2D(uDivergence, vUv).x;
-          float pressure = (L + R + B + T - divergence) * 0.25;
-          gl_FragColor = vec4(pressure, 0.0, 0.0, 1.0);
-      }
-    `
-    );
-
-    const gradientSubtractShader = compileShader(
-      gl.FRAGMENT_SHADER,
-      `
-      precision highp float;
-      precision mediump sampler2D;
-
-      varying vec2 vUv;
-      varying vec2 vL;
-      varying vec2 vR;
-      varying vec2 vT;
-      varying vec2 vB;
-      uniform sampler2D uPressure;
-      uniform sampler2D uVelocity;
-
-      vec2 boundary (in vec2 uv) {
-          uv = min(max(uv, 0.0), 1.0);
-          return uv;
-      }
-
-      void main () {
-          float L = texture2D(uPressure, boundary(vL)).x;
-          float R = texture2D(uPressure, boundary(vR)).x;
-          float T = texture2D(uPressure, boundary(vT)).x;
-          float B = texture2D(uPressure, boundary(vB)).x;
-          vec2 velocity = texture2D(uVelocity, vUv).xy;
-          velocity.xy -= vec2(R - L, T - B);
-          gl_FragColor = vec4(velocity, 0.0, 1.0);
-      }
-    `
-    );
-
-    let textureWidth;
-    let textureHeight;
-    let density;
-    let velocity;
-    let divergence;
-    let curl;
-    let pressure;
-
-    function initFramebuffers() {
-      textureWidth = gl.drawingBufferWidth >> config.TEXTURE_DOWNSAMPLE;
-      textureHeight = gl.drawingBufferHeight >> config.TEXTURE_DOWNSAMPLE;
-
-      const texType = ext.halfFloatTexType;
-      const rgba = ext.formatRGBA;
-      const rg = ext.formatRG;
-      const r = ext.formatR;
-
-      density = createDoubleFBO(
-        2,
-        textureWidth,
-        textureHeight,
-        rgba.internalFormat,
-        rgba.format,
-        texType,
-        ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST
-      );
-      velocity = createDoubleFBO(
-        0,
-        textureWidth,
-        textureHeight,
-        rg.internalFormat,
-        rg.format,
-        texType,
-        ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST
-      );
-      divergence = createFBO(
-        4,
-        textureWidth,
-        textureHeight,
-        r.internalFormat,
-        r.format,
-        texType,
-        gl.NEAREST
-      );
-      curl = createFBO(
-        5,
-        textureWidth,
-        textureHeight,
-        r.internalFormat,
-        r.format,
-        texType,
-        gl.NEAREST
-      );
-      pressure = createDoubleFBO(
-        6,
-        textureWidth,
-        textureHeight,
-        r.internalFormat,
-        r.format,
-        texType,
-        gl.NEAREST
-      );
-    }
-
-    function createFBO(texId, w, h, internalFormat, format, type, param) {
-      gl.activeTexture(gl.TEXTURE0 + texId);
-      let texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        internalFormat,
-        w,
-        h,
-        0,
-        format,
-        type,
-        null
-      );
-
-      let fbo = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        texture,
-        0
-      );
-      gl.viewport(0, 0, w, h);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-
-      return [texture, fbo, texId];
-    }
-
-    function createDoubleFBO(texId, w, h, internalFormat, format, type, param) {
-      let fbo1 = createFBO(texId, w, h, internalFormat, format, type, param);
-      let fbo2 = createFBO(
-        texId + 1,
-        w,
-        h,
-        internalFormat,
-        format,
-        type,
-        param
-      );
-
-      return {
-        get read() {
-          return fbo1;
-        },
-        get write() {
-          return fbo2;
-        },
-        swap() {
-          let temp = fbo1;
-          fbo1 = fbo2;
-          fbo2 = temp;
-        },
-      };
-    }
-
-    const blit = (() => {
-      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]),
-        gl.STATIC_DRAW
-      );
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-      gl.bufferData(
-        gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array([0, 1, 2, 0, 2, 3]),
-        gl.STATIC_DRAW
-      );
-      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(0);
-
-      return (destination) => {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, destination);
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-      };
-    })();
-
-    const clearProgram = new GLProgram(baseVertexShader, clearShader);
-    const displayProgram = new GLProgram(baseVertexShader, displayShader);
-    const splatProgram = new GLProgram(baseVertexShader, splatShader);
-    const advectionProgram = new GLProgram(
-      baseVertexShader,
-      ext.supportLinearFiltering
-        ? advectionShader
-        : advectionManualFilteringShader
-    );
-    const divergenceProgram = new GLProgram(baseVertexShader, divergenceShader);
-    const curlProgram = new GLProgram(baseVertexShader, curlShader);
-    const vorticityProgram = new GLProgram(baseVertexShader, vorticityShader);
-    const pressureProgram = new GLProgram(baseVertexShader, pressureShader);
-    const gradienSubtractProgram = new GLProgram(
-      baseVertexShader,
-      gradientSubtractShader
-    );
-
-    initFramebuffers();
-
-    let lastTime = Date.now();
-    multipleSplats(parseInt(Math.random() * 20) + 5);
-
-    function update() {
-      resizeCanvas();
-
-      const dt = Math.min((Date.now() - lastTime) / 1000, 0.016);
-      lastTime = Date.now();
-
-      gl.viewport(0, 0, textureWidth, textureHeight);
-
-      if (splatStack.length > 0) multipleSplats(splatStack.pop());
-
-      advectionProgram.bind();
-      gl.uniform2f(
-        advectionProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read[2]);
-      gl.uniform1i(advectionProgram.uniforms.uSource, velocity.read[2]);
-      gl.uniform1f(advectionProgram.uniforms.dt, dt);
-      gl.uniform1f(
-        advectionProgram.uniforms.dissipation,
-        config.VELOCITY_DISSIPATION
-      );
-      blit(velocity.write[1]);
-      velocity.swap();
-
-      gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read[2]);
-      gl.uniform1i(advectionProgram.uniforms.uSource, density.read[2]);
-      gl.uniform1f(
-        advectionProgram.uniforms.dissipation,
-        config.DENSITY_DISSIPATION
-      );
-      blit(density.write[1]);
-      density.swap();
-
-      for (let i = 0; i < pointers.length; i++) {
-        const pointer = pointers[i];
-        if (pointer.moved) {
-          splat(pointer.x, pointer.y, pointer.dx, pointer.dy, pointer.color);
-          pointer.moved = false;
-        }
-      }
-
-      curlProgram.bind();
-      gl.uniform2f(
-        curlProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(curlProgram.uniforms.uVelocity, velocity.read[2]);
-      blit(curl[1]);
-
-      vorticityProgram.bind();
-      gl.uniform2f(
-        vorticityProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read[2]);
-      gl.uniform1i(vorticityProgram.uniforms.uCurl, curl[2]);
-      gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
-      gl.uniform1f(vorticityProgram.uniforms.dt, dt);
-      blit(velocity.write[1]);
-      velocity.swap();
-
-      divergenceProgram.bind();
-      gl.uniform2f(
-        divergenceProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(divergenceProgram.uniforms.uVelocity, velocity.read[2]);
-      blit(divergence[1]);
-
-      clearProgram.bind();
-      let pressureTexId = pressure.read[2];
-      gl.activeTexture(gl.TEXTURE0 + pressureTexId);
-      gl.bindTexture(gl.TEXTURE_2D, pressure.read[0]);
-      gl.uniform1i(clearProgram.uniforms.uTexture, pressureTexId);
-      gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE_DISSIPATION);
-      blit(pressure.write[1]);
-      pressure.swap();
-
-      pressureProgram.bind();
-      gl.uniform2f(
-        pressureProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence[2]);
-      pressureTexId = pressure.read[2];
-      gl.uniform1i(pressureProgram.uniforms.uPressure, pressureTexId);
-      gl.activeTexture(gl.TEXTURE0 + pressureTexId);
-      for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-        gl.bindTexture(gl.TEXTURE_2D, pressure.read[0]);
-        blit(pressure.write[1]);
-        pressure.swap();
-      }
-
-      gradienSubtractProgram.bind();
-      gl.uniform2f(
-        gradienSubtractProgram.uniforms.texelSize,
-        1.0 / textureWidth,
-        1.0 / textureHeight
-      );
-      gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read[2]);
-      gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read[2]);
-      blit(velocity.write[1]);
-      velocity.swap();
-
-      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-      displayProgram.bind();
-      gl.uniform1i(displayProgram.uniforms.uTexture, density.read[2]);
-      blit(null);
-
-      requestAnimationFrame(update);
-    }
-
-    function splat(x, y, dx, dy, color) {
-      splatProgram.bind();
-      gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read[2]);
-      gl.uniform1f(
-        splatProgram.uniforms.aspectRatio,
-        canvas.width / canvas.height
-      );
-      gl.uniform2f(
-        splatProgram.uniforms.point,
-        x / canvas.width,
-        1.0 - y / canvas.height
-      );
-      gl.uniform3f(splatProgram.uniforms.color, dx, -dy, 1.0);
-      gl.uniform1f(splatProgram.uniforms.radius, config.SPLAT_RADIUS);
-      blit(velocity.write[1]);
-      velocity.swap();
-
-      gl.uniform1i(splatProgram.uniforms.uTarget, density.read[2]);
-      gl.uniform3f(
-        splatProgram.uniforms.color,
-        color[0] * 0.3,
-        color[1] * 0.3,
-        color[2] * 0.3
-      );
-      blit(density.write[1]);
-      density.swap();
-    }
-
-    function multipleSplats(amount) {
-      for (let i = 0; i < amount; i++) {
-        const color = [
-          Math.random() * 10,
-          Math.random() * 10,
-          Math.random() * 10,
-        ];
-        const x = canvas.width * Math.random();
-        const y = canvas.height * Math.random();
-        const dx = 1000 * (Math.random() - 0.5);
-        const dy = 1000 * (Math.random() - 0.5);
-        splat(x, y, dx, dy, color);
-      }
-    }
-    function resizeCanvas() {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-        initFramebuffers();
-      }
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-
-    const handleMouseMove = (e) => {
-      pointers[0].moved = true;
-      pointers[0].dx = (e.offsetX - pointers[0].x) * 10.0;
-      pointers[0].dy = (e.offsetY - pointers[0].y) * 10.0;
-      pointers[0].x = e.offsetX;
-      pointers[0].y = e.offsetY;
-
-      const hue = Math.random();
-      const sat = 0.6 + Math.random() * 0.3;
-      const val = 0.8 + Math.random() * 0.2;
-
-      function hsv2rgb(h, s, v) {
-        let r, g, b;
-        const i = Math.floor(h * 6);
-        const f = h * 6 - i;
-        const p = v * (1 - s);
-        const q = v * (1 - f * s);
-        const t = v * (1 - (1 - f) * s);
-        switch (i % 6) {
-          case 0:
-            r = v;
-            g = t;
-            b = p;
-            break;
-          case 1:
-            r = q;
-            g = v;
-            b = p;
-            break;
-          case 2:
-            r = p;
-            g = v;
-            b = t;
-            break;
-          case 3:
-            r = p;
-            g = q;
-            b = v;
-            break;
-          case 4:
-            r = t;
-            g = p;
-            b = v;
-            break;
-          case 5:
-            r = v;
-            g = p;
-            b = q;
-            break;
-        }
-        return [r, g, b];
-      }
-
-      pointers[0].color = hsv2rgb(hue, sat, val);
-    };
-
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      const touches = e.targetTouches;
-      for (let i = 0; i < touches.length; i++) {
-        let pointer = pointers[i];
-        pointer.moved = pointer.down;
-        pointer.dx = (touches[i].pageX - pointer.x) * 10.0;
-        pointer.dy = (touches[i].pageY - pointer.y) * 10.0;
-        pointer.x = touches[i].pageX;
-        pointer.y = touches[i].pageY;
-      }
-    };
-
-    const handleMouseDown = () => {
-      pointers[0].down = true;
-      pointers[0].color = [
-        Math.random() + 0.2,
-        Math.random() + 0.2,
-        Math.random() + 0.2,
-      ];
-    };
-
-    const handleTouchStart = (e) => {
-      e.preventDefault();
-      const touches = e.targetTouches;
-      for (let i = 0; i < touches.length; i++) {
-        if (i >= pointers.length) pointers.push(new pointerPrototype());
-
-        pointers[i].id = touches[i].identifier;
-        pointers[i].down = true;
-        pointers[i].x = touches[i].pageX;
-        pointers[i].y = touches[i].pageY;
-        pointers[i].color = [
-          Math.random() + 0.2,
-          Math.random() + 0.2,
-          Math.random() + 0.2,
-        ];
-      }
-    };
-
-    const handleMouseLeave = () => {
-      pointers[0].down = false;
-    };
-
-    const handleTouchEnd = (e) => {
-      const touches = e.changedTouches;
-      for (let i = 0; i < touches.length; i++)
-        for (let j = 0; j < pointers.length; j++)
-          if (touches[i].identifier == pointers[j].id) pointers[j].down = false;
-    };
-
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("touchmove", handleTouchMove, false);
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("touchstart", handleTouchStart);
-    window.addEventListener("mouseleave", handleMouseLeave);
-    window.addEventListener("touchend", handleTouchEnd);
-
-    const animationId = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("touchmove", handleTouchMove);
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("mouseleave", handleMouseLeave);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, []);
-
-return (
-  <canvas
-    ref={canvasRef}
-    style={{
-      width: "100vw",
-      height: "100vh",
-      position: "fixed",
-      top: 0,
-      left: 0,
-      zIndex: 1,
-
-      pointerEvents: disabled ? "none" : "auto",
-
-      height: "-webkit-fill-available",
-      minHeight: "-webkit-fill-available",
-    }}
-  />
-);
-};
-
+ScrollTrigger.config({
+  ignoreMobileResize: true,
+});
 function Background() {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
     const renderer = new Renderer({
-      dpr: Math.min(window.devicePixelRatio, 2),
+      dpr: isMobile ? 0.75 : Math.min(window.devicePixelRatio, 1.5),
+
       canvas: canvasRef.current,
+
       width: window.innerWidth,
+
       height: window.innerHeight,
     });
 
     const { gl } = renderer;
-    gl.clearColor(0.93, 0.94, 0.96, 1.0); 
+
+    gl.clearColor(0.74, 0.745, 0.75, 1);
 
     const geometry = new Triangle(gl);
 
@@ -1071,250 +86,373 @@ function Background() {
       }
     `;
 
-const fragment = `
-precision highp float;
+    const fragment = `
+  precision mediump float;
 
-uniform vec3 uColor1;   // peach glow
-uniform vec3 uColor2;   // powder lavender blue
-uniform vec3 uColor3;   // slate lavender
-uniform float uTime;
-uniform float uScroll;
+  uniform float uTime;
+  uniform float uScroll;
+  uniform vec2 uResolution;
 
-varying vec2 vUv;
+  uniform vec3 uPeach;
+  uniform vec3 uRose;
+  uniform vec3 uGray;
+  uniform vec3 uPearl;
 
-vec4 permute(vec4 x){ 
-  return mod(((x*34.0)+1.0)*x,289.0); 
-}
+  varying vec2 vUv;
 
-vec2 fade(vec2 t){ 
-  return t*t*t*(t*(t*6.0-15.0)+10.0); 
-}
+  float random(vec2 point) {
+    return fract(
+      sin(
+        dot(
+          point,
+          vec2(127.1, 311.7)
+        )
+      ) * 43758.5453123
+    );
+  }
 
-float cnoise(vec2 P){
-  vec4 Pi=floor(P.xyxy)+vec4(0.0,0.0,1.0,1.0);
-  vec4 Pf=fract(P.xyxy)-vec4(0.0,0.0,1.0,1.0);
-  Pi=mod(Pi,289.0);
-  vec4 ix=Pi.xzxz, iy=Pi.yyww, fx=Pf.xzxz, fy=Pf.yyww;
-  vec4 i=permute(permute(ix)+iy);
-  vec4 gx=2.0*fract(i*0.0243902439)-1.0;
-  vec4 gy=abs(gx)-0.5;
-  vec4 tx=floor(gx+0.5);
-  gx=gx-tx;
-  vec2 g00=vec2(gx.x,gy.x), g10=vec2(gx.y,gy.y);
-  vec2 g01=vec2(gx.z,gy.z), g11=vec2(gx.w,gy.w);
-  vec4 norm=1.79284291400159-0.85373472095314*
-    vec4(dot(g00,g00),dot(g01,g01),dot(g10,g10),dot(g11,g11));
-  g00*=norm.x; g01*=norm.y; g10*=norm.z; g11*=norm.w;
-  float n00=dot(g00,vec2(fx.x,fy.x));
-  float n10=dot(g10,vec2(fx.y,fy.y));
-  float n01=dot(g01,vec2(fx.z,fy.z));
-  float n11=dot(g11,vec2(fx.w,fy.w));
-  vec2 fade_xy=fade(Pf.xy);
-  vec2 n_x=mix(vec2(n00,n01),vec2(n10,n11),fade_xy.x);
-  float n_xy=mix(n_x.x,n_x.y,fade_xy.y);
-  return 2.3*n_xy;
-}
+  float noise(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 local = fract(point);
 
-float fbm(vec2 p){
-  float a = 0.0;
-  float w = 0.55;
-  a += w * cnoise(p*0.6);  w *= 0.55;
-  a += w * cnoise(p*1.1);  w *= 0.55;
-  a += w * cnoise(p*2.0);
-  return a;
-}
+    local =
+      local *
+      local *
+      (3.0 - 2.0 * local);
 
+    float bottomLeft =
+      random(cell);
 
-// Special pearlescent FBM for the cloud layer
-float pearlCloudFbm(vec2 p, float time) {
-  float a = 0.0;
-  float w = 0.5;
-  float freq = 1.0;
-  
-  // Layer 1: Large, smooth pearlescent waves
-  a += w * cnoise(p * 0.8 + vec2(time * 0.02, 0.0));
-  w *= 0.65;
-  freq *= 1.8;
-  
-  // Layer 2: Medium detail
-  a += w * cnoise(p * freq + vec2(time * 0.03, time * 0.01));
-  w *= 0.6;
-  freq *= 2.2;
-  
-  // Layer 3: Fine pearlescent detail
-  a += w * cnoise(p * freq + vec2(time * 0.05, time * 0.02));
-  
-  return a * 0.5 + 0.5; // Normalize to 0-1
-}
+    float bottomRight =
+      random(
+        cell +
+        vec2(1.0, 0.0)
+      );
 
+    float topLeft =
+      random(
+        cell +
+        vec2(0.0, 1.0)
+      );
 
-vec3 pearlColor(float intensity) {
+    float topRight =
+      random(
+        cell +
+        vec2(1.0, 1.0)
+      );
 
-  vec3 base = vec3(0.985, 0.99, 1.0);
-  
-  vec3 pinkPearl = vec3(1.0, 0.985, 0.995);
-  vec3 bluePearl = vec3(0.98, 0.99, 1.0);
-  
-  float blend = sin(uTime * 0.1) * 0.5 + 0.5;
-  vec3 iridescent = mix(pinkPearl, bluePearl, blend);
-  
-  return mix(base, iridescent, intensity * 0.3);
-}
+    return mix(
+      mix(
+        bottomLeft,
+        bottomRight,
+        local.x
+      ),
+      mix(
+        topLeft,
+        topRight,
+        local.x
+      ),
+      local.y
+    );
+  }
 
+  float fbm(vec2 point) {
+    float value = 0.0;
+    float amplitude = 0.5;
 
-float pearlShimmer(vec2 uv) {
-  vec2 p = uv * 3.0;
-  float n1 = cnoise(p + uTime * 0.04);
-  float n2 = cnoise(p * 1.7 + uTime * 0.03);
-  
+    for (
+      int octave = 0;
+      octave < 4;
+      octave++
+    ) {
+      value +=
+        amplitude *
+        noise(point);
 
-  float shimmer = (n1 * 0.5 + 0.5) * 0.6 + 
-                  (n2 * 0.5 + 0.5) * 0.4;
-  
+      point =
+        point * 2.03 +
+        vec2(4.1, 2.7);
 
-  shimmer = pow(shimmer, 1.8);
-  
-  return shimmer;
-}
+      amplitude *= 0.5;
+    }
 
-void main() {
-  float n = cnoise(vUv + uScroll + sin(uTime * 0.1));
-  float t = 0.5 + 0.5 * n;
-  t = pow(t, 0.25);
-  t = mix(t, 1.0, 0.1);
+    return value;
+  }
 
-  vec3 color = mix(uColor1, uColor2, t);
+  void main() {
+    vec2 uv = vUv;
 
-  float vign = smoothstep(0.68, 1.10, distance(vUv, vec2(0.5)));
-  float cornerMask = smoothstep(0.0, 0.35, distance(vUv, vec2(0.92, 0.06)));
-  vign *= cornerMask;
-  color = mix(color, uColor3, vign * 0.08);
+    float aspect =
+      uResolution.x /
+      uResolution.y;
 
-  float valley = smoothstep(0.50, 0.28, t);
-  color = mix(color, uColor3, valley * 0.08);
+    vec2 point =
+      uv - 0.5;
 
-  float pearlClouds = pearlCloudFbm(
-    vUv * 0.8 + 
-    vec2(uScroll * 0.15, 0.0) + 
-    vec2(0.0, sin(uTime * 0.02) * 0.1),
-    uTime
+    point.x *= aspect;
+
+    float time =
+      uTime * 0.16;
+
+    /*
+     * Large, slowly moving field.
+     */
+    float organicField =
+      fbm(
+        point * 1.75 +
+        vec2(
+          time * 0.16,
+          -time * 0.11
+        )
+      );
+
+    /*
+     * Smaller-scale surface movement.
+     */
+    float fineField =
+      fbm(
+        point * 3.8 +
+        vec2(
+          -time * 0.12,
+          time * 0.15
+        )
+      );
+float verticalLight =
+  smoothstep(
+    -0.7,
+    0.8,
+    point.y +
+    organicField * 0.16
   );
-  
-  // Create two cloud layers for depth
-  float cloudLayer1 = pearlCloudFbm(vUv * 0.6 + vec2(uTime * 0.01), uTime * 0.5);
-  float cloudLayer2 = pearlCloudFbm(vUv * 1.2 + vec2(uTime * 0.02), uTime * 0.7);
 
-  float combinedClouds = (cloudLayer1 * 0.6 + cloudLayer2 * 0.4);
-  
+vec3 color = mix(
+  uGray,
+  uPearl,
+  0.18 +
+  verticalLight * 0.42
+);
 
-  float cloudMask = smoothstep(0.4, 0.85, combinedClouds);
+/*
+ * Stronger white mist creates visible
+ * cloudy areas without adding saturation.
+ */
+float mist =
+  fbm(
+    point * 1.2 +
+    vec2(
+      time * 0.05,
+      time * 0.035
+    )
+  );
 
-  float cloudShimmer = pearlShimmer(vUv * 2.0 + vec2(uTime * 0.03));
-  cloudMask *= (1.0 + cloudShimmer * 0.15); // Gentle shimmer enhancement
+float mistStrength =
+  smoothstep(
+    0.48,
+    0.9,
+    mist
+  );
 
-  vec3 pearlyCloudColor = pearlColor(combinedClouds);
-  
-  pearlyCloudColor += vec3(0.05, 0.05, 0.06) * cloudShimmer;
+color = mix(
+  color,
+  vec3(0.94, 0.94, 0.93),
+  mistStrength * 0.28
+);
 
-  color = mix(color, pearlyCloudColor, cloudMask * 0.45);
+/*
+ * Main flowing current.
+ */
+float peachAxis =
+  point.y +
+  0.19 *
+  sin(
+    point.x * 2.4 +
+    time +
+    organicField * 2.0
+  ) +
+  0.07 *
+  sin(
+    point.x * 6.5 -
+    time * 0.8
+  ) +
+  uScroll * 0.28;
 
-  float cloudGlow = smoothstep(0.3, 0.7, combinedClouds);
-  vec3 cloudHalo = vec3(1.0, 0.995, 0.998);
-  color += cloudHalo * cloudGlow * 0.08;
+float peachRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis +
+        0.06
+      ) / 0.14,
+      2.0
+    )
+  );
 
-  float pearlyHighlights = pearlShimmer(vUv * 1.5);
-  pearlyHighlights = smoothstep(0.5, 0.9, pearlyHighlights);
-  
-  vec3 highlightColor = pearlColor(pearlyHighlights);
-  color = mix(color, highlightColor, pearlyHighlights * 0.15 * (t + 0.3));
-  
-  vec2 liftCenter = vec2(0.92, 0.06);
-  float r = distance(vUv, liftCenter);
-  float localLift = 1.0 - smoothstep(0.30, 0.95, r);
-  localLift = pow(localLift, 1.4);
-  
-  // Pearly lift effect
-  vec3 pearlyLift = pearlColor(localLift);
-  color = mix(color, pearlyLift, localLift * 0.25);
-  
-  // White field with pearlescent quality
-  float whiteField = fbm(vUv * 0.55 + uTime * 0.01);
-  whiteField = smoothstep(0.35, 0.75, 0.5 + 0.5 * whiteField);
-  whiteField *= (1.0 - localLift * 0.65);
-  
+peachRibbon *=
+  0.62 +
+  fineField * 0.38;
 
-  color += pearlColor(whiteField) * whiteField * 0.1;
-  
+/*
+ * Secondary current.
+ */
+float roseAxis =
+  point.y -
+  0.22 *
+  sin(
+    point.x * 1.8 -
+    time * 0.7 +
+    organicField * 1.7
+  ) +
+  0.13 +
+  uScroll * 0.2;
 
-  vec2 glowCenter = vec2(0.08, 0.92);
-  float glow = 1.0 - smoothstep(0.0, 0.8, distance(vUv, glowCenter));
-  
-  vec3 pearlyGlow = mix(uColor1, pearlColor(glow), 0.6);
-  color += pearlyGlow * glow * 0.07;
-  
-  float peachMask = max(uColor1.r, uColor1.g * 0.9);
-  vec3 peachBoost = color * vec3(1.05, 1.03, 1.0); // Red/Orange channels boosted ~10%
-  color = mix(color, peachBoost, peachMask * 0.4);
-  
+float roseRibbon =
+  exp(
+    -pow(
+      roseAxis / 0.085,
+      2.0
+    )
+  );
 
-  color = pow(color, vec3(0.96)); // Slight contrast
-  color = clamp(color, 0.0, 1.0);
-  
+/*
+ * White ribbon beside the warmer current.
+ */
+float whiteRibbon =
+  exp(
+    -pow(
+      (
+        peachAxis -
+        0.16
+      ) / 0.075,
+      2.0
+    )
+  );
 
-  float overallSheen = (sin(uTime * 0.05) * 0.5 + 0.5) * 0.03;
-  color += vec3(0.01, 0.01, 0.015) * overallSheen;
-  
-  gl_FragColor = vec4(color, 1.0);
-}
+color = mix(
+  color,
+  uPeach,
+  peachRibbon * 0.24
+);
+
+color = mix(
+  color,
+  uRose,
+  roseRibbon * 0.11
+);
+
+color = mix(
+  color,
+  vec3(0.97, 0.97, 0.96),
+  whiteRibbon * 0.24
+);
+
+/*
+ * More visible surface variation.
+ */
+color +=
+  (
+    fineField - 0.5
+  ) * 0.02;
+
+color = clamp(
+  color,
+  0.0,
+  1.0
+);
+
+gl_FragColor =
+  vec4(color, 1.0);
+  }
 `;
 
-
-
-
-    
     const program = new Program(gl, {
       vertex,
       fragment,
       uniforms: {
-        uTime: { value: 0 },
-        uScroll: { value: 0 },
-        uColor1: { value: new Color("#E48B74") }, 
-        uColor2: { value: new Color("#AAAEC3") }, 
-        uColor3: { value: new Color("#ADB1C2") }, 
-        uResolution: { value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight) },
-      }
+        uTime: {
+          value: 0,
+        },
+
+        uScroll: {
+          value: 0,
+        },
+        uPeach: {
+          value: new Color("#d5b7b2"),
+        },
+
+        uRose: {
+          value: new Color("#e4dae0"),
+        },
+
+        uGray: {
+          value: new Color("#b2b7be"),
+        },
+
+        uPearl: {
+          value: new Color("#e5e5e3"),
+        },
+
+        uResolution: {
+          value: new Vec2(gl.canvas.offsetWidth, gl.canvas.offsetHeight),
+        },
+      },
     });
 
     const mesh = new Mesh(gl, { geometry, program });
 
     const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderer.setSize(w, h);
-      program.uniforms.uResolution.value.set(w, h);
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      renderer.setSize(width, height);
+      program.uniforms.uResolution.value.set(width, height);
     };
+
+    let targetScroll = 0;
+    let currentScroll = 0;
+    let frameId = null;
+    let previousTime = 0;
+    let destroyed = false;
 
     const handleScroll = () => {
-      program.uniforms.uScroll.value = window.scrollY * 0.001;
+      targetScroll = window.scrollY * 0.00015;
     };
 
-    let frameId;
-    const loop = (t) => {
-      program.uniforms.uTime.value = t * 0.001;
-      renderer.render({ scene: mesh });
+    const loop = (time) => {
+      if (destroyed) return;
+
       frameId = requestAnimationFrame(loop);
+
+      const minimumFrameTime = isMobile ? 1000 / 30 : 0;
+
+      if (time - previousTime < minimumFrameTime) return;
+
+      previousTime = time;
+
+      program.uniforms.uTime.value = time * 0.001;
+
+      currentScroll += (targetScroll - currentScroll) * 0.06;
+      program.uniforms.uScroll.value = currentScroll;
+
+      renderer.render({ scene: mesh });
     };
-    requestAnimationFrame(loop);
+
+    handleResize();
+    handleScroll();
 
     window.addEventListener("resize", handleResize);
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    frameId = requestAnimationFrame(loop);
 
     return () => {
-      cancelAnimationFrame(frameId);
+      destroyed = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll);
-      program.dispose?.();
-      renderer.dispose?.();
     };
   }, []);
 
@@ -1327,117 +465,256 @@ void main() {
 }
 
 const TerminalPreloader = () => {
-  
-  const containerRef = useRef();
-const specialChars = "⬝";
-  const lines = [
-  { id: 1, faded: "We are committed to setting the highest standard through", highlight: "Exceptional Service", top: 0 },
-  { id: 2, faded: "That commitment is supported by our use of", highlight: "State-of-the-Art Technology", top: 20 },
-  { id: 3, faded: "And strengthened by the expertise that comes from", highlight: "Unmatched Experience", top: 40 },
-  ];
+  const [isMobile, setIsMobile] = useState(false);
+  const containerRef = useRef(null);
 
-  useEffect(() => {
-    const terminalLines = containerRef.current.querySelectorAll('.terminal-line');
-    
+  useLayoutEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
 
-    gsap.set(terminalLines, { opacity: 0 });
+    const updateViewport = () => {
+      setIsMobile(mediaQuery.matches);
+    };
 
-    const tl = gsap.timeline({
-      defaults: { ease: "none" }
-    });
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
 
-    lines.forEach((line, index) => {
-      const lineEl = terminalLines[index];
-      if (!lineEl) return;
-
-
-      const appearTime = index * 0.3;
-
-      tl.to(
-        lineEl,
-        { opacity: 1, duration: 0.3 },
-        appearTime
-      );
-
-
-      if (line.faded) {
-        const fadedSpan = lineEl.querySelector('.faded');
-        tl.to(
-          fadedSpan,
-          {
-            duration: 0.8,
-            scrambleText: {
-              text: line.faded,
-              chars: specialChars,
-              revealDelay: 0,
-              speed: 0.3
-            }
-          },
-          appearTime + 0.1
-        );
-      }
-
-
-      if (line.highlight) {
-        const highlightSpan = lineEl.querySelector('.highlight');
-        tl.to(
-          highlightSpan,
-          {
-            duration: 0.8,
-            scrambleText: {
-              text: line.highlight,
-              chars: specialChars,
-              revealDelay: 0,
-              speed: 0.3
-            }
-          },
-          appearTime + (line.faded ? 0.5 : 0.1) 
-        );
-      }
-
-
-      if (index % 3 === 0 && index > 0) {
-        tl.add(() => {
-          const spans = lineEl.querySelectorAll('span');
-          spans.forEach(span => {
-            const text = span.textContent;
-            gsap.to(span, {
-              duration: 0.2,
-              scrambleText: {
-                text: text,
-                chars: specialChars,
-                speed: 0.1
-              },
-              repeat: 1,
-              yoyo: true
-            });
-          });
-        }, `+=${Math.random() * 0.5}`);
-      }
-    });
-
-    return () => tl.kill(); 
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewport);
+    };
   }, []);
 
-  return (
-    
-    <div className="terminal-preloader">
-    
+  const lines = isMobile
+    ? [
+        {
+          id: "mobile",
+          text: "We are committed to setting the highest standard through exceptional service. That commitment is supported by our use of state-of-the-art technology and strengthened by the expertise that comes from unmatched experience",
+          top: 0,
+        },
+      ]
+    : [
+        {
+          id: 1,
+          text: "We are committed to setting the highest standard through exceptional service",
+          top: 0,
+        },
+        {
+          id: 2,
+          text: "That commitment is supported by our use of state-of-the-art technology",
+          top: 20,
+        },
+        {
+          id: 3,
+          text: "And strengthened by the expertise that comes from unmatched experience",
+          top: 40,
+        },
+      ];
 
-      <div className="terminal-container" ref={containerRef}>
+  const MAX_CELL_ITERATIONS = 30;
+  const CELL_INTERVAL = 15;
+  const LINE_DELAY = 180;
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const lineElements = Array.from(
+      container.querySelectorAll(".terminal-line"),
+    );
+
+    const animatedLines = lineElements.map((lineElement, lineIndex) => {
+      const cellElements = Array.from(
+        lineElement.querySelectorAll(".terminal-cell"),
+      );
+
+      return {
+        startDelay: lineIndex * LINE_DELAY,
+        lastTick: 0,
+        finished: false,
+
+        cells: cellElements.map((element) => ({
+          element,
+          original: element.dataset.character ?? "",
+          signal: "",
+          displayedValue: null,
+          iterations: 0,
+          finished: false,
+        })),
+      };
+    });
+
+    const renderCell = (cell, value) => {
+      const displayedValue = cell.original === " " ? " " : value || "\u00A0";
+
+      // Avoid rewriting the DOM when the value hasn't changed.
+      if (cell.displayedValue === displayedValue) return;
+
+      cell.element.textContent = displayedValue;
+      cell.displayedValue = displayedValue;
+    };
+
+    const finishCell = (cell) => {
+      cell.finished = true;
+      cell.signal = cell.original;
+      renderCell(cell, cell.original);
+    };
+
+    // Immediately display the final text for reduced-motion users.
+    if (reduceMotion) {
+      animatedLines.forEach(({ cells }) => {
+        cells.forEach(finishCell);
+      });
+
+      return;
+    }
+
+    // Clear all characters before starting.
+    animatedLines.forEach(({ cells }) => {
+      cells.forEach((cell) => {
+        cell.signal = "";
+        cell.iterations = 0;
+        cell.finished = false;
+        renderCell(cell, "");
+      });
+    });
+
+    let frameId = null;
+    let startTime = null;
+    let cancelled = false;
+
+    const updateLine = (line, time) => {
+      const previousSignals = line.cells.map((cell) => cell.signal);
+
+      line.cells.forEach((cell, index) => {
+        if (cell.finished) return;
+
+        const nextSignal =
+          index === 0
+            ? Math.random() < 0.5
+              ? "*"
+              : ":"
+            : previousSignals[index - 1];
+
+        cell.signal = nextSignal;
+        renderCell(cell, nextSignal);
+
+        if (nextSignal) {
+          cell.iterations += 1;
+        }
+
+        if (cell.iterations >= MAX_CELL_ITERATIONS) {
+          finishCell(cell);
+        }
+      });
+
+      line.finished = line.cells.every((cell) => cell.finished);
+      line.lastTick = time;
+    };
+
+    const animate = (time) => {
+      if (cancelled) return;
+
+      if (startTime === null) {
+        startTime = time;
+      }
+
+      const elapsed = time - startTime;
+
+      animatedLines.forEach((line) => {
+        if (line.finished || elapsed < line.startDelay) return;
+
+        if (line.lastTick === 0 || time - line.lastTick >= CELL_INTERVAL) {
+          updateLine(line, time);
+        }
+      });
+
+      const allLinesFinished = animatedLines.every((line) => line.finished);
+
+      if (!allLinesFinished) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelled = true;
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isMobile]);
+
+  const renderLine = (line) => {
+    const words = line.text.split(" ");
+    let characterPosition = 0;
+
+    return words.map((word, wordIndex) => {
+      const wordCharacters = Array.from(word);
+
+      const renderedWord = (
+        <span key={`${line.id}-word-${wordIndex}`} className="terminal-word">
+          {wordCharacters.map((character) => {
+            const position = characterPosition;
+            characterPosition += 1;
+
+            return (
+              <span
+                key={`${line.id}-${position}`}
+                className="terminal-cell"
+                data-character={character}
+                aria-hidden="true"
+              >
+                {character}
+              </span>
+            );
+          })}
+        </span>
+      );
+
+      if (wordIndex === words.length - 1) {
+        return renderedWord;
+      }
+
+      const spacePosition = characterPosition;
+      characterPosition += 1;
+
+      return (
+        <React.Fragment key={`${line.id}-group-${wordIndex}`}>
+          {renderedWord}
+
+          <span
+            key={`${line.id}-${spacePosition}`}
+            className="terminal-cell terminal-space"
+            data-character=" "
+            aria-hidden="true"
+          >
+            {" "}
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  return (
+    <div className="terminal-preloader">
+      <div ref={containerRef} className="terminal-container">
         {lines.map((line) => (
-          <div 
+          <div
             key={line.id}
             className="terminal-line"
             style={{ top: `${line.top}px` }}
+            aria-label={line.text}
           >
-            {line.faded && <span className="faded"></span>}
-            {line.highlight && <span className="highlight"></span>}
+            {renderLine(line)}
           </div>
         ))}
       </div>
-
-    
     </div>
   );
 };
@@ -1446,952 +723,2309 @@ const testimonials = [
   {
     name: "Lainie",
     image: "../images/testimonials/lainielandscape.png",
-    type: "20 months",
+    type: "Deep bite and dental crowding corrected in 18 months with self-ligating braces and orthodontic elastics.",
     project: "Lainie",
-
   },
-    {
+  {
     name: "James",
     image: "../images/testimonials/Jamescontrast.png",
-    type: "20 months",
-    project: "Sabrinas",
-
+    type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
+    project: "James",
   },
   {
     name: "Ron L.",
     image: "../images/testimonials/Ronlandscape.png",
-    type: "Invisalign",
-    project: "Ron L.",
-
+    type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
+    project: "Ron",
   },
   {
     name: "Elizabeth",
     image: "../images/testimonials/elizabethmask.png",
-    type: "Invisalign",
+    type: "Mandibular retrognathia corrected in 30 months with a functional appliance, self-ligating braces, and Invisalign",
     project: "Elizabeth",
-
   },
   {
-    name: "Kinzie",
-    image: "../images/testimonials/kinzie.jpg",
-    type: "Braces, 24 months",
-    project: "Kinzie",
-
+    name: "Ashley",
+    image: "../images/testimonials/ashleylandscape.png",
+    type: "Posterior cross bite and crowding corrected with braces in 22 months",
+    project: "Ashley",
   },
+  //   {
+  //   name: "Amandeep",
+  //   image: "../images/IMG_9527.PNG.jpg",
+  //   type: "Edge to edge anterior bite and lateral open bite corrected in 15 months with Invisalign",
+  //   project: "Amandeep",
+
+  // },
   {
-    name: "Kasprenski",
+    name: "Chase",
     image: "../images/testimonials/kasprenski.png",
-    type: undefined,
-    project: "Kasprenski",
-
+    type: "Posterior cross bite, upper arch constriction, & tooth size discrepancy with crowding corrected wtih self-ligating braces in two and a half years",
+    project: "Chase",
   },
   {
     name: "Leanne",
     image: "../images/testimonials/Leannelandscape.png",
-    type: "12 months",
+    type: "Crowding and constricted arches corrected in 12 months with Invisalign",
     project: "Leanne",
-
   },
   {
     name: "Harold",
     image: "../images/testimonials/harold.png",
-    type: "Invisalign",
+    type: "Overbite and spacing corrected in 14 months with Invisalign",
     project: "Harold",
-
   },
   {
     name: "Abigail",
-    image: "../images/testimonials/Abigailportrait.png",
-    type: undefined,
+    image: "../images/testimonials/Abigaillandscape.png",
+    type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
     project: "Abigail",
-
   },
   {
     name: "Madi",
-    image: "../images/testimonials/Madi.png",
-    type: "",
+    image: "../images/testimonials/madilandscape.png",
+    type: "Crowding corrected with self-ligating braces in two years",
     project: "Madi",
-
   },
   {
     name: "Justin",
     image: "../images/testimonials/hurlburt.png",
-    type: "Invisalign, 2 years",
+    type: "Deep bite corrected with Invisalign in 2 years",
     project: "Justin",
-
   },
   {
-    name: "Natalia",
-    image: "../images/testimonials/Natalia.png",
-    type: undefined,
-    project: "Natalia",
+    name: "Jillian",
+    image: "../images/testimonials/jillianlandscape.png",
+    type: "Cross bite and crowding corrected with self ligating braces in 2 years.",
+    project: "Jillian",
+  },
 
+  {
+    name: "Sophia",
+    image: "../images/testimonials/Sophialandscape.png",
+    type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
+    project: "Sophia",
+  },
+
+  {
+    name: "Sabrina",
+    image: "../images/testimonials/sabrinalandscape.png",
+    type: "Impacted maxillary canines, spacing, dental Class 2 malloclusion with a deep bite corrected with self-ligating braces corrected in 19 months.",
+    project: "Sabrina",
+  },
+
+  {
+    name: "Jackson",
+    image: "../images/testimonials/Jacksonlandscape.png",
+    type: "Moderate deep bite & mild crowding corrected with Invisalign",
+    project: "Jackson",
   },
   {
-    name: "Breanna",
-    image: "../images/testimonials/Breanna.png",
-    type: "2 years, Braces",
-    project: "Breanna",
-
-  },
-  {
-    name: "Ibis",
-    image: "../images/testimonials/Ibis_Subero.jpg",
-    type: undefined,
-    project: "Ibis",
-
-  },
-  {
-    name: "Natasha",
-    image: "../images/testimonials/Natasha.png",
-    type: undefined,
-    project: "Natasha",
-
-  },
-  {
-    name: "Alex",
-    image: "../images/testimonials/Alex.png",
-    type: "2 years, Braces",
-    project: "Alex",
-
-  },
-  {
-    name: "Nicolle",
-    image: "../images/testimonials/Nicolle.png",
-    type: "Braces",
+    name: "Nilaya",
+    image: "../images/testimonials/Nilayalandscape.png",
+    type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
     project: "Nilaya",
-
-  },
-  {
-    name: "Maria A.",
-    image: "../images/testimonials/Maria.png",
-    type: undefined,
-    project: "Maria A.",
-
   },
 ];
 
-function IntroCirclesBackground() {
-  const ref = useRef(null);
+const WORD = "freysmiles";
+const REPEAT_COUNT = 11;
+const COLUMN_COUNT = 11;
 
-useLayoutEffect(() => {
-  const paths = document.querySelectorAll('.bg-lines path');
+const characters = Array.from(
+  {
+    length: REPEAT_COUNT,
+  },
+  () => WORD,
+)
+  .join("")
+  .split("");
 
-  console.log('paths found:', paths.length);
-
-  paths.forEach((path, i) => {
-    const length = path.getTotalLength();
-
-    gsap.set(path, {
-      strokeDasharray: length,
-      strokeDashoffset: length,
-      opacity: 1,
-    });
-
-    gsap.to(path, {
-      strokeDashoffset: 0,
-      duration: 2.4,
-      ease: 'power1.out',
-      delay: i * 0.3,
-      scrollTrigger: {
-        trigger: path.closest('svg'),
-        start: 'top 75%',
-      },
-    });
+function FreySmilesGrid() {
+  const gridRef = useRef(null);
+  const characterRefs = useRef([]);
+  const measurementsRef = useRef([]);
+  const pointerRef = useRef({
+    x: 0,
+    y: 0,
   });
-}, []);
+  const frameRef = useRef(null);
 
-useLayoutEffect(() => {
-  const glowPaths = document.querySelectorAll('.bg-line.glow');
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
 
-  glowPaths.forEach((path, i) => {
-    const length = path.getTotalLength();
+    if (!grid) {
+      return undefined;
+    }
 
-    gsap.set(path, {
-      strokeDasharray: `${length * 0.15} ${length}`,
-      strokeDashoffset: 0,
+    const measureCharacters = () => {
+      measurementsRef.current = characterRefs.current
+        .map((element) => {
+          if (!element) return null;
+
+          const rect = element.getBoundingClientRect();
+
+          return {
+            element,
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+          };
+        })
+        .filter(Boolean);
+    };
+
+    const recalculateDistances = (x, y) => {
+      const containerRect = grid.getBoundingClientRect();
+
+      const diagonal = Math.hypot(containerRect.width, containerRect.height);
+
+      if (diagonal === 0) return;
+
+      measurementsRef.current.forEach((measurement) => {
+        const distance = Math.hypot(measurement.x - x, measurement.y - y);
+
+        const normalizedDistance = 1 - distance / diagonal;
+
+        const intensity = Math.max(Math.pow(normalizedDistance, 3), 0);
+
+        measurement.element.style.setProperty("--distance", intensity);
+      });
+    };
+
+    const updatePointerEffect = () => {
+      frameRef.current = null;
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const handlePointerMove = (event) => {
+      pointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+
+      if (frameRef.current !== null) {
+        return;
+      }
+
+      frameRef.current = requestAnimationFrame(updatePointerEffect);
+    };
+
+    const handleLayoutChange = () => {
+      measureCharacters();
+
+      recalculateDistances(pointerRef.current.x, pointerRef.current.y);
+    };
+
+    const resizeObserver = new ResizeObserver(handleLayoutChange);
+
+    resizeObserver.observe(grid);
+
+    measureCharacters();
+
+    document.fonts?.ready.then(() => {
+      measureCharacters();
     });
 
-    gsap.to(path, {
-      strokeDashoffset: -length,
-      duration: 6 + i * 0.8,
-      ease: 'none',
-      repeat: -1,
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
     });
-  });
-}, []);
+
+    window.addEventListener("resize", handleLayoutChange);
+
+    window.addEventListener("scroll", handleLayoutChange, {
+      passive: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+
+      window.removeEventListener("pointermove", handlePointerMove);
+
+      window.removeEventListener("resize", handleLayoutChange);
+
+      window.removeEventListener("scroll", handleLayoutChange);
+
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
   return (
-  <div
-      ref={ref}
-      aria-hidden
-      className="
-        pointer-events-none
-        absolute inset-0
-        overflow-visible
-        z-0
-        text-[#685AFF]
-      "
-    >
-  <svg 
-  className="bg-lines background background--cover background--top svg-fix is-hidden--sm-down
-    -translate-x-[10%]
-     translate-y-[2%]
-"
-  width="1420" 
-  height="1116" 
-  viewBox="0 0 1420 1116" 
-  
-  fill="none" 
-  xmlns="http://www.w3.org/2000/svg"
-  data-plugin="reveal"
-  data-reveal-group=""
-  data-reveal-distance="0"
->
-  <path 
-    vectorEffect="non-scaling-stroke"
-    d="M430 90.0001V558.237C430 584.877 431.734 674.641 502.25 731.974C559.601 778.603 630.567 793.361 707.441 793.361C784.315 793.361 855.281 778.603 912.631 731.974C983.148 674.641 984.882 584.877 984.882 558.237V90.0001" 
-    stroke="url(#paint0_linear_5002_247)" 
-    strokeWidth=".7" 
-    className="bg-line base"
-    data-reveal-old="line block" 
-    style={{ "--line-length": "1877.288467343321px" }}
-  />
-    <path 
-    vectorEffect="non-scaling-stroke"
-    d="M430 90.0001V558.237C430 584.877 431.734 674.641 502.25 731.974C559.601 778.603 630.567 793.361 707.441 793.361C784.315 793.361 855.281 778.603 912.631 731.974C983.148 674.641 984.882 584.877 984.882 558.237V90.0001" 
-    stroke="url(#paint0_linear_5002_247)" 
-    strokeWidth=".7" 
-     className="bg-line glow"
-    data-reveal-old="line block" 
-    style={{ "--line-length": "1877.288467343321px" }}
-  />
-  {/* <path 
-    vectorEffect="non-scaling-stroke"
-  
-    d="M1450.05 840.084V613.435C1450.05 577.982 1447.75 458.521 1353.83 382.22C1277.45 320.165 1182.94 300.524 1080.55 300.524C978.172 300.524 883.659 320.165 807.279 382.22C713.364 458.521 711.055 577.982 711.055 613.435V793" 
-    stroke="url(#paint1_linear_5002_247)" 
-    strokeWidth=".7" 
-  className="bg-line base" 
-    data-reveal-old="line block" 
-    style={{ "--line-length": "1604.3412038055833px" }}
-  />
-    <path 
-    vectorEffect="non-scaling-stroke"
-
-    d="M1450.05 840.084V613.435C1450.05 577.982 1447.75 458.521 1353.83 382.22C1277.45 320.165 1182.94 300.524 1080.55 300.524C978.172 300.524 883.659 320.165 807.279 382.22C713.364 458.521 711.055 577.982 711.055 613.435V793" 
-    stroke="url(#paint1_linear_5002_247)" 
-    strokeWidth=".7" 
-     className="bg-line glow"
-    data-reveal-old="line block" 
-    style={{ "--line-length": "1604.3412038055833px" }}
-  /> */}
-  <defs>
-    <linearGradient 
-      id="paint0_linear_5002_247" 
-      x1="284.423" 
-      y1="1461" 
-      x2="999.65" 
-      y2="351.857" 
-      gradientUnits="userSpaceOnUse"
-    >
-      <stop offset="0" stopColor="#685AFF" />
-      <stop offset="1" stopColor="#685AFF" stopOpacity="0" />
-    </linearGradient>
-    <linearGradient 
-      id="paint1_linear_5002_247" 
-      x1="1848.68" 
-      y1="771.505" 
-      x2="516.976" 
-      y2="670.931" 
-      gradientUnits="userSpaceOnUse"
-    >
-      <stop offset="0" stopColor="#685AFF" />
-      <stop offset="1" stopColor="#685AFF" stopOpacity="0" />
-    </linearGradient>
-  </defs>
-</svg>
-
-<svg 
-className="
-  l-focus__bottom-lines
-  svg-fix
-  absolute
-  left-0
-  bottom-0
-  
-  overflow-visible
-  -translate-x-[20%]
-  -translate-y-[0%]
-  pointer-events-none
-  hidden md:block
-"
-  width="1440"
-  height="1104"
-  viewBox="0 0 1440 1104"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <path 
-    d="M980 1104V669.124C980 642.484 978.266 552.72 907.75 495.387C850.399 448.758 779.433 434 702.559 434C625.685 434 554.719 448.758 497.369 495.387C426.852 552.72 425.118 642.484 425.118 669.124V1104" 
-    stroke="url(#paint0_linear_2555_1025)" 
-    strokeOpacity="0.15" 
-    strokeWidth="1.2" 
-    vectorEffect="non-scaling-stroke" 
-    className="" 
-    data-reveal-old="line block" 
-    style={{ "--line-length": "1781.1614116665746px" }}
-  />
-  <path 
-    d="M720 2.76566e-05V508.006C720 548.453 717.366 684.744 610.234 771.795C523.105 842.592 415.291 865 298.5 865C181.709 865 73.8953 842.592 -13.2344 771.795C-120.366 684.744 -123 548.453 -123 508.006V2.76566e-05" 
-    stroke="url(#paint1_linear_2555_1025)" 
-    strokeOpacity="0.2" 
-    strokeWidth="1.2" 
-    vectorEffect="non-scaling-stroke" 
-    className="" 
-    data-reveal-old="line block" 
-    style={{ "--line-length": "2385.0443421114737px" }}
-  />
-  <defs>
-    <linearGradient 
-      id="paint0_linear_2555_1025" 
-      x1="369" 
-      y1="631" 
-      x2="825.168" 
-      y2="1151.17" 
-      gradientUnits="userSpaceOnUse"
-    >
-      <stop offset="0" stopColor="currentColor" />
-      <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-    </linearGradient>
-    <linearGradient 
-      id="paint1_linear_2555_1025" 
-      x1="578.544" 
-      y1="780.928" 
-      x2="262.168" 
-      y2="320.698" 
-      gradientUnits="userSpaceOnUse"
-    >
-      <stop offset="0" stopColor="currentColor" />
-     <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-    </linearGradient>
-  </defs>
-</svg>
-  
-      <svg
-        className="bg-lines hidden md:block absolute top-0 left-1/2 -translate-x-1/2"
-        width="1420"
-        height="480"
-        viewBox="0 0 1420 480"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+    <section className="grid min-h-screen cursor-crosshair place-items-center  text-white">
+      <div
+        ref={gridRef}
+        className="lowercase frey-text-grid font-ibmplex"
+        style={{
+          "--chars": COLUMN_COUNT,
+        }}
+        aria-label={Array.from(
+          {
+            length: REPEAT_COUNT,
+          },
+          () => WORD,
+        ).join(" ")}
       >
-        <g opacity="0.3" transform="translate(30 0)">
-  
-          <g opacity="0.5">
-            <path
-              d="M1280 -27.5596V139.995C1280 162.542 1278.53 238.517 1218.8 287.043C1170.22 326.509 1110.11 339 1045 339C979.885 339 919.776 326.509 871.198 287.043C811.469 238.517 810 162.542 810 139.995V-568"
-              stroke="url(#paint0)"
-              strokeWidth="1.2"
-              className="bg-line base"
-            />
-              <path
-              d="M1280 -27.5596V139.995C1280 162.542 1278.53 238.517 1218.8 287.043C1170.22 326.509 1110.11 339 1045 339C979.885 339 919.776 326.509 871.198 287.043C811.469 238.517 810 162.542 810 139.995V-568"
-              stroke="url(#paint0)"
-              strokeWidth="1.2"
-              className="bg-line glow"
-            />
-          </g>
+        {characters.map((character, index) => {
+          const rowIndex = Math.floor(index / COLUMN_COUNT);
 
+          const columnIndex = index % COLUMN_COUNT;
 
-          <g opacity="0.5">
-            <path
-              d="M441 905.2V353.313C441 330.277 442.5 252.658 503.5 203.082C553.111 162.761 614.5 150 681 150C747.5 150 808.889 162.761 858.5 203.082C919.5 252.658 921 330.277 921 353.313V905.2"
-              stroke="url(#paint1)"
-              strokeOpacity="0.8"
-              strokeWidth="1.2"
-          className="bg-line base" 
-          
-            />
-                <path
-              d="M441 905.2V353.313C441 330.277 442.5 252.658 503.5 203.082C553.111 162.761 614.5 150 681 150C747.5 150 808.889 162.761 858.5 203.082C919.5 252.658 921 330.277 921 353.313V905.2"
-              stroke="url(#paint1)"
-              strokeOpacity="0.8"
-              strokeWidth="1.2"
-          className="bg-line glow" 
-          
-            />
-          </g>
-        </g>
+          const isCutout = rowIndex < 3 && columnIndex >= COLUMN_COUNT - 4;
 
-        <defs>
-          <linearGradient
-            id="paint0"
-            x1="1225.17"
-            y1="282.606"
-            x2="783.946"
-            y2="147.534"
-            gradientUnits="userSpaceOnUse"
-          >
-           <stop offset="0" stopColor="#3585C1" />
-      <stop offset="1" stopColor="#3585C1" stopOpacity="0" />
-          </linearGradient>
+          return (
+            <span
+              key={`${character}-${index}`}
+              ref={(element) => {
+                characterRefs.current[index] = isCutout ? null : element;
+              }}
+              className={[
+                "frey-text-grid__char",
+                isCutout ? "invisible pointer-events-none" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-hidden="true"
+              style={{
+                "--i": index,
+                "--row": rowIndex,
+              }}
+            >
+              {character}
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+const NS = "http://www.w3.org/2000/svg";
 
-          <linearGradient
-            id="paint1"
-            x1="521.544"
-            y1="197.88"
-            x2="978.646"
-            y2="392.615"
-            gradientUnits="userSpaceOnUse"
-          >
-         <stop offset="0" stopColor="#3585C1" />
-      <stop offset="1" stopColor="#3585C1" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
+const R = (a, b) => a + Math.random() * (b - a);
+const RI = (a, b) => Math.floor(R(a, b + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const chance = (p) => Math.random() < p;
 
-    
-    </div>
+const EDGES = ["L", "L", "R", "R", "T", "B"];
+
+const DEFAULT_SUBJECT = {
+  head: { x: 50, y: 42, rx: 22, ry: 30 },
+  torso: { x1: 22, x2: 78, top: 66 },
+};
+
+const CIRCUIT_CLASSES = {
+  tr: "testimonial-image-clip-circ-trace",
+  pu: "testimonial-image-clip-circ-pulse",
+  in: "testimonial-image-clip-circ-in",
+  node: "testimonial-image-clip-circ-node",
+  fill: "testimonial-image-clip-circ-dot",
+  ring: "testimonial-image-clip-circ-ring",
+  t1: "testimonial-image-clip-circ-tone-1",
+  t2: "testimonial-image-clip-circ-tone-2",
+};
+
+/* ---------- Spatial grid ---------- */
+
+class Occupancy {
+  constructor(cell = 2.5) {
+    this.cell = cell;
+    this.map = new Map();
+  }
+
+  key(i, j) {
+    return `${i},${j}`;
+  }
+
+  add(x, y) {
+    const key = this.key(Math.floor(x / this.cell), Math.floor(y / this.cell));
+
+    let list = this.map.get(key);
+
+    if (!list) {
+      list = [];
+      this.map.set(key, list);
+    }
+
+    list.push([x, y]);
+  }
+
+  near(x, y, distance) {
+    const i = Math.floor(x / this.cell);
+    const j = Math.floor(y / this.cell);
+    const radius = Math.ceil(distance / this.cell);
+
+    for (let a = -radius; a <= radius; a++) {
+      for (let b = -radius; b <= radius; b++) {
+        const list = this.map.get(this.key(i + a, j + b));
+
+        if (!list) continue;
+
+        for (const [px, py] of list) {
+          if (Math.hypot(px - x, py - y) < distance) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+}
+
+function makeBlocker(H, subject) {
+  const k = H / 100;
+  const head = subject.head;
+  const torso = subject.torso;
+  const PAD = 2.5;
+
+  return (x, y) => {
+    const yp = y / k;
+
+    if (x < 0.8 || x > 99.2 || y < 0.8 || y > H - 0.8) {
+      return true;
+    }
+
+    // Approximate exclusions for the morphing frame corners.
+    if (
+      (x < 15 && yp < 9) ||
+      (x > 66 && yp < 15) ||
+      (x > 85 && yp > 77 && yp < 87) ||
+      (x > 85 && yp > 90) ||
+      (x < 40 && (yp > 78 + x || yp > 83 + 0.45 * x))
+    ) {
+      return true;
+    }
+
+    if (head) {
+      const dx = (x - head.x) / (head.rx + PAD);
+      const dy = (y - head.y * k) / (head.ry * k + PAD);
+
+      if (dx * dx + dy * dy < 1) {
+        return true;
+      }
+
+      if (
+        torso &&
+        Math.abs(x - head.x) < head.rx * 0.55 + PAD &&
+        y > head.y * k &&
+        y < torso.top * k + PAD
+      ) {
+        return true;
+      }
+    }
+
+    if (
+      torso &&
+      x > torso.x1 - PAD &&
+      x < torso.x2 + PAD &&
+      y > torso.top * k - PAD
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+}
+
+/* ---------- Geometry ---------- */
+
+function samplePath(points, step = 0.8) {
+  const samples = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const [a, b] = points[k - 1];
+    const [c, d] = points[k];
+
+    const count = Math.max(1, Math.ceil(Math.hypot(c - a, d - b) / step));
+
+    for (let j = k === 1 ? 0 : 1; j <= count; j++) {
+      samples.push([a + ((c - a) * j) / count, b + ((d - b) * j) / count]);
+    }
+  }
+
+  return samples;
+}
+
+// Create a parallel polyline with mitered corners.
+// Reject degenerate paths and offsets that fold back.
+function offsetPath(points, offset) {
+  if (points.length < 2) return null;
+
+  const directions = [];
+
+  for (let k = 1; k < points.length; k++) {
+    const dx = points[k][0] - points[k - 1][0];
+    const dy = points[k][1] - points[k - 1][1];
+    const length = Math.hypot(dx, dy);
+
+    if (length < 0.0001) return null;
+
+    directions.push([dx / length, dy / length]);
+  }
+
+  const normal = ([x, y]) => [-y, x];
+  const result = [];
+
+  for (let k = 0; k < points.length; k++) {
+    const [x, y] = points[k];
+
+    if (k === 0 || k === points.length - 1) {
+      const direction = k === 0 ? directions[0] : directions[k - 1];
+
+      const [nx, ny] = normal(direction);
+
+      result.push([x + nx * offset, y + ny * offset]);
+
+      continue;
+    }
+
+    const a = normal(directions[k - 1]);
+    const b = normal(directions[k]);
+    const denominator = 1 + a[0] * b[0] + a[1] * b[1];
+
+    if (Math.abs(denominator) < 0.0001) return null;
+
+    result.push([
+      x + ((a[0] + b[0]) / denominator) * offset,
+      y + ((a[1] + b[1]) / denominator) * offset,
+    ]);
+  }
+
+  for (let k = 1; k < result.length; k++) {
+    const along =
+      (result[k][0] - result[k - 1][0]) * directions[k - 1][0] +
+      (result[k][1] - result[k - 1][1]) * directions[k - 1][1];
+
+    if (along < 0.8) return null;
+  }
+
+  return result;
+}
+
+function walk(edge, H, big) {
+  let x;
+  let y;
+  let dx = 0;
+  let dy = 0;
+
+  if (edge === "L") {
+    x = 0;
+    y = R(0.1, 0.8) * H;
+    dx = 1;
+  } else if (edge === "R") {
+    x = 100;
+    y = R(0.18, 0.76) * H;
+    dx = -1;
+  } else if (edge === "T") {
+    x = R(16, 64);
+    y = 0;
+    dy = 1;
+  } else {
+    x = R(36, 85);
+    y = H;
+    dy = -1;
+  }
+
+  const points = [[x, y]];
+
+  let length = big ? R(6, 14) : R(4, 14);
+
+  x += dx * length;
+  y += dy * length;
+  points.push([x, y]);
+
+  const bends = RI(1, 2);
+
+  for (let k = 0; k < bends; k++) {
+    const sign = chance(0.5) ? 1 : -1;
+    const px = dy !== 0 ? sign : 0;
+    const py = dx !== 0 ? sign : 0;
+    const diagonal = big ? R(4, 8) : R(2, 7);
+
+    x += (dx + px) * diagonal;
+    y += (dy + py) * diagonal;
+    points.push([x, y]);
+
+    if (chance(0.4)) {
+      dx = px;
+      dy = py;
+    }
+
+    length = big ? R(6, 12) : R(3, 12);
+
+    x += dx * length;
+    y += dy * length;
+    points.push([x, y]);
+  }
+
+  return points;
+}
+
+function generate(H, blocked) {
+  const occupancy = new Occupancy();
+
+  const layout = {
+    buses: [],
+    singles: [],
+    bells: [],
+    details: [],
+  };
+
+  const fits = (points, skipStart, gap) => {
+    const [sx, sy] = points[0];
+
+    for (const [x, y] of samplePath(points)) {
+      if (skipStart && Math.hypot(x - sx, y - sy) < 1.2) {
+        continue;
+      }
+
+      if (blocked(x, y) || occupancy.near(x, y, gap)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const commit = (points) => {
+    for (const [x, y] of samplePath(points)) {
+      occupancy.add(x, y);
+    }
+  };
+
+  // Buses: parallel lanes with staggered endpoints.
+  let tries = 0;
+  const busCount = RI(3, 5);
+
+  while (layout.buses.length < busCount && tries++ < 160) {
+    const center = walk(pick(EDGES), H, true);
+    const count = RI(3, 6);
+    const spacing = R(1.7, 2.2);
+    const lanes = [];
+
+    for (let i = 0; i < count; i++) {
+      const lane = offsetPath(center, (i - (count - 1) / 2) * spacing);
+
+      if (!lane) continue;
+
+      const last = lane.length - 1;
+      const a = lane[last - 1];
+      const b = lane[last];
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+      const extension = i % 2 ? R(1.6, 2.8) : R(-0.4, 0.4);
+
+      lane[last] = [
+        b[0] + ((b[0] - a[0]) / length) * extension,
+        b[1] + ((b[1] - a[1]) / length) * extension,
+      ];
+
+      if (fits(lane, true, 1.3)) {
+        lanes.push(lane);
+      }
+    }
+
+    if (lanes.length >= 2) {
+      lanes.forEach(commit);
+
+      layout.buses.push({
+        lanes,
+        tone: pick(["t1", "t2"]),
+        end: pick(["ring", "ring", "square", "dot"]),
+      });
+    }
+  }
+
+  // Single traces.
+  tries = 0;
+  const singleCount = RI(6, 10);
+
+  while (layout.singles.length < singleCount && tries++ < 220) {
+    const points = walk(pick(EDGES), H, false);
+
+    if (fits(points, true, 1.6)) {
+      commit(points);
+
+      layout.singles.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+        weight: chance(0.3) ? 2.1 : 1.5,
+        end: pick(["ring", "ring", "dot", "square"]),
+      });
+    }
+  }
+
+  // Short connectors with a ring at each end.
+  tries = 0;
+  const bellCount = RI(4, 8);
+
+  while (layout.bells.length < bellCount && tries++ < 220) {
+    const x = R(3, 97);
+    const y = R(3, H - 3);
+    const angle = (pick([0, 45, 90, 135]) * Math.PI) / 180;
+    const length = R(2.5, 6);
+
+    const points = [
+      [x, y],
+      [x + Math.cos(angle) * length, y + Math.sin(angle) * length],
+    ];
+
+    if (fits(points, false, 2.2)) {
+      commit(points);
+
+      layout.bells.push({
+        pts: points,
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  // Component details.
+  tries = 0;
+  const detailCount = RI(2, 4);
+
+  const radii = {
+    dots: 2.4,
+    pads: 2.4,
+    ringpads: 3.4,
+    oval: 4.6,
+  };
+
+  while (layout.details.length < detailCount && tries++ < 220) {
+    const type = pick(["dots", "pads", "ringpads", "oval"]);
+    const x = R(4, 96);
+    const y = R(4, H - 4);
+    const radius = radii[type];
+    const probes = [[x, y]];
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+
+      probes.push([x + Math.cos(angle) * radius, y + Math.sin(angle) * radius]);
+
+      probes.push([
+        x + (Math.cos(angle) * radius) / 2,
+        y + (Math.sin(angle) * radius) / 2,
+      ]);
+    }
+
+    const available = probes.every(
+      ([qx, qy]) => !blocked(qx, qy) && !occupancy.near(qx, qy, 1.3),
+    );
+
+    if (available) {
+      probes.forEach(([qx, qy]) => occupancy.add(qx, qy));
+
+      layout.details.push({
+        type,
+        x,
+        y,
+        vertical: chance(0.5),
+        tone: pick(["t1", "t2"]),
+      });
+    }
+  }
+
+  return layout;
+}
+
+function el(parent, tag, attrs = {}, styles = {}) {
+  const element = document.createElementNS(NS, tag);
+
+  const classes = String(attrs.class || "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const hasEcho = classes.includes("echo");
+
+  for (const [name, value] of Object.entries(attrs)) {
+    if (name === "class" || name === "stroke-width") continue;
+    element.setAttribute(name, String(value));
+  }
+
+  element.setAttribute(
+    "class",
+    classes
+      .filter((name) => name !== "echo")
+      .map((name) => CIRCUIT_CLASSES[name] || name)
+      .join(" "),
+  );
+
+  for (const [name, value] of Object.entries(styles)) {
+    element.style.setProperty(name, String(value));
+  }
+
+  if (attrs["stroke-width"] != null) {
+    element.style.setProperty("stroke-width", String(attrs["stroke-width"]));
+  }
+
+  if (hasEcho) {
+    const echoGroup = document.createElementNS(NS, "g");
+
+    echoGroup.setAttribute("class", "testimonial-image-clip-circ-echo");
+
+    for (const [name, value] of Object.entries(styles)) {
+      echoGroup.style.setProperty(name, String(value));
+    }
+
+    echoGroup.appendChild(element);
+    parent.appendChild(echoGroup);
+  } else {
+    parent.appendChild(element);
+  }
+
+  return element;
+}
+
+const toD = (points) =>
+  "M" + points.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join("L");
+
+function drawPad(svg, type, x, y, radius, classes, styles) {
+  if (type === "square") {
+    return el(
+      svg,
+      "rect",
+      {
+        x: x - radius,
+        y: y - radius,
+        width: 2 * radius,
+        height: 2 * radius,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  if (type === "dot") {
+    return el(
+      svg,
+      "circle",
+      {
+        cx: x,
+        cy: y,
+        r: radius * 0.85,
+        class: `${classes} fill`,
+      },
+      styles,
+    );
+  }
+
+  return el(
+    svg,
+    "circle",
+    {
+      cx: x,
+      cy: y,
+      r: radius,
+      class: `${classes} ring`,
+      "stroke-width": 1.3,
+    },
+    styles,
   );
 }
 
-const List = ({ onInteractionChange }) => {
-  const testimonialsSectionRef = useRef(null);
-  const testimonialsListRef = useRef(null);
-  const testimonialPreviewRef = useRef(null);
-const lastStackedIndex = useRef(null);
-  const testimonialRefs = useRef([]);
-  const nameRefs = useRef([]);
-  const typeRefs = useRef([]);
-  const nameHighlightRefs = useRef([]);
-  const typeHighlightRefs = useRef([]);
-const outroRef = useRef(null);
-  const lastMousePosition = useRef({ x: 0, y: 0 });
-  const activeTestimonial = useRef(null);
-  const zCounter = useRef(1);
-  const ticking = useRef(false);
-  const isHovering = useRef(false);
-  const lastScrollActive = useRef(null);
-  const highlighterColors = ['neon', 'pink', 'green'];
-  const scrollTicking = useRef(false);
+function drawTrace(svg, points, options) {
+  const d = toD(points);
+  const [endX, endY] = points[points.length - 1];
+  const arrival = options.start + options.dur;
 
-  const scrambleText = (idx) => {
-    const scramble = {
-      characters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      speed: 0.8,
-      newChars: 0.3,
-      revealDelay: 0,
-      tweenLength: true,
-    }
-    
-    const testimonialData = testimonials[idx];
-    
-    if (nameRefs.current[idx]) {
-      gsap.to(nameRefs.current[idx], {
-        duration: 1.5,
-        ease: 'power2.out',
-        scrambleText: { text: testimonialData.name, ...scramble },
-      });
-    }
-    
-    if (typeRefs.current[idx] && testimonialData.type) {
-      gsap.to(typeRefs.current[idx], {
-        duration: 1.5,
-        ease: 'power2.out',
-        scrambleText: { text: testimonialData.type, ...scramble },
-      });
-    }
-  };
+  el(
+    svg,
+    "path",
+    {
+      d,
+      pathLength: 100,
+      class: `tr ${options.tone}`,
+      "stroke-width": options.weight,
+    },
+    {
+      "--draw-delay": `${options.start}s`,
+      "--draw-dur": `${options.dur}s`,
+      "--dim-delay": `${arrival + 0.05}s`,
+    },
+  );
 
-const getRandomColorClass = () => {
-  const colors = highlighterColors;
-  return colors[Math.floor(Math.random() * colors.length)];
-};
-
-const highlightText = (idx, activate = true) => {
-  if (nameHighlightRefs.current[idx]) {
-    const nameEl = nameHighlightRefs.current[idx];
-    if (activate) {
-      const colorClass = getRandomColorClass();
-      nameEl.classList.add('active', colorClass);
-      nameEl.dataset.color = colorClass;
-    } else {
-      nameEl.classList.remove('active', 'neon', 'pink', 'green');
-      delete nameEl.dataset.color;
-    }
+  if (options.cycle) {
+    el(
+      svg,
+      "path",
+      {
+        d,
+        pathLength: 100,
+        class: `pu ${options.tone}${options.outward ? "" : " in"}`,
+        "stroke-width": options.weight * 1.9,
+      },
+      {
+        "--cycle": `${options.cycle}s`,
+        "--pulse-delay": `${options.pulseDelay}s`,
+      },
+    );
   }
 
-  if (typeHighlightRefs.current[idx] && testimonials[idx].type) {
-    const typeEl = typeHighlightRefs.current[idx];
-    if (activate) {
-      const colorClass = nameHighlightRefs.current[idx]?.dataset.color || getRandomColorClass();
-      typeEl.classList.add('active', colorClass);
-    } else {
-      typeEl.classList.remove('active', 'neon', 'pink', 'green');
-    }
+  if (options.startPad) {
+    drawPad(
+      svg,
+      "ring",
+      points[0][0],
+      points[0][1],
+      options.r,
+      `node ${options.tone}`,
+      {
+        "--pop-delay": `${options.start}s`,
+      },
+    );
   }
-};
-const stackImage = (index, source = "scroll") => {
-  const container = testimonialPreviewRef.current;
-  const data = testimonials[index];
-  if (!container || !data?.image) return;
 
-  if (lastStackedIndex.current === index) return;
+  const echo = options.cycle && options.outward ? " echo" : "";
 
-const mask = document.createElement("div");
-mask.className = "preview-mask";
-
-const img = document.createElement("img");
-img.src = data.image;
-
-img.style.width = "100%";
-img.style.height = "100%";
-img.style.objectFit = "cover";
-img.style.transform = "scale(0)";
-img.style.transformOrigin = "center center";
-img.style.zIndex = zCounter.current++;
-
-img.style.clipPath = `
-  polygon(
-    16px 0%,
-    calc(100% - 16px) 0%,
-    calc(100% - 16px) 16px,
-    calc(100% - 16px) 32px,
-    100% 32px,
-    100% calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 48px),
-    calc(100% - 16px) calc(100% - 32px),
-    100% calc(100% - 32px),
-    100% calc(100% - 16px),
-    calc(100% - 16px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 16px),
-    calc(100% - 32px) calc(100% - 32px),
-    calc(100% - 16px) calc(100% - 32px),
-    calc(100% - 16px) 100%,
-    0% 100%,
-    0% 16px,
-    16px 16px
-  )
-`;
-mask.appendChild(img);
-container.appendChild(mask);
-
-  gsap.to(img, {
-    scale: 1,
-    duration: 0.35,
-    ease: "power2.out",
-  });
-
-
-  const images = container.querySelectorAll("img");
-  if (images.length > 6) images[0].remove();
-
-  lastStackedIndex.current = index;
-};
-const updatePreviewOnScroll = () => {
-  if (!isTestimonialsVisible()) return;
-  if (isHovering.current) return; // prioritize hover
-
-  const sectionTop = testimonialsSectionRef.current.offsetTop;
-  const centerY = window.scrollY + window.innerHeight / 2 - sectionTop;
-
-  let closestIndex = null;
-  let closestDistance = Infinity;
-
-  rowCenters.current.forEach((rowCenter, index) => {
-    if (!rowCenter) return;
-    const distance = Math.abs(rowCenter - centerY);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closestIndex = index;
-    }
-  });
-
-  if (
-    closestIndex !== null &&
-    closestIndex !== lastScrollActive.current &&
-    closestDistance < 120
-  ) {
-    // highlight swap
-    if (lastScrollActive.current !== null) {
-      highlightText(lastScrollActive.current, false);
-    }
-    highlightText(closestIndex, true);
-
-    //  stack image on scroll index change
-    stackImage(closestIndex, "scroll");
-
-    lastScrollActive.current = closestIndex;
-  }
-};
-  
-  const mouseTicking = useRef(false);
-
-useEffect(() => {
-  const handleMouseMove = (e) => {
-    lastMousePosition.current.x = e.clientX;
-    lastMousePosition.current.y = e.clientY;
-
-    if (!isHovering.current) return;
-
-if (!mouseTicking.current) {
-  requestAnimationFrame(() => {
-    mouseTicking.current = false;
-  });
-  mouseTicking.current = true;
+  drawPad(
+    svg,
+    options.end,
+    endX,
+    endY,
+    options.r,
+    `node ${options.tone}${echo}`,
+    {
+      "--pop-delay": `${arrival}s`,
+      "--cycle": `${options.cycle || 1}s`,
+      "--pulse-delay": `${options.pulseDelay || 0}s`,
+    },
+  );
 }
-  };
 
-  window.addEventListener("mousemove", handleMouseMove);
-  return () => window.removeEventListener("mousemove", handleMouseMove);
-}, []);
-useEffect(() => {
-  const onScroll = () => {
-    if (!isTestimonialsVisible()) {
-const images = testimonialPreviewRef.current?.querySelectorAll("img");
-images?.forEach((img) => {
-  gsap.killTweensOf(img);
-  gsap.to(img, {
-    scale: 0,
-    opacity: 0,
-    duration: 0.35,
-    ease: "power2.inOut",
-    onComplete: () => img.remove(),
+/* ---------- Component details ---------- */
+
+function drawDetail(svg, detail, delay) {
+  const classes = `node ${detail.tone}`;
+  const ax = detail.vertical ? 0 : 1;
+  const ay = detail.vertical ? 1 : 0;
+
+  const pop = (index) => ({
+    "--pop-delay": `${delay + index * 0.06}s`,
   });
-});
 
-lastStackedIndex.current = null;
-zCounter.current = 1;
+  if (detail.type === "dots") {
+    [-1, 0, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.8,
+          cy: detail.y + ay * j * 1.8,
+          r: 0.5,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
 
-      activeTestimonial.current = null;
-      isHovering.current = false;
-      lastScrollActive.current = null;
+  if (detail.type === "pads") {
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "rect",
+        {
+          x: detail.x + ax * j * 1.4 - 0.8,
+          y: detail.y + ay * j * 1.4 - 0.8,
+          width: 1.6,
+          height: 1.6,
+          class: `${classes} fill`,
+        },
+        pop(index),
+      );
+    });
+  }
 
-      testimonials.forEach((_, index) => {
-        highlightText(index, false);
-      });
+  if (detail.type === "ringpads") {
+    el(
+      svg,
+      "circle",
+      {
+        cx: detail.x,
+        cy: detail.y,
+        r: 3.1,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
 
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 1.2,
+          cy: detail.y + ay * j * 1.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+
+  if (detail.type === "oval") {
+    const width = detail.vertical ? 3.6 : 8.4;
+    const height = detail.vertical ? 8.4 : 3.6;
+
+    el(
+      svg,
+      "rect",
+      {
+        x: detail.x - width / 2,
+        y: detail.y - height / 2,
+        width,
+        height,
+        rx: 1.8,
+        class: `${classes} ring`,
+        "stroke-width": 1.2,
+      },
+      pop(0),
+    );
+
+    [-1, 1].forEach((j, index) => {
+      el(
+        svg,
+        "circle",
+        {
+          cx: detail.x + ax * j * 2.2,
+          cy: detail.y + ay * j * 2.2,
+          r: 0.6,
+          class: `${classes} fill`,
+        },
+        pop(index + 1),
+      );
+    });
+  }
+}
+
+export function renderCircuit(svg, subject = DEFAULT_SUBJECT) {
+  let cancelled = false;
+  let frameId = null;
+
+  const build = (attempt = 0) => {
+    if (cancelled || !svg || !svg.isConnected) return;
+
+    // Use layout dimensions so wrapper transforms do not
+    // distort the circuit's coordinate system.
+    const width = svg.clientWidth;
+    const height = svg.clientHeight;
+
+    if (!width || !height) {
+      if (attempt < 10) {
+        frameId = requestAnimationFrame(() => build(attempt + 1));
+      }
       return;
     }
 
-if (!scrollTicking.current) {
-  requestAnimationFrame(() => {
-    updatePreviewOnScroll();
-    scrollTicking.current = false;
-  });
-  scrollTicking.current = true;
-}
+    const H = (100 * height) / width;
+
+    svg.setAttribute("viewBox", `0 0 100 ${H}`);
+    svg.replaceChildren();
+
+    const layout = generate(H, makeBlocker(H, subject));
+
+    const groups = [
+      ...layout.buses.map((bus) => ({ bus })),
+      ...layout.singles.map((single) => ({ single })),
+    ];
+
+    // Fisher–Yates shuffle.
+    for (let i = groups.length - 1; i > 0; i--) {
+      const j = RI(0, i);
+      [groups[i], groups[j]] = [groups[j], groups[i]];
+    }
+
+    const gap = R(0.04, 0.08);
+
+    groups.forEach((group, rank) => {
+      const start = 0.35 + rank * gap + R(0, 0.06);
+      const cycle = R(5, 11);
+      const outward = chance(0.65);
+
+      if (group.bus) {
+        const duration = R(0.4, 0.65);
+
+        // Wait until all lanes finish drawing before pulsing.
+        const pulseDelay =
+          start +
+          duration +
+          (group.bus.lanes.length - 1) * 0.03 +
+          0.8 +
+          R(0, cycle);
+
+        group.bus.lanes.forEach((lane, index) => {
+          drawTrace(svg, lane, {
+            tone: group.bus.tone,
+            weight: 1.1,
+            start: start + index * 0.03,
+            dur: duration,
+            cycle,
+            pulseDelay: pulseDelay + index * 0.07,
+            outward,
+            end: group.bus.end,
+            r: 0.75,
+          });
+        });
+      } else {
+        const duration = R(0.35, 0.7);
+
+        drawTrace(svg, group.single.pts, {
+          tone: group.single.tone,
+          weight: group.single.weight,
+          start,
+          dur: duration,
+          cycle,
+          pulseDelay: start + duration + 0.8 + R(0, cycle),
+          outward,
+          end: group.single.end,
+          r: 1.05,
+        });
+      }
+    });
+
+    layout.bells.forEach((bell) => {
+      drawTrace(svg, bell.pts, {
+        tone: bell.tone,
+        weight: 1.1,
+        start: R(0.9, 1.7),
+        dur: 0.3,
+        end: "ring",
+        r: 0.85,
+        startPad: true,
+      });
+    });
+
+    layout.details.forEach((detail) => {
+      drawDetail(svg, detail, R(1.2, 2.1));
+    });
   };
 
-  window.addEventListener("scroll", onScroll, { passive: true });
-  return () => window.removeEventListener("scroll", onScroll);
-}, []);
+  build();
 
-useEffect(() => {
-  testimonialRefs.current.forEach((testimonial, index) => {
-    if (!testimonial) return;
+  return () => {
+    cancelled = true;
 
-const enter = () => {
-  activeTestimonial.current = index;
-  isHovering.current = true;
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+  };
+}
+const List = ({ onInteractionChange }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [displayedIndex, setDisplayedIndex] = useState(0);
+  const introSectionRef = useRef(null);
+  const testimonialsSectionRef = useRef(null);
+  const galleryViewportRef = useRef(null);
+  const thumbnailRefs = useRef([]);
+  const activeIndexRef = useRef(0);
+  const requestedIndexRef = useRef(0);
+  const galleryScrollTimeoutRef = useRef(null);
+  const backgroundRefs = useRef([]);
+  const titleRef = useRef(null);
+  const infoRef = useRef(null);
+  const creditsRef = useRef(null);
+  const projectImageRef = useRef(null);
+  const projectImageElementRef = useRef(null);
+  const infoSplitRef = useRef(null);
+  const isAnimating = useRef(false);
+  const shouldAnimateIn = useRef(false);
+  const projectNumberRef = useRef(null);
+  const galleryRunwayRef = useRef(null);
+  const treatmentNumberRef = useRef(null);
+  const displayedTestimonial = testimonials[displayedIndex];
+const mobileGalleryGoToRef = useRef(null);
+const snapMarkerRefs = useRef([]);
 
-  lastStackedIndex.current = null;
+  const getTextTargets = () => {
+    return [
+      projectNumberRef.current,
+      titleRef.current,
+      treatmentNumberRef.current,
+      ...(infoSplitRef.current?.lines ?? []),
+      creditsRef.current,
+    ].filter(Boolean);
+  };
 
-  highlightText(index, true);
-  scrambleText(index);
+useLayoutEffect(() => {
+  const intro = introSectionRef.current;
+  const main = testimonialsSectionRef.current;
 
-  //  stack immediately on enter
-  stackImage(index, "hover");
-};
+  if (!intro || !main) {
+    return undefined;
+  }
+  const media = gsap.matchMedia();
 
-const leave = () => {
-  activeTestimonial.current = null;
-  isHovering.current = false;
+  media.add("(min-width: 901px)", () => {
+    const timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: intro,
+        start: "top top",
+        end: () => `+=${intro.offsetHeight}`,
+        pin: intro,
+        pinSpacing: false,
+        scrub: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+    });
 
-  highlightText(index, false);
+    timeline.fromTo(
+      main,
+      {
+        rotationX: 8,
+        transformOrigin: "50% 100%",
+        transformPerspective: 1600,
+        backfaceVisibility: "hidden",
+      },
+      {
+        rotationX: 0,
+        ease: "none",
+      },
+      0,
+    );
+  });
 
-  lastStackedIndex.current = null;
-};
-    testimonial.addEventListener("mouseenter", enter);
-    testimonial.addEventListener("mouseleave", leave);
+  media.add("(max-width: 900px)", () => {
+    const viewport = galleryViewportRef.current;
+    const runway = galleryRunwayRef.current;
+
+    if (!viewport || !runway) {
+      return undefined;
+    }
+
+    gsap.set(main, {
+      clearProps:
+        "transform,transformOrigin,transformPerspective,backfaceVisibility",
+      willChange: "auto",
+    });
+
+    const introPin = ScrollTrigger.create({
+      trigger: intro,
+      start: "top top",
+      end: () => `+=${intro.offsetHeight + window.innerHeight}`,
+      pin: intro,
+      pinSpacing: false,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    });
+
+    const steps = testimonials.length - 1;
+    const root = document.documentElement;
+
+    const getStepDistance = () => Math.max(main.offsetHeight * 0.35, 240);
+
+    const updateRunwayHeight = () => {
+      const step = getStepDistance();
+      runway.style.height = `${main.offsetHeight + steps * step}px`;
+
+      snapMarkerRefs.current.forEach((marker, index) => {
+        if (marker) marker.style.top = `${index * step}px`;
+      });
+    };
+
+    const scrollThumbnailToIndex = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+      if (!thumbnail) return;
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      gsap.to(viewport, {
+        scrollLeft:
+          viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    };
+
+    updateRunwayHeight();
+
+    root.style.scrollSnapType = "y proximity";
+
+    let lastIndex = activeIndexRef.current;
+
+    const galleryState = ScrollTrigger.create({
+      trigger: runway,
+      start: "top top",
+      end: "bottom bottom",
+      invalidateOnRefresh: true,
+      onRefreshInit: updateRunwayHeight,
+      onUpdate: (self) => {
+        const index = Math.round(self.progress * steps);
+        if (index === lastIndex) return;
+
+        lastIndex = index;
+        handleItemClick(index);
+        scrollThumbnailToIndex(index);
+      },
+    });
+
+    mobileGalleryGoToRef.current = (index) => {
+      window.scrollTo({
+        top: galleryState.start + index * getStepDistance(),
+        behavior: "smooth",
+      });
+    };
 
     return () => {
-      testimonial.removeEventListener("mouseenter", enter);
-      testimonial.removeEventListener("mouseleave", leave);
+      mobileGalleryGoToRef.current = null;
+      root.style.removeProperty("scroll-snap-type");
+      introPin.kill();
+      galleryState.kill();
+      gsap.killTweensOf(viewport);
+      runway.style.removeProperty("height");
+      snapMarkerRefs.current.forEach((marker) => {
+        marker?.style.removeProperty("top");
+      });
     };
   });
-}, []);
-  
-  const rowCenters = useRef([]);
-useEffect(() => {
-  const computeCenters = () => {
-    rowCenters.current = testimonialRefs.current.map((el) =>
-      el ? el.offsetTop + el.offsetHeight / 2 : null
-    );
-  };
 
-  computeCenters();
-  window.addEventListener("resize", computeCenters);
-  return () => window.removeEventListener("resize", computeCenters);
-}, []);
-
-  const isTestimonialsVisible = () => {
-    if (!testimonialsSectionRef.current) return false;
-
-    const rect = testimonialsSectionRef.current.getBoundingClientRect();
-
-    return (
-      rect.bottom > 0 &&
-      rect.top < window.innerHeight
-    );
-  };
-  const clearPreview = () => {
-  const images = testimonialPreviewRef.current?.querySelectorAll("img");
-  images?.forEach((img) => {
-    gsap.killTweensOf(img);
-    gsap.to(img, {
-      scale: 0,
-      opacity: 0,
-      duration: 0.35,
-      ease: "power2.inOut",
-      onComplete: () => img.remove(),
-    });
+  const refreshFrame = requestAnimationFrame(() => {
+    ScrollTrigger.refresh();
   });
 
-  lastStackedIndex.current = null;
-  zCounter.current = 1;
-};
-  
-  useEffect(() => {
-  if (!outroRef.current) return;
-
-  const trigger = ScrollTrigger.create({
-    trigger: outroRef.current,
-    start: "top center",
-    onEnter: clearPreview,
-    onEnterBack: clearPreview,
-  });
-
-  return () => trigger.kill();
+  return () => {
+    cancelAnimationFrame(refreshFrame);
+    media.revert();
+  };
 }, []);
-useEffect(() => {
-  if (!testimonialsSectionRef.current || !onInteractionChange) return;
 
-  const observer = new IntersectionObserver(
-    ([entry]) => {
-      onInteractionChange(entry.isIntersecting);
-    },
-    {
-      threshold: 0.4,
+  useLayoutEffect(() => {
+    if (!infoRef.current) {
+      return undefined;
     }
-  );
 
-  observer.observe(testimonialsSectionRef.current);
+    const context = gsap.context(() => {
+      infoSplitRef.current = SplitText.create(infoRef.current, {
+        type: "lines",
+        linesClass: "project-info-line",
+        mask: "lines",
+      });
 
-  return () => observer.disconnect();
-}, [onInteractionChange]);
+      const textTargets = getTextTargets();
+      const imageFrame = projectImageRef.current;
+      const imageElement = projectImageElementRef.current;
+
+      const imageBottom = window.matchMedia("(max-width: 900px)").matches
+        ? "14%"
+        : "12%";
+
+      gsap.set(imageFrame, {
+        scale: 1,
+        bottom: imageBottom,
+      });
+
+      if (imageElement) {
+        gsap.set(imageElement, {
+          scale: 1,
+        });
+      }
+
+      if (!shouldAnimateIn.current) {
+        gsap.set(textTargets, {
+          y: 0,
+        });
+
+        gsap.set(imageFrame, {
+          "--close": 0,
+        });
+
+        return;
+      }
+      const timeline = gsap.timeline();
+
+      timeline.fromTo(
+        imageFrame,
+        {
+          "--close": 1,
+        },
+        {
+          "--close": 0,
+          duration: 0.25,
+          ease: "power4.out",
+          overwrite: "auto",
+          onComplete: () => {
+            shouldAnimateIn.current = false;
+            isAnimating.current = false;
+
+            const pending = requestedIndexRef.current;
+
+            if (pending !== activeIndexRef.current) {
+              handleItemClick(pending);
+            }
+          },
+        },
+        0,
+      );
+
+      timeline.fromTo(
+        textTargets,
+        {
+          y: 40,
+        },
+        {
+          y: 0,
+          duration: 0.6,
+          ease: "power4.out",
+          stagger: 0.04,
+          overwrite: "auto",
+        },
+        0,
+      );
+    }, testimonialsSectionRef);
+
+    return () => {
+      context.revert();
+      infoSplitRef.current?.revert();
+      infoSplitRef.current = null;
+    };
+  }, [displayedIndex]);
+
+  useLayoutEffect(() => {
+    return () => {
+      gsap.killTweensOf(backgroundRefs.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = testimonialsSectionRef.current;
+
+    if (!section || !onInteractionChange) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        onInteractionChange(entry.isIntersecting);
+      },
+      {
+        threshold: 0.4,
+      },
+    );
+
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onInteractionChange]);
+
+  useEffect(() => {
+    let isProgrammaticScroll = false;
+    const desktopQuery = window.matchMedia("(min-width: 901px)");
+    const viewport = galleryViewportRef.current;
+
+    const section = testimonialsSectionRef.current;
+
+    if (!viewport || !section) {
+      return undefined;
+    }
+    if (!viewport || !section || !desktopQuery.matches) {
+      return undefined;
+    }
+
+    let wheelAccumulator = 0;
+    let wheelLocked = false;
+    let wheelUnlockTimer = null;
+
+    const getIsHorizontal = () =>
+      window.matchMedia("(max-width: 900px)").matches;
+
+    const isSectionAligned = () => {
+      const rect = section.getBoundingClientRect();
+
+      const tolerance = Math.max(16, window.innerHeight * 0.025);
+
+      return Math.abs(rect.top) <= tolerance;
+    };
+
+    const selectClosestThumbnail = () => {
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const viewportStart = isHorizontal
+        ? viewportRect.left + 12
+        : viewportRect.top + 12;
+
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+
+      thumbnailRefs.current.forEach((thumbnail, index) => {
+        if (!thumbnail) return;
+
+        const rect = thumbnail.getBoundingClientRect();
+
+        const thumbnailStart = isHorizontal ? rect.left : rect.top;
+
+        const distance = Math.abs(thumbnailStart - viewportStart);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+
+          closestIndex = index;
+        }
+      });
+
+      requestedIndexRef.current = closestIndex;
+
+      handleItemClick(closestIndex);
+    };
+
+    const scrollToThumbnail = (index) => {
+      const thumbnail = thumbnailRefs.current[index];
+
+      if (!thumbnail) return;
+
+      const isHorizontal = getIsHorizontal();
+
+      const viewportRect = viewport.getBoundingClientRect();
+
+      const thumbnailRect = thumbnail.getBoundingClientRect();
+
+      const targetPosition = isHorizontal
+        ? viewport.scrollLeft + thumbnailRect.left - viewportRect.left - 12
+        : viewport.scrollTop + thumbnailRect.top - viewportRect.top - 12;
+
+      isProgrammaticScroll = true;
+
+      viewport.style.scrollSnapType = "none";
+
+      gsap.killTweensOf(viewport);
+
+      gsap.to(viewport, {
+        ...(isHorizontal
+          ? {
+              scrollLeft: targetPosition,
+            }
+          : {
+              scrollTop: targetPosition,
+            }),
+
+        duration: 0.55,
+        ease: "power2.inOut",
+        overwrite: true,
+
+        onComplete: () => {
+          viewport.style.removeProperty("scroll-snap-type");
+
+          requestAnimationFrame(() => {
+            isProgrammaticScroll = false;
+          });
+        },
+      });
+    };
+
+    const handleGalleryScroll = () => {
+      if (getIsHorizontal()) {
+        return;
+      }
+
+      if (isProgrammaticScroll) {
+        return;
+      }
+
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      galleryScrollTimeoutRef.current = window.setTimeout(
+        selectClosestThumbnail,
+        120,
+      );
+    };
+    const keepWheelLocked = () => {
+      window.clearTimeout(wheelUnlockTimer);
+
+      wheelUnlockTimer = window.setTimeout(() => {
+        wheelLocked = false;
+        wheelAccumulator = 0;
+      }, 140);
+    };
+
+    const handleSectionWheel = (event) => {
+      if (!isSectionAligned()) {
+        return;
+      }
+
+      const delta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX;
+
+      if (delta === 0) return;
+
+      const currentIndex = requestedIndexRef.current;
+
+      const isFirst = currentIndex === 0;
+
+      const isLast = currentIndex === testimonials.length - 1;
+
+      if (wheelLocked) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        keepWheelLocked();
+        return;
+      }
+
+      if ((delta < 0 && isFirst) || (delta > 0 && isLast)) {
+        wheelAccumulator = 0;
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      wheelAccumulator += delta;
+
+      if (Math.abs(wheelAccumulator) < 10) {
+        return;
+      }
+
+      const direction = wheelAccumulator > 0 ? 1 : -1;
+
+      const nextIndex = Math.max(
+        0,
+        Math.min(testimonials.length - 1, currentIndex + direction),
+      );
+
+      wheelAccumulator = 0;
+      wheelLocked = true;
+
+      requestedIndexRef.current = nextIndex;
+      handleItemClick(nextIndex);
+      scrollToThumbnail(nextIndex);
+
+      keepWheelLocked();
+    };
+
+    viewport.addEventListener("scroll", handleGalleryScroll, {
+      passive: true,
+    });
+
+    section.addEventListener("wheel", handleSectionWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.clearTimeout(galleryScrollTimeoutRef.current);
+
+      window.clearTimeout(wheelUnlockTimer);
+
+      gsap.killTweensOf(viewport);
+
+      viewport.style.removeProperty("scroll-snap-type");
+
+      viewport.removeEventListener("scroll", handleGalleryScroll);
+
+      section.removeEventListener("wheel", handleSectionWheel, true);
+    };
+  }, []);
+
+  const handleItemClick = (nextIndex) => {
+    requestedIndexRef.current = nextIndex;
+
+    if (nextIndex === activeIndexRef.current || isAnimating.current) {
+      return;
+    }
+
+    isAnimating.current = true;
+
+    const previousIndex = activeIndexRef.current;
+    activeIndexRef.current = nextIndex;
+
+    const previousBackground = backgroundRefs.current[previousIndex];
+
+    const nextBackground = backgroundRefs.current[nextIndex];
+
+    setActiveIndex(nextIndex);
+
+    gsap.killTweensOf([previousBackground, nextBackground].filter(Boolean));
+
+    if (nextBackground) {
+      gsap.set(nextBackground, {
+        visibility: "visible",
+      });
+
+      gsap.to(nextBackground, {
+        opacity: 1,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+      });
+    }
+
+    if (previousBackground) {
+      gsap.to(previousBackground, {
+        opacity: 0,
+        delay: 0.5,
+        duration: 0.5,
+        ease: "power2.inOut",
+        onComplete: () => {
+          gsap.set(previousBackground, {
+            visibility: "hidden",
+          });
+        },
+      });
+    }
+
+    const textTargets = getTextTargets();
+
+    const outgoingTimeline = gsap.timeline({
+      onComplete: () => {
+        shouldAnimateIn.current = true;
+        setDisplayedIndex(nextIndex);
+      },
+    });
+
+    outgoingTimeline.to(
+      textTargets,
+      {
+        y: -60,
+        duration: 0.5,
+        ease: "power4.in",
+        stagger: 0.05,
+      },
+      0,
+    );
+    const textExitDuration = 0.5 + Math.max(0, textTargets.length - 1) * 0.05;
+
+    outgoingTimeline.to(
+      projectImageRef.current,
+      {
+        "--close": 1,
+        duration: 0.3,
+        ease: "power2.in",
+      },
+      textExitDuration - 0.3,
+    );
+  };
+  const circuitRef = useRef(null);
+
+  useEffect(() => {
+    const svg = circuitRef.current;
+    if (!svg) return;
+
+    let stopCircuit = () => {};
+    let previousWidth = -1;
+    let previousHeight = -1;
+
+    const rebuild = () => {
+      const width = svg.clientWidth;
+      const height = svg.clientHeight;
+
+      if (!width || !height) return;
+
+      if (width === previousWidth && height === previousHeight) {
+        return;
+      }
+
+      previousWidth = width;
+      previousHeight = height;
+
+      stopCircuit();
+      stopCircuit = renderCircuit(svg);
+    };
+
+    rebuild();
+
+    const observer = new ResizeObserver(rebuild);
+    observer.observe(svg);
+
+    return () => {
+      observer.disconnect();
+      stopCircuit();
+    };
+  }, [displayedIndex]);
   return (
-    <div className="testimonialsPage">
+    <div className="relative w-full">
+      <section
+        ref={introSectionRef}
+        className="
+    intro relative z-0
+    h-screen w-full max-w-full
+    overflow-hidden
+    max-[900px]:h-svh
+  "
+      >
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <JanusFace />
+        </div>
 
-<section className="intro relative min-h-screen overflow-hidden">
-  <IntroCirclesBackground />
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] flex-col md:flex-row">
+          <div className="hidden min-h-screen md:block md:w-1/2" />
 
-  <div className="relative max-w-[1400px] mx-auto w-full flex flex-col md:flex-row">
-    <div className="hidden md:block md:w-1/2 min-h-screen" />
+          <div className="flex min-h-screen w-full items-center justify-center px-6 md:w-1/2 md:px-0">
+            <div className="w-full max-w-[1200px]">
+              <TerminalPreloader />
+            </div>
+          </div>
+        </div>
+      </section>
+ <div ref={galleryRunwayRef} className="relative">
 
-    <div className="w-full md:w-1/2 min-h-screen flex items-center justify-center px-6 md:px-0">
-      <div className="max-w-[1200px] w-full">
-        <div
+        {testimonials.map((testimonial, index) => (
+          <div
+            key={`snap-${testimonial.name}-${index}`}
+            ref={(element) => {
+              snapMarkerRefs.current[index] = element;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 hidden h-px w-px max-[900px]:block"
+            style={{
+              scrollSnapAlign: "start",
+              scrollSnapStop: "always",
+            }}
+          />
+        ))}
+
+        <main
+          ref={testimonialsSectionRef}
           className="
-            font-neuehaas45
-            leading-[1.2]
-            relative
-            text-center md:text-left
-          "
+    relative z-10
+    flex h-screen
+    w-full max-w-full
+    origin-bottom
+    overflow-hidden
+    bg-[#0f0f0f]
+
+    will-change-transform
+    [backface-visibility:hidden]
+
+    max-[900px]:sticky
+    max-[900px]:top-0
+    max-[900px]:h-[100svh]
+    max-[900px]:min-h-[100svh]
+    max-[900px]:flex-col
+    max-[900px]:will-change-auto
+    max-[900px]:[backface-visibility:visible]
+
+  "
         >
-          <TerminalPreloader />
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-      <section className="testimonials" ref={testimonialsSectionRef}>
-<div className="flex flex-col items-center text-center mb-10 gap-1">
-  <div className="flex items-baseline gap-2">
-    <p className="text-[19px] tracking-wide font-neuehaas35">Select Cases</p>
-
-  </div>
-
-  <span className="text-[14px] font-canelathin opacity-60">
-    A visual archive of selected treatment outcomes.
-  </span>
-</div>
-<div className="flex items-center justify-between w-full">
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-
-          <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-        </div>
-        <div className="testimonials-list" ref={testimonialsListRef}>
-          {testimonials.map((testimonial, index) => (
+          <div className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden bg-[#0f0f0f]">
             <div
-              key={index}
-              className="testimonial"
-              ref={(el) => (testimonialRefs.current[index] = el)}
+              className="
+      absolute -inset-[16%]
+      scale-110
+      overflow-hidden
+      blur-[100px]
+      transform-gpu
+    "
             >
-              <div className="testimonial-content">
-                <div className="testimonial-name">
-                  <span 
-                    className="highlighted-text col-left"
-                    ref={(el) => (nameHighlightRefs.current[index] = el)}
-                  >
-                    <h1 
-                      ref={(el) => (nameRefs.current[index] = el)}
+              {testimonials.map((testimonial, index) => (
+                <img
+                  key={`background-${testimonial.name}-${index}`}
+                  ref={(element) => {
+                    backgroundRefs.current[index] = element;
+                  }}
+                  src={testimonial.image}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{
+                    opacity: index === 0 ? 1 : 0,
+
+                    visibility: index === 0 ? "visible" : "hidden",
+
+                    zIndex: index === 0 ? 2 : 0,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="absolute inset-0 bg-white/40" />
+          </div>
+
+
+          <div className="site-info col relative flex flex-1 flex-col justify-between border-r border-white/10 p-4 max-[900px]:hidden">
+            <div className="header absolute top-1/2 -translate-y-1/2 max-[900px]:top-auto max-[900px]:bottom-4 max-[900px]:translate-y-0">
+              <FreySmilesGrid />
+            </div>
+          </div>
+
+          {/* Active testimonial */}
+          <div className="relative flex-[2] p-4">
+            <div
+              aria-hidden="true"
+              className="
+    pointer-events-none
+    absolute inset-0 z-0
+    border-y border-white/15
+    bg-white/[0.15]
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(255,255,255,0.08)]
+    backdrop-blur-[22px]
+    backdrop-saturate-[115%]
+    max-[900px]:hidden
+  "
+            />
+            <div
+              className="
+    relative z-10
+    translate-y-16
+    font-anton
+    text-[18px]
+    uppercase
+    opacity-70
+
+    max-[900px]:translate-y-4
+    max-[900px]:text-[16px]
+  "
+            >
+              A visual archive of selected patient treatment outcomes.
+            </div>
+
+            {/* Testimonial details */}
+            <div
+              key={`details-${displayedIndex}`}
+              className="
+    absolute left-8 top-12
+    w-[min(34rem,calc(100%_-_4rem))]
+    text-left
+
+    max-[900px]:left-4
+    max-[900px]:top-[5.75rem]
+    max-[900px]:w-[calc(100%_-_2rem)]
+
+    max-[380px]:top-[6.5rem]
+  "
+            >
+              <div className="flex flex-col gap-4">
+                <div
+                  className="
+        flex translate-y-[10vh]
+        flex-col gap-4
+        font-neueroman
+        text-[15px]
+        uppercase
+
+        max-[900px]:translate-y-0
+      "
+                >
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-baseline">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={projectNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-none opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <div
+                        ref={titleRef}
+                        className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.project}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-baseline pb-4">
+                    <div className="overflow-hidden">
+                      <span
+                        ref={treatmentNumberRef}
+                        aria-hidden="true"
+                        className="relative inline-block text-base leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </span>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <p
+                        ref={infoRef}
+                        className=" relative text-left font-neueroman uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                      >
+                        {displayedTestimonial.type || "Treatment outcome"}
+                      </p>
+                    </div>
+
+                    <div
+                      aria-hidden="true"
+                      className="
+  pointer-events-none
+  absolute bottom-0 left-[-2rem]
+  z-10 h-[12px]
+  w-[calc(100%+2rem)]
+
+  max-[900px]:left-[-1rem]
+  max-[900px]:w-[calc(100%+1rem)]
+"
                     >
-                      {testimonial.name}
-                    </h1>
-                  </span>
-                  <span 
-                    className="highlighted-text col-right"
-                    ref={(el) => (typeHighlightRefs.current[index] = el)}
-                  >
-                    <h1 
-                      ref={(el) => (typeRefs.current[index] = el)}
-                    >
-                      {testimonial.type || ""}
-                    </h1>
-                  </span>
-               
+                      {/* Moves left */}
+                      <div
+                        className="
+      absolute left-0 top-0
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-left_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                      />
+
+                      {/* Moves right */}
+                      <div
+                        className="
+      absolute left-0 top-[10px]
+      h-[2px] w-full
+      bg-[radial-gradient(circle,rgba(255,255,255,0.28)_1px,transparent_1.2px)]
+      [background-size:5px_1px]
+      bg-repeat-x
+      animate-[dotted-line-right_1.2s_linear_infinite]
+      will-change-[background-position]
+      motion-reduce:animate-none
+    "
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <div
+              key={`image-${displayedIndex}`}
+              ref={projectImageRef}
+              className="
+    testimonial-image-clip-frame
+    absolute bottom-[12%] left-4
+    h-1/2 w-3/4
+    will-change-transform
 
+    max-[900px]:bottom-[14%]
+    max-[900px]:left-4
+    max-[900px]:right-4
+    max-[900px]:w-auto
+  "
+            >
+              <div className="testimonial-image-clip-reveal">
+                <div className="testimonial-image-clip-photo h-full w-full">
+                  <img
+                    src={displayedTestimonial.image}
+                    alt=""
+                    className="h-full w-full origin-center object-cover"
+                  />
 
-<div ref={outroRef} className="testimonials-outro-spacer" />
-      <div className="testimonial-preview" ref={testimonialPreviewRef} />
+                  <div className="testimonial-image-clip-scan" />
+
+                  <svg
+                    ref={circuitRef}
+                    className="testimonial-image-clip-circ"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+
+              <div
+                className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-tl
+    "
+              />
+
+              <div
+                className="
+      testimonial-image-clip-bracket
+      testimonial-image-clip-bracket-br
+    "
+              />
+            </div>
+          </div>
+
+          <div
+            ref={galleryViewportRef}
+            className="
+    relative z-20
+    h-full w-[124px] shrink-0
+    snap-y snap-mandatory
+    scroll-pt-3
+    overflow-y-auto overflow-x-hidden
+overscroll-y-contain
+max-[900px]:overscroll-y-auto
+max-[900px]:overscroll-x-contain
+    border-l border-white/10
+    bg-white/30
+    p-3
+    backdrop-blur-[20px]
+    [scrollbar-width:none]
+    [&::-webkit-scrollbar]:hidden
+
+    max-[900px]:h-[112px]
+    max-[900px]:w-full
+   max-[900px]:snap-none
+max-[900px]:overflow-x-hidden
+    max-[900px]:overflow-y-hidden
+    max-[900px]:border-l-0
+    max-[900px]:border-t
+  "
+          >
+            <div
+              className="
+    flex min-h-max w-full
+    flex-col gap-3
+    pb-[calc(100vh-174px)]
+
+    max-[900px]:h-full
+    max-[900px]:min-h-0
+    max-[900px]:w-max
+    max-[900px]:flex-row
+    max-[900px]:pb-0
+    max-[900px]:pr-[calc(100vw-144px)]
+  "
+            >
+              {testimonials.map((testimonial, index) => {
+                const isActive = index === activeIndex;
+
+                return (
+                  <button
+                    key={`gallery-${testimonial.name}-${index}`}
+                    ref={(element) => {
+                      thumbnailRefs.current[index] = element;
+                    }}
+                    type="button"
+                    className={[
+                      "treatment-thumbnail",
+                      "relative",
+                      "block",
+                      "h-[150px]",
+                      "w-full",
+                      "shrink-0",
+                      "snap-start",
+                      "overflow-hidden",
+                      "border-0",
+                      "bg-[#aeaeae]",
+                      "p-0",
+
+                      "max-[900px]:h-full",
+                      "max-[900px]:w-[120px]",
+
+                      "after:pointer-events-none",
+                      "after:absolute",
+                      "after:inset-0",
+                      "after:z-10",
+                      "after:content-['']",
+                      "after:transition-colors",
+                      "after:delay-500",
+                      "after:duration-500",
+
+                      isActive ? "after:bg-black/0" : "after:bg-black/65",
+                    ].join(" ")}
+                onClick={() => {
+  if (mobileGalleryGoToRef.current) {
+    mobileGalleryGoToRef.current(index);
+    return;
+  }
+
+  requestedIndexRef.current = index;
+  handleItemClick(index);
+}}
+                    aria-label={`View ${testimonial.name}`}
+                    aria-pressed={isActive}
+                  >
+                    <img
+                      src={testimonial.image}
+                      alt=""
+                      className="absolute inset-0 block !h-full !w-full !object-cover"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
 
+function JanusFace() {
+  const [leftShapes, setLeftShapes] = useState([]);
+  const [rightShapes, setRightShapes] = useState([]);
 
-  const reviews = [
-    {
-      name: "James Pica",
-      text: "Frey Smiles has made the whole process from start to finish incredibly pleasant and sooo easy on my kids to follow. They were able to make a miracle happen with my son's tooth that was coming in sideways. He now has a perfect smile and I couldn't be happier. My daughter is halfway through her treatment and the difference already has been great. I 100% recommend this place to anyone!!!",
-      color: "bg-[#9482A3]",
-      image: "/images/_mesh_gradients/lightblue.png",
+  const r = (from, to) => Math.random() * (to - from) + from;
+  const ri = (from, to) => ~~r(from, to);
+  const pick = (...args) => args[ri(0, args.length)];
 
-      height: "h-[320px]",
-      width: "w-[320px]",
-    },
-    {
-      name: "Thomas StPierre",
-      text: "I had a pretty extreme case and it took some time, but FreySmiles gave me the smile I had always hoped for. Thank you!",
-      color: "bg-[#EB7104]",
-      image: "/images/_mesh_gradients/purplegrey.png",
-      height: "h-[240px]",
-      width: "w-[240px]",
-    },
-    {
-      name: "Fei Zhao",
-      text: "Our whole experience for the past 10 years of being under Dr. Gregg Frey’s care and his wonderful staff has been amazing. My son and my daughter have most beautiful smiles, and they received so many compliments on their teeth. It has made a dramatic and positive change in their lives. Dr. Frey is a perfectionist, and his treatment is second to none. I recommend Dr. Frey highly and without any reservation.",
-      color: "bg-[#80A192]",
-      image: "/images/_mesh_gradients/pantonepinkblue.png",
-      height: "h-[320px]",
-      width: "w-[320px]",
-    },
-    {
-      name: "Shelby Loucks",
-      text: "THEY ARE AMAZING!! Great staff and wonderful building. HIGHLY recommend to anyone looking for an orthodontist.",
-      color: "bg-[#A81919]",
-      image: "/images/_mesh_gradients/LilyWhite.jpg",
+  const symbols = [
+    "□",
+    "▢",
+    "▭",
+    "▯",
 
-      height: "h-[240px]",
-      width: "w-[240px]",
-    },
-    {
-      name: "Diana Gomez",
-      text: "After arriving at my sons dentist on a Friday, his dentist office now informs me that they don’t have a referral. I called the Frey smiles office when they were closed and left a message. I received a call back within minutes from Dr. Frey himself who sent the referral over immediately ( on his day off!!!) how amazing! Not to mention the staff was amazing when were were there and my children felt so comfortable! Looking forward to a wonderful smile for my son!!",
-      color: "bg-[#F3B700]",
-      image: "/images/_mesh_gradients/pinkwhite.png",
-      height: "h-[320px]",
-      width: "w-[320px]",
-    },
-    {
-      name: "Tracee Benton",
-      text: "Dr. Frey and his orthodontist techs are the absolute best! The team has such an attention to detail I absolutely love my new smile and my confidence has significantly grown! The whole process of using Invisalign has been phenomenal. I highly recommend Dr. Frey and his team to anyone considering orthodontic work!",
-      color: "bg-[#036523]",
-      image: "/images/_mesh_gradients/purpledred.png",
-    },
-    {
-      name: "Brandi Moyer",
-      text: "My experience with Dr. Frey orthodontics has been nothing but great. The staff is all so incredibly nice and willing to help. And better yet, today I found out I may be ahead of my time line to greater aligned teeth!.",
-      color: "bg-[#4C90B3]",
-      image: "/images/_mesh_gradients/purpleyellow.png",
-    },
+    "○",
+    "◯",
+    "◌",
 
-    {
-      name: "Andrew Cornell",
-      text: "Over 20 years ago, I went to Dr. Frey to fix my cross bite and get braces. Since then, my smile looks substantially nicer. My entire mouth feels better as well. The benefits of orthodontics under Dr. Frey continue paying dividends.",
-      color: "bg-[#56A0FC]",
-      image: "/images/_mesh_gradients/greenwhite.png",
-    },
+    "△",
+    "▽",
+    "▷",
+    "◁",
 
-    {
-      name: "Vicki Weaver",
-      text: "We have had all four of our children receive orthodontic treatment from Dr. Frey. Dr. Frey is willing to go above and beyond for his patients before, during, and after the treatment is finished. It shows in their beautiful smiles!! We highly recommend FreySmiles to all of our friends and family!",
-      color: "bg-[#EA9CBE]",
-      image: "/images/_mesh_gradients/blueyellowgradient.png",
-    },
+    "◇",
+    "◊",
 
-    {
-      name: "Sara Moyer",
-      text: "We are so happy that we picked Freysmiles in Lehighton for both of our girls Invisalign treatment. Dr. Frey and all of his staff are always so friendly and great to deal with. My girls enjoy going to their appointments and love being able to see the progress their teeth have made with each tray change. We are 100% confident that we made the right choice when choosing them as our orthodontist!",
-      image: "/images/_mesh_gradients/turquoisegradient.png",
-      height: "h-[320px]",
-      width: "w-[320px]",
-    },
-
-    {
-      name: "Mandee Kaur",
-      image: "/images/_mesh_gradients/pinkparty.png",
-      text: "I would highly recommend FreySmiles! Excellent orthodontic care, whether it’s braces or Invisalign, Dr. Frey and his team pay attention to detail in making sure your smile is flawless! I would not trust anyone else for my daughter’s care other than FreySmiles.",
-      color: "bg-[#49ABA3]",
-    },
+    "◅",
+    "▻",
   ];
-const Testimonials = () => {
 
+  const generateText = (length = 60, rowIndex = 0, isMobile = false) => {
+    return Array.from({ length }, (_, i) => {
+      const shouldBlink = !isMobile && (i + rowIndex) % 2 === 0;
+
+      return (
+        <span
+          key={i}
+          className={shouldBlink ? "symbol symbol-blink" : "symbol"}
+          style={
+            shouldBlink
+              ? {
+                  "--blink-delay": `${(i * 0.09 + rowIndex * 0.17) % 4}s`,
+
+                  "--blink-duration": `${3.5 + ((i + rowIndex) % 4) * 0.4}s`,
+                }
+              : undefined
+          }
+        >
+          {pick(...symbols)}
+        </span>
+      );
+    });
+  };
+  const generateBaseParagraphs = (isMobile = false) => {
+    const paragraphs = [];
+
+    const rowCount = 50;
+
+    for (let i = 0; i < rowCount; i++) {
+      const offset = r(45, 95);
+      const color = "#AAA6E3";
+
+      const textLength = isMobile ? ri(18, 34) : ri(25, 95);
+
+      paragraphs.push({
+        offset,
+        color,
+        textLength,
+        key: i,
+      });
+    }
+
+    return paragraphs;
+  };
+
+  const build = () => {
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const baseData = generateBaseParagraphs(isMobile);
+
+    const leftParas = baseData.map((data, i) => (
+      <div
+        key={i}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "left",
+          mask: `linear-gradient(
+          to right,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    const rightParas = baseData.map((data, i) => (
+      <div
+        key={`r${i}`}
+        className="text-line"
+        style={{
+          "--offset": data.offset,
+          color: data.color,
+          textAlign: "right",
+          mask: `linear-gradient(
+          to left,
+          #fff,
+          transparent calc(var(--offset) * 1%)
+        )`,
+        }}
+      >
+        {generateText(data.textLength, i, isMobile)}
+      </div>
+    ));
+
+    setLeftShapes(leftParas);
+    setRightShapes(rightParas);
+  };
+
+  useEffect(() => {
+    build();
+  }, []);
+
+  const shapePath =
+    "0.25% 2px, 99.94% 0.27%, 99.75% 100%, 19.87% 100.03%, 0 100%, 30.61% 100.07%, 37.38% 99.82%, 44.21% 99.38%, 50.92% 99.34%, 71.39% 98.43%, 76.61% 98.79%, 82.65% 97.6%, 85.9% 95.73%, 90.12% 93.85%, 88.45% 89.91%, 87.41% 87.1%, 85.48% 85.09%, 84.96% 82.33%, 88.66% 81.41%, 90.55% 79.29%, 91.75% 77.23%, 91.23% 75.11%, 88.48% 73.75%, 90.93% 72.26%, 92.34% 70.16%, 91.59% 67.66%, 89.87% 64.91%, 87.01% 63.42%, 89.87% 62.01%, 93.04% 60.71%, 96.53% 58.57%, 97.8% 55.26%, 95.36% 53.2%, 91.46% 51.56%, 86.6% 49.21%, 83.43% 47%, 79.27% 44.12%, 77.05% 40.66%, 75.51% 37.07%, 75.49% 33.04%, 76.3% 28.93%, 75.99% 25.46%, 74.57% 22.25%, 72.88% 18.96%, 69.97% 15.51%, 66.59% 12.23%, 62.29% 9.2%, 57.33% 7.06%, 52.77% 5.2%, 46.55% 3.55%, 38.59% 1.5%, 27.73% 0.92%";
+
+  const mirrorPolygon = (poly) => {
+    return poly
+      .split(",")
+      .map((pt) => pt.trim())
+      .map((pt) => {
+        const [xRaw, y] = pt.split(/\s+/);
+        const xPercent = parseFloat(xRaw);
+        const mirroredX = (100 - xPercent).toFixed(2) + "%";
+        return `${mirroredX} ${y}`;
+      })
+      .join(", ");
+  };
+
+  const leftShapePath = mirrorPolygon(shapePath);
+
+  return (
+    <div className="janus-main" onClick={build} style={{ cursor: "pointer" }}>
+      <div className="janus-container">
+        {/* Left Face */}
+        <div className="face-container left-face">
+          <div
+            className="janus-shape left-shape"
+            style={{ shapeOutside: `polygon(${leftShapePath})` }}
+          />
+          <div className="text-container left-text">{leftShapes}</div>
+        </div>
+
+        {/* Right Face */}
+        <div className="face-container right-face">
+          <div
+            className="janus-shape right-shape"
+            style={{ shapeOutside: `polygon(${shapePath})` }}
+          />
+          <div className="text-container right-text">{rightShapes}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Testimonials = () => {
   const textRef = useRef(null);
   const bgTextColor = "#CECED3";
   const fgTextColor = "#161818";
-const [disableFluid, setDisableFluid] = useState(false);
+  const [disableFluid, setDisableFluid] = useState(false);
   useEffect(() => {
     if (!textRef.current) return;
 
@@ -2405,52 +3039,10 @@ const [disableFluid, setDisableFluid] = useState(false);
         stagger: 0.03,
         duration: 1,
         ease: "power2.out",
-      }
+      },
     );
 
     return () => split.revert();
-  }, []);
-  const gradient1Ref = useRef(null);
-  const image1Ref = useRef(null);
-  const text1Ref = useRef(null);
-
-  useEffect(() => {
-    if (!gradient1Ref.current || !image1Ref.current) return;
-
-    gsap.to(".gradient-col", {
-      y: "-20%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: gradient1Ref.current,
-        scroller: "#right-column",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 4,
-      },
-    });
-
-    gsap.to(image1Ref.current, {
-      y: "-60%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: image1Ref.current,
-        scroller: "#right-column",
-        start: "top 70%",
-        end: "bottom top",
-        scrub: 1,
-      },
-    });
-    gsap.to(text1Ref.current, {
-      y: "-60%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: image1Ref.current,
-        scroller: "#right-column",
-        start: "top 70%",
-        end: "bottom top",
-        scrub: 1,
-      },
-    });
   }, []);
 
   const listRefs = useRef([]);
@@ -2470,12 +3062,10 @@ const [disableFluid, setDisableFluid] = useState(false);
           },
           duration: 0.6,
           ease: "power2.out",
-        }
+        },
       );
     });
   }, []);
-
-
 
   useEffect(() => {
     const lines = gsap.utils.toArray("#smile-scroll-section .line");
@@ -2513,960 +3103,1153 @@ const [disableFluid, setDisableFluid] = useState(false);
           },
           duration: 0.6,
           ease: "power2.out",
-        }
+        },
       );
     });
   }, []);
 
+  const movingBlobRef = useRef(null);
 
+  const points = [
+    { x: 150, y: 60 },
+    { x: 210, y: 110 },
+    { x: 200, y: 190 },
+    { x: 120, y: 210 },
+    { x: 70, y: 140 },
+    { x: 100, y: 100 },
+  ];
 
-const reviewsRef = useRef(null);   
-
-
-const [trailEnabled, setTrailEnabled] = useState(true);
-const testimonialRef = useRef(null);
-
-useEffect(() => {
-  const st = ScrollTrigger.create({
-    trigger: testimonialRef.current,
-    start: "top center",
-    end: "bottom center",
-    onEnter: () => setTrailEnabled(false),
-    onLeave: () => setTrailEnabled(true),
-    onEnterBack: () => setTrailEnabled(false),
-    onLeaveBack: () => setTrailEnabled(true),
-  });
-  return () => st.kill();
-}, []);
-const [activeIndex, setActiveIndex] = useState(0);
-
-const CLIPS = ["clip-a", "clip-b"];
-
-const clipIds = useMemo(
-  () => reviews.map(() => CLIPS[Math.floor(Math.random() * CLIPS.length)]),
-  [reviews]
-);
-
-const movingBlobRef = useRef(null)
-const points = [
-  { x: 150, y: 60 },
-  { x: 210, y: 110 },
-  { x: 200, y: 190 },
-  { x: 120, y: 210 },
-  { x: 70,  y: 140 },
-  { x: 100, y: 100 },
-];
-
-useLayoutEffect(() => {
-  const tl = gsap.timeline({
-    repeat: -1,
-    defaults: { ease: 'sine.inOut', duration: 1.6 },
-  });
-
-  points.forEach((p) => {
-    tl.to(movingBlobRef.current, {
-      attr: { cx: p.x, cy: p.y },
+  useLayoutEffect(() => {
+    const tl = gsap.timeline({
+      repeat: -1,
+      defaults: { ease: "sine.inOut", duration: 1.6 },
     });
-  });
-}, []);
- 
+
+    points.forEach((p) => {
+      tl.to(movingBlobRef.current, {
+        attr: { cx: p.x, cy: p.y },
+      });
+    });
+  }, []);
+
   return (
     <>
-<FluidSimulation disabled={disableFluid} />
-<List onInteractionChange={setDisableFluid} />
+      {/* <FluidSimulation disabled={disableFluid} /> */}
+      <List onInteractionChange={setDisableFluid} />
 
-      {/* <MouseTrail
-        images={[
-          "../images/mousetrail/flame.png",
-          "../images/mousetrail/cat.png",
-          "../images/mousetrail/pixelstar.png",
-          "../images/mousetrail/avocado.png",
-          "../images/mousetrail/ghost.png",
-          "../images/mousetrail/pacman.png",
-          "../images/mousetrail/evilrobot.png",
-          "../images/mousetrail/thirdeye.png",
-          "../images/mousetrail/alientcat.png",
-          "../images/mousetrail/gotcha.png",
-          "../images/mousetrail/karaokekawaii.png",
-          "../images/mousetrail/mushroom.png",
-          "../images/mousetrail/pixelcloud.png",
-          "../images/mousetrail/pineapple.png",
-          "../images/mousetrail/pixelsun.png",
-          "../images/mousetrail/cherries.png",
-          "../images/mousetrail/watermelon.png",
-          "../images/mousetrail/dolphins.png",
-          "../images/mousetrail/jellyfish.png",
-          "../images/mousetrail/nyancat.png",
-          "../images/mousetrail/donut.png",
-          "../images/mousetrail/controller.png",
-          "../images/mousetrail/dinosaur.png",
-          "../images/mousetrail/headphones.png",
-          "../images/mousetrail/porsche.png",
-        ]}
-      /> */}
       <Background />
-      <section
-        className="z-10 relative w-full px-6 md:px-12"
-      >
-
-      </section>
-      <section className="w-full py-12">
-          <section className="relative overflow-hidden mx-auto max-w-[1400px] px-10">
-
-    
-   <div className="flex items-center justify-between py-10 w-full">
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-
-          <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
-          <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 13 12"
-              fill="none"
-              className="w-full h-full"
-            >
-              <path
-                d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
-                fill="#000"
-              />
-            </svg>
-          </span>
-        </div>
-
-  
-      <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
- Every smile tells a story — these are some of our favorites.
-      </div>
-
-{/* <svg width="320" height="320" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
-
-  <g transform="translate(160 160) rotate(-24) skewX(-22) scale(1.18 0.86) translate(-160 -160)">
-
-    <g transform="translate(160 160)" fill="black">
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="0 0 0" to="360 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(0)">
-          <g transform="translate(120 0)">
-            <g transform="rotate(90)"><ellipse rx="44" ry="26" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="45 0 0" to="405 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(45)">
-          <g transform="translate(85 85)">
-            <g transform="rotate(135)"><ellipse rx="40" ry="24" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="90 0 0" to="450 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(90)">
-          <g transform="translate(0 120)">
-            <g transform="rotate(180)"><ellipse rx="42" ry="26" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="135 0 0" to="495 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(135)">
-          <g transform="translate(-85 85)">
-            <g transform="rotate(225)"><ellipse rx="40" ry="24" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="180 0 0" to="540 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(180)">
-          <g transform="translate(-120 0)">
-            <g transform="rotate(270)"><ellipse rx="46" ry="28" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="225 0 0" to="585 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(225)">
-          <g transform="translate(-85 -85)">
-            <g transform="rotate(315)"><ellipse rx="40" ry="24" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="270 0 0" to="630 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(270)">
-          <g transform="translate(0 -120)">
-            <g transform="rotate(360)"><ellipse rx="42" ry="26" /></g>
-          </g>
-        </g>
-      </g>
-
-
-      <g>
-        <animateTransform attributeName="transform" type="rotate"
-          from="315 0 0" to="675 0 0" dur="18s" repeatCount="indefinite" />
-        <g transform="rotate(315)">
-          <g transform="translate(85 -85)">
-            <g transform="rotate(405)"><ellipse rx="40" ry="24" /></g>
-          </g>
-        </g>
-      </g>
-
-    </g>
-  </g>
-</svg> */}
-      <div className="absolute top-24 right-10 text-xs uppercase tracking-widest text-black/70 flex flex-col items-center gap-2">
-         <div className="group
-                        px-12 py-6 flex items-center gap-4
-                        transition-transform duration-300 hover:scale-[1.02] cursor-pointer">
-
-          <span className="text-2xl">
-            <svg
-  xmlns="http://www.w3.org/2000/svg"
-  fill="none"
-  viewBox="0 0 24 24"
-  strokeWidth={1.5}
-  stroke="currentColor"
-  className="w-6 h-6"
->
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    d="m16.49 12 3.75 3.75m0 0-3.75 3.75m3.75-3.75H3.74V4.499"
-  />
-</svg>
-          </span>
-
-        </div>
-      </div>
-
-      {/* <div className="relative z-10 flex items-center justify-center min-h-[80vh]">
-    <Contents />
-      </div> */}
-{/* <TextSwirl /> */}
-
-    </section>
-
-
-      </section>
-
-
-<section
-  ref={reviewsRef}
-  className="relative flex flex-wrap items-center justify-center min-h-screen gap-4 p-8 overflow-hidden"
->
-  <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
-  <defs>
-
-
-    <clipPath id="clip-a" clipPathUnits="objectBoundingBox">
-      <path d="M0.9979787,0.04976303l0,0.9004739c0,0.02617536,-0.02121801,0.04739336,-0.04739336,0.04739336l-0.3909621,0c-0.01231754,0,-0.02415166,-0.004796209,-0.03299289,-0.01336967l-0.0577346,-0.05598341c-0.008841232,-0.008575829,-0.02067536,-0.01336967,-0.03299052,-0.01336967l-0.2123436,0c-0.01231754,0,-0.02415166,0.004793839,-0.03299289,0.01336967l-0.0577346,0.05598341c-0.008841232,0.00857346,-0.02067536,0.01336967,-0.03299289,0.01336967l-0.04972986,0c-0.02617536,0,-0.04739336,-0.02121801,-0.04739336,-0.04739336l0,-0.9004739c0,-0.02617536,0.02121801,-0.04739336,0.04739336,-0.04739336l0.9004739,0c0.02617536,0,0.04739336,0.02121801,0.04739336,0.04739336z"/>
-    </clipPath>
-
-
-    <clipPath id="clip-b" clipPathUnits="objectBoundingBox">
-      <path d="M0.002,0.95V0.05C0.002,0.025,0.025,0.002,0.05,0.002h0.39c0.012,0,0.024,0.0048,0.033,0.0134l0.058,0.056c0.009,0.009,0.021,0.013,0.033,0.013h0.212c0.012,0,0.024,-0.0048,0.033,-0.013l0.058,-0.056c0.009,-0.0086,0.021,-0.0134,0.033,-0.0134h0.05c0.025,0,0.047,0.021,0.047,0.047V0.95c0,0.025,-0.021,0.047,-0.047,0.047H0.05C0.025,0.997,0.002,0.975,0.002,0.95z"/>
-    </clipPath>
-
-
-  </defs>
-</svg>
-<StackMotionEffect />
-{reviews.map((t, i) => {
-  const clipId = CLIPS[i % CLIPS.length];
-
-  return (
-    <div
-      key={i}
-      style={{ zIndex: i }}
-      className="
-        relative
-        w-[320px]
-        min-h-[450px]
-        flex
-        flex-col
-        justify-start
-
-        bg-white/35
-        backdrop-blur-md
-        backdrop-saturate-150
-
-        border border-white/40
-        shadow-[0_8px_30px_rgba(0,0,0,0.08)]
-
-        will-change-transform
-      "
-    >
-
-      <div className="relative w-full h-[240px] p-2">
-        <div
-          className="relative w-full h-full bg-cover bg-center overflow-hidden"
-          style={{
-            backgroundImage: `url(${t.image})`,
-            clipPath: `url(#${clipId})`,
-            WebkitClipPath: `url(#${clipId})`,
-          }}
-        >
-          <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />
-        </div>
-      </div>
-
-
-      <div className="flex flex-col gap-2 p-4">
-        <h3 className="text-[16px] leading-tight font-neuehaas35 text-center">
-          {t.name}
-        </h3>
-
-        <p className="text-[12px] leading-snug font-neuehaas45 text-black/70">
-          {t.text}
-        </p>
-      </div>
-    </div>
-  );
-})}
-</section>
-
-   
-      {/* <div style={{ display: "flex", height: "100vh", overflowY: "auto" }}>
-
-          <div id="right-column" className="relative w-1/2">
-            <section className="relative" style={{ marginBottom: "0vh" }}>
-              <div className="relative w-full h-full">
-                <div ref={gradient1Ref} className="gradient-container">
-                  <div className="gradient-col">
-                    <div className="h-full gradient-1"></div>
-                  </div>
-                  <div className="gradient-col">
-                    <div className="h-full gradient-2"></div>
-                  </div>
-                  <div className="gradient-col">
-                    <div className="h-full gradient-1"></div>
-                  </div>
-                  <div className="gradient-col">
-                    <div className="h-full gradient-2"></div>
-                  </div>
-                </div>
-                <div>
-                  <img
-                    ref={image1Ref}
-                    src="../images/patient25k.png"
-                    alt="patient"
-                    className="absolute top-[45%] right-[15%] w-[250px] h-auto "
-                  />
-                </div>
-              </div>
-            </section>
-
-            <div class="gradient-container-2">
-              <div class="gradient-col-2"></div>
-              <div class="gradient-col-2"></div>
-              <div class="gradient-col-2"></div>
-              <div class="gradient-col-2"></div>
-            </div>
-          </div>
-        </div> */}
     </>
   );
 };
 
 export default Testimonials;
 
+{
+  /* <section className="w-full py-12">
+        <section className="relative overflow-hidden mx-auto max-w-[1400px] ">
+          <div className="flex items-center justify-between py-10 w-full">
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
 
-const throttle = (func, limit) => {
-  let inThrottle;
-  return function() {
-    const args = arguments;
-    const context = this;
-    if (!inThrottle) {
-      func.apply(context, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-};
-
-const StackMotionEffect = () => {
-  const wrapRef = useRef(null);
-  const contentRef = useRef(null);
-  const cardsRef = useRef([]);
-  const tlRef = useRef(null);
-  
-  const winsizeRef = useRef({ 
-    width: typeof window !== 'undefined' ? window.innerWidth : 1200, 
-    height: typeof window !== 'undefined' ? window.innerHeight : 800 
-  });
-
-  const reviews = useMemo(() => {
-    const repeatedReviews = [];
-    while (repeatedReviews.length < 27) {
-      repeatedReviews.push(...[
-        {
-          name: "James Pica",
-          text: "Frey Smiles has made the whole process from start to finish incredibly pleasant and sooo easy on my kids to follow. They were able to make a miracle happen with my son's tooth that was coming in sideways. He now has a perfect smile and I couldn't be happier. My daughter is halfway through her treatment and the difference already has been great. I 100% recommend this place to anyone!!!",
-       
-          image: "/images/_mesh_gradients/lightblue.png",
-  
-        },
-        {
-          name: "Thomas StPierre",
-          text: "I had a pretty extreme case and it took some time, but FreySmiles gave me the smile I had always hoped for. Thank you!",
-    
-          image: "/images/_mesh_gradients/purplegrey.png",
-      
-        },
-        {
-          name: "Fei Zhao",
-          text: "Our whole experience for the past 10 years of being under Dr. Gregg Frey's care and his wonderful staff has been amazing. My son and my daughter have most beautiful smiles, and they received so many compliments on their teeth. It has made a dramatic and positive change in their lives. Dr. Frey is a perfectionist, and his treatment is second to none. I recommend Dr. Frey highly and without any reservation.",
-   
-          image: "/images/_mesh_gradients/pantonepinkblue.png",
-  
-        },
-        {
-          name: "Shelby Loucks",
-          text: "THEY ARE AMAZING!! Great staff and wonderful building. HIGHLY recommend to anyone looking for an orthodontist.",
-        
-          image: "/images/_mesh_gradients/LilyWhite.jpg",
-    
-        },
-        {
-          name: "Diana Gomez",
-          text: "After arriving at my sons dentist on a Friday, his dentist office now informs me that they don't have a referral. I called the Frey smiles office when they were closed and left a message. I received a call back within minutes from Dr. Frey himself who sent the referral over immediately ( on his day off!!!) how amazing! Not to mention the staff was amazing when were were there and my children felt so comfortable! Looking forward to a wonderful smile for my son!!",
-          
-          image: "/images/_mesh_gradients/pinkwhite.png",
-     
-        },
-        {
-          name: "Tracee Benton",
-          text: "Dr. Frey and his orthodontist techs are the absolute best! The team has such an attention to detail I absolutely love my new smile and my confidence has significantly grown! The whole process of using Invisalign has been phenomenal. I highly recommend Dr. Frey and his team to anyone considering orthodontic work!",
-        
-          image: "/images/_mesh_gradients/purpledred.png",
-        
-        },
-        {
-          name: "Brandi Moyer",
-          text: "My experience with Dr. Frey orthodontics has been nothing but great. The staff is all so incredibly nice and willing to help. And better yet, today I found out I may be ahead of my time line to greater aligned teeth!.",
-         
-          image: "/images/_mesh_gradients/purpleyellow.png",
-        
-        },
-        {
-          name: "Andrew Cornell",
-          text: "Over 20 years ago, I went to Dr. Frey to fix my cross bite and get braces. Since then, my smile looks substantially nicer. My entire mouth feels better as well. The benefits of orthodontics under Dr. Frey continue paying dividends.",
-         
-          image: "/images/_mesh_gradients/greenwhite.png",
-         
-        },
-        {
-          name: "Vicki Weaver",
-          text: "We have had all four of our children receive orthodontic treatment from Dr. Frey. Dr. Frey is willing to go above and beyond for his patients before, during, and after the treatment is finished. It shows in their beautiful smiles!! We highly recommend FreySmiles to all of our friends and family!",
-         
-          image: "/images/_mesh_gradients/blueyellowgradient.png",
-      
-        },
-        {
-          name: "Sara Moyer",
-          text: "We are so happy that we picked Freysmiles in Lehighton for both of our girls Invisalign treatment. Dr. Frey and all of his staff are always so friendly and great to deal with. My girls enjoy going to their appointments and love being able to see the progress their teeth have made with each tray change. We are 100% confident that we made the right choice when choosing them as our orthodontist!",
-          image: "/images/_mesh_gradients/turquoisegradient.png",
-     
-        },
-        {
-          name: "Mandee Kaur",
-          image: "/images/_mesh_gradients/pinkparty.png",
-          text: "I would highly recommend FreySmiles! Excellent orthodontic care, whether it's braces or Invisalign, Dr. Frey and his team pay attention to detail in making sure your smile is flawless! I would not trust anyone else for my daughter's care other than FreySmiles.",
-    
-  
-        },
-      ]);
-    }
-
-    return repeatedReviews.slice(0, 27);
-  }, []);
-
-
-  const initScrollEffect = useCallback(() => {
-    if (!contentRef.current || !wrapRef.current) return;
-
-    const validCards = cardsRef.current.filter(card => card !== null);
-    if (validCards.length === 0) return;
-
-    gsap.set(contentRef.current, {
-      transform: 'rotate3d(1, 0, 0, -25deg) rotate3d(0, 1, 0, 50deg) rotate3d(0, 0, 1, 25deg)',
-      opacity: 0
-    });
-
-    if (tlRef.current) {
-      tlRef.current.kill();
-      tlRef.current = null;
-    }
-
-    tlRef.current = gsap.timeline({
-      defaults: { ease: 'none' },
-      scrollTrigger: {
-        trigger: wrapRef.current,
-    start: 'top bottom-=20%',
-    end: '+=150%',
-        scrub: .4,
-        onEnter: () => gsap.set(contentRef.current, { opacity: 1 }),
-        onEnterBack: () => gsap.set(contentRef.current, { opacity: 1 }),
-        onLeave: () => gsap.set(contentRef.current, { opacity: 0 }),
-        onLeaveBack: () => gsap.set(contentRef.current, { opacity: 0 }),
-      },
-    })
-    .fromTo(validCards, {
-      z: (pos) => -2.65 * winsizeRef.current.width - pos * 0.03 * winsizeRef.current.width,
-    }, {
-      z: (pos) => 1.4 * winsizeRef.current.width + (validCards.length - pos - 1) * 0.03 * winsizeRef.current.width,
-    }, 0)
-    .fromTo(validCards, {
-      rotationZ: -220,
-    }, {
-      rotationY: -30,
-      rotationZ: 120,
-      stagger: 0.005,
-    }, 0);
-  }, []);
-
-
-  const setCardRef = useCallback((el, index) => {
-    cardsRef.current[index] = el;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleResize = throttle(() => {
-      winsizeRef.current = { 
-        width: window.innerWidth, 
-        height: window.innerHeight 
-      };
-      initScrollEffect();
-    }, 100);
-
-    window.addEventListener('resize', handleResize);
-    
-
-    setTimeout(initScrollEffect, 100); 
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (tlRef.current) {
-        tlRef.current.kill();
-        tlRef.current = null;
-      }
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-    };
-  }, [initScrollEffect]);
-
-  return (
-    <>
-    <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
-  <defs>
-    <clipPath id="clip-a" clipPathUnits="objectBoundingBox">
-      <path d="M0.9979787,0.04976303l0,0.9004739c0,0.02617536,-0.02121801,0.04739336,-0.04739336,0.04739336l-0.3909621,0c-0.01231754,0,-0.02415166,-0.004796209,-0.03299289,-0.01336967l-0.0577346,-0.05598341c-0.008841232,-0.008575829,-0.02067536,-0.01336967,-0.03299052,-0.01336967l-0.2123436,0c-0.01231754,0,-0.02415166,0.004793839,-0.03299289,0.01336967l-0.0577346,0.05598341c-0.008841232,0.00857346,-0.02067536,0.01336967,-0.03299289,0.01336967l-0.04972986,0c-0.02617536,0,-0.04739336,-0.02121801,-0.04739336,-0.04739336l0,-0.9004739c0,-0.02617536,0.02121801,-0.04739336,0.04739336,-0.04739336l0.9004739,0c0.02617536,0,0.04739336,0.02121801,0.04739336,0.04739336z"/>
-    </clipPath>
-
-    <clipPath id="clip-b" clipPathUnits="objectBoundingBox">
-      <path d="M0.002,0.95V0.05C0.002,0.025,0.025,0.002,0.05,0.002h0.39c0.012,0,0.024,0.0048,0.033,0.0134l0.058,0.056c0.009,0.009,0.021,0.013,0.033,0.013h0.212c0.012,0,0.024,-0.0048,0.033,-0.013l0.058,-0.056c0.009,-0.0086,0.021,-0.0134,0.033,-0.0134h0.05c0.025,0,0.047,0.021,0.047,0.047V0.95c0,0.025,-0.021,0.047,-0.047,0.047H0.05C0.025,0.997,0.002,0.975,0.002,0.95z"/>
-    </clipPath>
-  </defs>
-</svg>
-      <div className="sme-wrap">
-        <div ref={wrapRef} className="sme-wrap__inner">
-          <div ref={contentRef} className="sme-content sme-content--1">
-          {reviews.map((review, index) => (
-<div
-  key={`sme-review-${index}`}
-  ref={(el) => setCardRef(el, index)}
-  className="sme-card"
->
-  <div
-    className={`sme-card__img relative ${index % 2 === 0 ? "clip-a" : "clip-b"}`}
-    style={{
-      backgroundImage: `url(${review.image})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    }}
-  >
-    <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />
-  </div>
-</div>
-))}
+            <div className="flex-1 mx-2 border-b border-[#595252]/20"></div>
+            <span className="inline-block w-3 h-3 transition-transform duration-300 ease-in-out hover:rotate-180">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 13 12"
+                fill="none"
+                className="w-full h-full"
+              >
+                <path
+                  d="M0.5 6.46154V5.53846H6.03846V0H6.96154V5.53846H12.5V6.46154H6.96154V12H6.03846V6.46154H0.5Z"
+                  fill="#000"
+                />
+              </svg>
+            </span>
           </div>
-        </div>
-      </div>
-    </>
-  );
-};
 
-
-const TextSwirl = () => {
-  const containerRef = useRef(null);
-  const elementsRef = useRef([]);
-
-  const textItems = [
-    "James Pica",
-    "Thomas StPierre",
-    "Fei Zhao",
-    "Shelby Loucks",
-    "Diana Gomez",
-    "Tracee Benton",
-    "Brandi Moyer",
-    "Andrew Cornell",
-    "Vicki Weaver",
-    "Sara Moyer",
-    "Mandee Kaur",
-    "Anita Sutton",
-    "Mary Ost",
-    "Crystal Burke",
-    "Ashley S",
-    "Angie Lub",
-    "Lauren Muniz",
-    "Arthur Wines",
-    "Ethan Ball"
-
-
-  ];
-
-  useEffect(() => {
-    initAnimations();
-    const handleResize = () => {
-      ScrollTrigger.refresh(true);
-      setTimeout(initAnimations, 100);
-    };
-
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      ScrollTrigger.getAll().forEach(st => st.kill());
-    };
-  }, []);
-const initAnimations = () => {
-  gsap.set(elementsRef.current, {
-    clearProps: 'transform,opacity,margin,marginLeft,marginTop', 
-  });
-
-  elementsRef.current.forEach((el) => {
-    if (!el) return;
-
-    const originalClass = 'pos-3';
-    const targetClass = el.dataset.altPos || 'pos-8';
-    const flipEase = 'expo.inOut';
-
-    el.classList.add(targetClass);
-    el.classList.remove(originalClass);
-
-
-    const flipState = Flip.getState(el, {
-      props: 'opacity,margin,margin-left,margin-top,transform', 
-      simple: true
-    });
-
-    el.classList.add(originalClass);
-    el.classList.remove(targetClass);
-
-    Flip.to(flipState, {
-      ease: flipEase,
-      scrollTrigger: {
-        trigger: el,
-        start: 'clamp(bottom bottom-=10%)',
-        end: 'clamp(center center)',
-        scrub: true,
-      },
-    });
-
-    Flip.from(flipState, {
-      ease: flipEase,
-      scrollTrigger: {
-        trigger: el,
-        start: 'clamp(center center)',
-        end: 'clamp(top top)',
-        scrub: true,
-      },
-    });
-  });
-};
-
-  return (
-    <div className="apptext text-black">
-
-      <div className="flex-col" style={{  display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily:"NeueHaasGroteskDisplayPro45Light" }}>
-                <h1 className="text-[18px] mb-2">Scroll to see some of our patients</h1>
-<div className="text-[16px]">Meet the smiles behind the hype</div>
-      </div>
-
-
-      <div className="grouptwo" ref={containerRef}>
-        {textItems.map((text, index) => (
-          <div
-            key={index}
-            className="el pos-3"
-            data-alt-pos="pos-8"
-            ref={el => elementsRef.current[index] = el}
-          >
-            {text}
+          <div className="font-neuehaas45 absolute top-28 left-10 text-xs uppercase tracking-widest text-black/70">
+            Every smile tells a story — these are some of our favorites.
           </div>
-        ))}
-      </div>
 
-
-      <div style={{ height: '50vh' }}></div>
-    </div>
-  );
-};
-
-
-class MousePointer {
-  constructor() {
-    this.x = window.innerWidth * 0.5;
-    this.y = window.innerHeight * 0.5;
-    this.normal = { x: 0, y: 0 };
-    this.isDown = false;
-
-    this._setupListeners();
-  }
-
-  _setupListeners() {
-    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const target = document.querySelector(".l-canvas") || window;
-
-    if (isTouch) {
-      target.addEventListener("touchstart", (e) => this._handleStart(e));
-      target.addEventListener("touchend", () => this._handleEnd());
-      target.addEventListener("touchmove", (e) => this._handleMove(e), {
-        passive: false,
-      });
-    } else {
-      window.addEventListener("mousedown", (e) => this._handleStart(e));
-      window.addEventListener("mouseup", () => this._handleEnd());
-      window.addEventListener("mousemove", (e) => this._handleMove(e));
-    }
-  }
-
-  _handleStart(e) {
-    this.isDown = true;
-    this._updatePosition(e);
-  }
-
-  _handleEnd() {
-    this.isDown = false;
-  }
-
-  _handleMove(e) {
-    this._updatePosition(e);
-  }
-
-  _updatePosition(e) {
-    const pos = this._getEventPosition(e);
-    this.x = pos.x;
-    this.y = pos.y;
-
-    this.normal.x = this.x / window.innerWidth;
-    this.normal.y = this.y / window.innerHeight;
-  }
-
-  _getEventPosition(e) {
-    if (e.touches) {
-      return {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      };
-    }
-    return {
-      x: e.clientX,
-      y: e.clientY,
-    };
-  }
+        </section>
+      </section> */
 }
 
-const mousePointer = new MousePointer();
+// const FluidSimulation = ({ disabled }) => {
+//   const canvasRef = useRef(null);
 
-const map = (num, toMin, toMax, fromMin, fromMax) => {
-  if (num <= fromMin) return toMin;
-  if (num >= fromMax) return toMax;
-  const p = (toMax - toMin) / (fromMax - fromMin);
-  return (num - fromMin) * p + toMin;
-};
+//   useEffect(() => {
+//     const canvas = canvasRef.current;
+//     if (!canvas) return;
 
-const useWindowSize = () => {
-  const [size, setSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
+//     canvas.width = canvas.clientWidth;
+//     canvas.height = canvas.clientHeight;
 
-  useEffect(() => {
-    const handleResize = () => {
-      setSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
+//     const config = {
+//       TEXTURE_DOWNSAMPLE: 1,
+//       DENSITY_DISSIPATION: 0.98,
+//       VELOCITY_DISSIPATION: 0.99,
+//       PRESSURE_DISSIPATION: 0.8,
+//       PRESSURE_ITERATIONS: 25,
+//       CURL: 28,
+//       SPLAT_RADIUS: 0.0008,
+//     };
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+//     let pointers = [];
+//     let splatStack = [];
 
-  return size;
-};
+//     const { gl, ext } = getWebGLContext(canvas);
 
-const Contents = () => {
-  const line = 10;
-  const [blocks, setBlocks] = useState([]);
-  const photoRef = useRef(null);
-  const blocksRef = useRef(null);
-  const animationRef = useRef();
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
-  const windowSize = useWindowSize();
+//     function getWebGLContext(canvas) {
+//       const params = {
+//         alpha: true,
+//         depth: false,
+//         stencil: false,
+//         antialias: false,
+//       };
 
-  const useGPU = (el) => {
-    gsap.set(el, { willChange: "transform, opacity" });
-  };
+//       let gl = canvas.getContext("webgl2", params);
+//       const isWebGL2 = !!gl;
+//       if (!isWebGL2)
+//         gl =
+//           canvas.getContext("webgl", params) ||
+//           canvas.getContext("experimental-webgl", params);
 
-  useEffect(() => {
-    if (!photoRef.current || !blocksRef.current) return;
+//       let halfFloat;
+//       let supportLinearFiltering;
+//       if (isWebGL2) {
+//         gl.getExtension("EXT_color_buffer_float");
+//         supportLinearFiltering = gl.getExtension("OES_texture_float_linear");
+//       } else {
+//         halfFloat = gl.getExtension("OES_texture_half_float");
+//         supportLinearFiltering = gl.getExtension(
+//           "OES_texture_half_float_linear",
+//         );
+//       }
 
-    const img = photoRef.current.querySelector("img");
-    const block = blocksRef.current;
-    const num = line * line;
-    const newBlocks = [];
+//       gl.clearColor(0.0, 0.0, 0.0, 0.0);
+//       gl.enable(gl.BLEND);
+//       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    for (let i = 0; i < num; i++) {
-      const b = document.createElement("div");
-      block.append(b);
-      b.append(img.cloneNode(false));
+//       const halfFloatTexType = isWebGL2
+//         ? gl.HALF_FLOAT
+//         : halfFloat.HALF_FLOAT_OES;
+//       let formatRGBA;
+//       let formatRG;
+//       let formatR;
 
-      gsap.set(b, {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        overflow: "hidden",
-      });
+//       if (isWebGL2) {
+//         formatRGBA = getSupportedFormat(
+//           gl,
+//           gl.RGBA16F,
+//           gl.RGBA,
+//           halfFloatTexType,
+//         );
+//         formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
+//         formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
+//       } else {
+//         formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//         formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//         formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//       }
 
-      const imgEl = b.querySelector("img");
-      useGPU(imgEl);
-      useGPU(b);
+//       return {
+//         gl,
+//         ext: {
+//           formatRGBA,
+//           formatRG,
+//           formatR,
+//           halfFloatTexType,
+//           supportLinearFiltering,
+//         },
+//       };
+//     }
 
-      newBlocks.push({ con: b, img: imgEl });
-    }
+//     function getSupportedFormat(gl, internalFormat, format, type) {
+//       if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
+//         switch (internalFormat) {
+//           case gl.R16F:
+//             return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+//           case gl.RG16F:
+//             return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+//           default:
+//             return null;
+//         }
+//       }
 
-    setBlocks(newBlocks);
+//       return {
+//         internalFormat,
+//         format,
+//       };
+//     }
 
-    return () => {
-      gsap.killTweensOf("*");
-      block.innerHTML = "";
-    };
-  }, []);
+//     function supportRenderTextureFormat(gl, internalFormat, format, type) {
+//       let texture = gl.createTexture();
+//       gl.bindTexture(gl.TEXTURE_2D, texture);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//       gl.texImage2D(
+//         gl.TEXTURE_2D,
+//         0,
+//         internalFormat,
+//         4,
+//         4,
+//         0,
+//         format,
+//         type,
+//         null,
+//       );
 
-  useEffect(() => {
-    const el = photoRef.current;
-    if (!el) return;
+//       let fbo = gl.createFramebuffer();
+//       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+//       gl.framebufferTexture2D(
+//         gl.FRAMEBUFFER,
+//         gl.COLOR_ATTACHMENT0,
+//         gl.TEXTURE_2D,
+//         texture,
+//         0,
+//       );
 
-    const handleMouseMove = (e) => {
-      const rect = el.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
+//       const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+//       if (status != gl.FRAMEBUFFER_COMPLETE) return false;
+//       return true;
+//     }
 
-      setMousePos({
-        x: Math.max(0, Math.min(1, x)),
-        y: Math.max(0, Math.min(1, y)),
-      });
-    };
+//     function pointerPrototype() {
+//       this.id = -1;
+//       this.x = 0;
+//       this.y = 0;
+//       this.dx = 0;
+//       this.dy = 0;
+//       this.down = false;
+//       this.moved = false;
+//       this.color = [30, 0, 300];
+//     }
 
-    el.addEventListener("mousemove", handleMouseMove);
-    return () => el.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+//     pointers.push(new pointerPrototype());
 
-  const update = () => {
-    if (!photoRef.current) return;
+//     class GLProgram {
+//       constructor(vertexShader, fragmentShader) {
+//         this.uniforms = {};
+//         this.program = gl.createProgram();
 
-    const minDimension = Math.min(windowSize.width, windowSize.height);
-    gsap.set(photoRef.current, { width: minDimension * 0.75 });
+//         gl.attachShader(this.program, vertexShader);
+//         gl.attachShader(this.program, fragmentShader);
+//         gl.linkProgram(this.program);
 
-    const mx = mousePos.x;
-    const my = mousePos.y;
+//         if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))
+//           throw gl.getProgramInfoLog(this.program);
 
-    const imgSize = photoRef.current.offsetWidth || 0;
-    const size = imgSize / line;
-    const scale = 50;
+//         const uniformCount = gl.getProgramParameter(
+//           this.program,
+//           gl.ACTIVE_UNIFORMS,
+//         );
+//         for (let i = 0; i < uniformCount; i++) {
+//           const uniformName = gl.getActiveUniform(this.program, i).name;
+//           this.uniforms[uniformName] = gl.getUniformLocation(
+//             this.program,
+//             uniformName,
+//           );
+//         }
+//       }
 
-    blocks.forEach((val, i) => {
-      const ix = Math.floor(i / line);
-      const iy = i % line;
+//       bind() {
+//         gl.useProgram(this.program);
+//       }
+//     }
 
-      const blockX = (ix + 0.5) / line;
-      const blockY = (iy + 0.5) / line;
+//     function compileShader(type, source) {
+//       const shader = gl.createShader(type);
+//       gl.shaderSource(shader, source);
+//       gl.compileShader(shader);
 
-      const dx = blockX - mx;
-      const dy = blockY - my;
-      const d = Math.sqrt(dx * dx + dy * dy);
+//       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+//         throw gl.getShaderInfoLog(shader);
 
-      const radius = 0.3;
-      const opacity = Math.max(0, 1 - d / radius);
+//       return shader;
+//     }
 
-      gsap.to(val.con, {
-        width: size + 2,
-        height: size + 2,
-        left: ix * size,
-        top: iy * size,
-        opacity,
-        duration: 0.12,
-        ease: "power2.out",
-      });
+//     const baseVertexShader = compileShader(
+//       gl.VERTEX_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
 
-      const size2 = scale * size;
-      gsap.to(val.img, {
-        scale,
-        x: blockX * -size2,
-        y: blockY * -size2,
-        duration: 0.12,
-        ease: "power2.out",
-      });
-    });
+//       attribute vec2 aPosition;
+//       varying vec2 vUv;
+//       varying vec2 vL;
+//       varying vec2 vR;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform vec2 texelSize;
 
-    animationRef.current = requestAnimationFrame(update);
-  };
+//       void main () {
+//           vUv = aPosition * 0.5 + 0.5;
+//           vL = vUv - vec2(texelSize.x, 0.0);
+//           vR = vUv + vec2(texelSize.x, 0.0);
+//           vT = vUv + vec2(0.0, texelSize.y);
+//           vB = vUv - vec2(0.0, texelSize.y);
+//           gl_Position = vec4(aPosition, 0.0, 1.0);
+//       }
+//     `,
+//     );
 
-  useEffect(() => {
-    animationRef.current = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [blocks, windowSize, mousePos]);
+//     const clearShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
 
-  return (
-    <div className="js-photo" ref={photoRef}>
-      <img src="../images/flower.jpeg" alt="" />
-      <div className="js-photo-blocks" ref={blocksRef} />
-    </div>
-  );
-};
+//       varying vec2 vUv;
+//       uniform sampler2D uTexture;
+//       uniform float value;
+
+//       void main () {
+//           gl_FragColor = value * texture2D(uTexture, vUv);
+//       }
+//     `,
+//     );
+
+//     const displayShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       uniform sampler2D uTexture;
+// void main() {
+//     vec3 rawColor = texture2D(uTexture, vUv).rgb;
+
+//     // Tone down bright white centers
+//     rawColor = clamp(rawColor, 0.0, 0.6);
+
+//     // More pink, less orange: soft pastel pink
+//     vec3 pinkTint = vec3(1.0, 0.75, 0.9);  // Reddish-pink tone
+
+//     // Blend the raw color and pink tint
+//     vec3 color = mix(rawColor, pinkTint, 0.4);  // Slightly more tinting
+
+//     // Feathered alpha for a wispy look
+//     float intensity = length(rawColor);
+//     float alpha = pow(intensity, 1.2) * smoothstep(0.0, 0.4, intensity);
+//     alpha = clamp(alpha, 0.0, 1.0);
+
+//     gl_FragColor = vec4(color, alpha * 0.7);  // Slightly softer visibility
+// }
+//     `,
+//     );
+
+//     const splatShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       uniform sampler2D uTarget;
+//       uniform float aspectRatio;
+//       uniform vec3 color;
+//       uniform vec2 point;
+//       uniform float radius;
+
+//       void main () {
+//           vec2 p = vUv - point.xy;
+//           p.x *= aspectRatio;
+//           vec3 splat = exp(-dot(p, p) / radius) * color;
+//           vec3 base = texture2D(uTarget, vUv).xyz;
+//           gl_FragColor = vec4(base + splat, 1.0);
+//       }
+//     `,
+//     );
+
+//     const advectionManualFilteringShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       uniform sampler2D uVelocity;
+//       uniform sampler2D uSource;
+//       uniform vec2 texelSize;
+//       uniform float dt;
+//       uniform float dissipation;
+
+//       vec4 bilerp (in sampler2D sam, in vec2 p) {
+//           vec4 st;
+//           st.xy = floor(p - 0.5) + 0.5;
+//           st.zw = st.xy + 1.0;
+//           vec4 uv = st * texelSize.xyxy;
+//           vec4 a = texture2D(sam, uv.xy);
+//           vec4 b = texture2D(sam, uv.zy);
+//           vec4 c = texture2D(sam, uv.xw);
+//           vec4 d = texture2D(sam, uv.zw);
+//           vec2 f = p - st.xy;
+//           return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+//       }
+
+//       void main () {
+//           vec2 coord = gl_FragCoord.xy - dt * texture2D(uVelocity, vUv).xy;
+//           gl_FragColor = dissipation * bilerp(uSource, coord);
+//           gl_FragColor.a = 1.0;
+//       }
+//     `,
+//     );
+
+//     const advectionShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       uniform sampler2D uVelocity;
+//       uniform sampler2D uSource;
+//       uniform vec2 texelSize;
+//       uniform float dt;
+//       uniform float dissipation;
+
+//       void main () {
+//           vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
+//           gl_FragColor = dissipation * texture2D(uSource, coord);
+//           gl_FragColor.a = 1.0;
+//       }
+//     `,
+//     );
+
+//     const divergenceShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       varying vec2 vL;
+//       varying vec2 vR;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform sampler2D uVelocity;
+
+//       vec2 sampleVelocity (in vec2 uv) {
+//           vec2 multiplier = vec2(1.0, 1.0);
+//           if (uv.x < 0.0) { uv.x = 0.0; multiplier.x = -1.0; }
+//           if (uv.x > 1.0) { uv.x = 1.0; multiplier.x = -1.0; }
+//           if (uv.y < 0.0) { uv.y = 0.0; multiplier.y = -1.0; }
+//           if (uv.y > 1.0) { uv.y = 1.0; multiplier.y = -1.0; }
+//           return multiplier * texture2D(uVelocity, uv).xy;
+//       }
+
+//       void main () {
+//           float L = sampleVelocity(vL).x;
+//           float R = sampleVelocity(vR).x;
+//           float T = sampleVelocity(vT).y;
+//           float B = sampleVelocity(vB).y;
+//           float div = 0.5 * (R - L + T - B);
+//           gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+//       }
+//     `,
+//     );
+
+//     const curlShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       varying vec2 vL;
+//       varying vec2 vR;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform sampler2D uVelocity;
+
+//       void main () {
+//           float L = texture2D(uVelocity, vL).y;
+//           float R = texture2D(uVelocity, vR).y;
+//           float T = texture2D(uVelocity, vT).x;
+//           float B = texture2D(uVelocity, vB).x;
+//           float vorticity = R - L - T + B;
+//           gl_FragColor = vec4(vorticity, 0.0, 0.0, 1.0);
+//       }
+//     `,
+//     );
+
+//     const vorticityShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform sampler2D uVelocity;
+//       uniform sampler2D uCurl;
+//       uniform float curl;
+//       uniform float dt;
+
+//       void main () {
+//           float T = texture2D(uCurl, vT).x;
+//           float B = texture2D(uCurl, vB).x;
+//           float C = texture2D(uCurl, vUv).x;
+//           vec2 force = vec2(abs(T) - abs(B), 0.0);
+//           force *= 1.0 / length(force + 0.00001) * curl * C;
+//           vec2 vel = texture2D(uVelocity, vUv).xy;
+//           gl_FragColor = vec4(vel + force * dt, 0.0, 1.0);
+//       }
+//     `,
+//     );
+
+//     const pressureShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       varying vec2 vL;
+//       varying vec2 vR;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform sampler2D uPressure;
+//       uniform sampler2D uDivergence;
+
+//       vec2 boundary (in vec2 uv) {
+//           uv = min(max(uv, 0.0), 1.0);
+//           return uv;
+//       }
+
+//       void main () {
+//           float L = texture2D(uPressure, boundary(vL)).x;
+//           float R = texture2D(uPressure, boundary(vR)).x;
+//           float T = texture2D(uPressure, boundary(vT)).x;
+//           float B = texture2D(uPressure, boundary(vB)).x;
+//           float C = texture2D(uPressure, vUv).x;
+//           float divergence = texture2D(uDivergence, vUv).x;
+//           float pressure = (L + R + B + T - divergence) * 0.25;
+//           gl_FragColor = vec4(pressure, 0.0, 0.0, 1.0);
+//       }
+//     `,
+//     );
+
+//     const gradientSubtractShader = compileShader(
+//       gl.FRAGMENT_SHADER,
+//       `
+//       precision highp float;
+//       precision mediump sampler2D;
+
+//       varying vec2 vUv;
+//       varying vec2 vL;
+//       varying vec2 vR;
+//       varying vec2 vT;
+//       varying vec2 vB;
+//       uniform sampler2D uPressure;
+//       uniform sampler2D uVelocity;
+
+//       vec2 boundary (in vec2 uv) {
+//           uv = min(max(uv, 0.0), 1.0);
+//           return uv;
+//       }
+
+//       void main () {
+//           float L = texture2D(uPressure, boundary(vL)).x;
+//           float R = texture2D(uPressure, boundary(vR)).x;
+//           float T = texture2D(uPressure, boundary(vT)).x;
+//           float B = texture2D(uPressure, boundary(vB)).x;
+//           vec2 velocity = texture2D(uVelocity, vUv).xy;
+//           velocity.xy -= vec2(R - L, T - B);
+//           gl_FragColor = vec4(velocity, 0.0, 1.0);
+//       }
+//     `,
+//     );
+
+//     let textureWidth;
+//     let textureHeight;
+//     let density;
+//     let velocity;
+//     let divergence;
+//     let curl;
+//     let pressure;
+
+//     function initFramebuffers() {
+//       textureWidth = gl.drawingBufferWidth >> config.TEXTURE_DOWNSAMPLE;
+//       textureHeight = gl.drawingBufferHeight >> config.TEXTURE_DOWNSAMPLE;
+
+//       const texType = ext.halfFloatTexType;
+//       const rgba = ext.formatRGBA;
+//       const rg = ext.formatRG;
+//       const r = ext.formatR;
+
+//       density = createDoubleFBO(
+//         2,
+//         textureWidth,
+//         textureHeight,
+//         rgba.internalFormat,
+//         rgba.format,
+//         texType,
+//         ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST,
+//       );
+//       velocity = createDoubleFBO(
+//         0,
+//         textureWidth,
+//         textureHeight,
+//         rg.internalFormat,
+//         rg.format,
+//         texType,
+//         ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST,
+//       );
+//       divergence = createFBO(
+//         4,
+//         textureWidth,
+//         textureHeight,
+//         r.internalFormat,
+//         r.format,
+//         texType,
+//         gl.NEAREST,
+//       );
+//       curl = createFBO(
+//         5,
+//         textureWidth,
+//         textureHeight,
+//         r.internalFormat,
+//         r.format,
+//         texType,
+//         gl.NEAREST,
+//       );
+//       pressure = createDoubleFBO(
+//         6,
+//         textureWidth,
+//         textureHeight,
+//         r.internalFormat,
+//         r.format,
+//         texType,
+//         gl.NEAREST,
+//       );
+//     }
+
+//     function createFBO(texId, w, h, internalFormat, format, type, param) {
+//       gl.activeTexture(gl.TEXTURE0 + texId);
+//       let texture = gl.createTexture();
+//       gl.bindTexture(gl.TEXTURE_2D, texture);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//       gl.texImage2D(
+//         gl.TEXTURE_2D,
+//         0,
+//         internalFormat,
+//         w,
+//         h,
+//         0,
+//         format,
+//         type,
+//         null,
+//       );
+
+//       let fbo = gl.createFramebuffer();
+//       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+//       gl.framebufferTexture2D(
+//         gl.FRAMEBUFFER,
+//         gl.COLOR_ATTACHMENT0,
+//         gl.TEXTURE_2D,
+//         texture,
+//         0,
+//       );
+//       gl.viewport(0, 0, w, h);
+//       gl.clear(gl.COLOR_BUFFER_BIT);
+
+//       return [texture, fbo, texId];
+//     }
+
+//     function createDoubleFBO(texId, w, h, internalFormat, format, type, param) {
+//       let fbo1 = createFBO(texId, w, h, internalFormat, format, type, param);
+//       let fbo2 = createFBO(
+//         texId + 1,
+//         w,
+//         h,
+//         internalFormat,
+//         format,
+//         type,
+//         param,
+//       );
+
+//       return {
+//         get read() {
+//           return fbo1;
+//         },
+//         get write() {
+//           return fbo2;
+//         },
+//         swap() {
+//           let temp = fbo1;
+//           fbo1 = fbo2;
+//           fbo2 = temp;
+//         },
+//       };
+//     }
+
+//     const blit = (() => {
+//       gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+//       gl.bufferData(
+//         gl.ARRAY_BUFFER,
+//         new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]),
+//         gl.STATIC_DRAW,
+//       );
+//       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+//       gl.bufferData(
+//         gl.ELEMENT_ARRAY_BUFFER,
+//         new Uint16Array([0, 1, 2, 0, 2, 3]),
+//         gl.STATIC_DRAW,
+//       );
+//       gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+//       gl.enableVertexAttribArray(0);
+
+//       return (destination) => {
+//         gl.bindFramebuffer(gl.FRAMEBUFFER, destination);
+//         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+//       };
+//     })();
+
+//     const clearProgram = new GLProgram(baseVertexShader, clearShader);
+//     const displayProgram = new GLProgram(baseVertexShader, displayShader);
+//     const splatProgram = new GLProgram(baseVertexShader, splatShader);
+//     const advectionProgram = new GLProgram(
+//       baseVertexShader,
+//       ext.supportLinearFiltering
+//         ? advectionShader
+//         : advectionManualFilteringShader,
+//     );
+//     const divergenceProgram = new GLProgram(baseVertexShader, divergenceShader);
+//     const curlProgram = new GLProgram(baseVertexShader, curlShader);
+//     const vorticityProgram = new GLProgram(baseVertexShader, vorticityShader);
+//     const pressureProgram = new GLProgram(baseVertexShader, pressureShader);
+//     const gradienSubtractProgram = new GLProgram(
+//       baseVertexShader,
+//       gradientSubtractShader,
+//     );
+
+//     initFramebuffers();
+
+//     let lastTime = Date.now();
+//     multipleSplats(parseInt(Math.random() * 20) + 5);
+
+//     function update() {
+//       resizeCanvas();
+
+//       const dt = Math.min((Date.now() - lastTime) / 1000, 0.016);
+//       lastTime = Date.now();
+
+//       gl.viewport(0, 0, textureWidth, textureHeight);
+
+//       if (splatStack.length > 0) multipleSplats(splatStack.pop());
+
+//       advectionProgram.bind();
+//       gl.uniform2f(
+//         advectionProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read[2]);
+//       gl.uniform1i(advectionProgram.uniforms.uSource, velocity.read[2]);
+//       gl.uniform1f(advectionProgram.uniforms.dt, dt);
+//       gl.uniform1f(
+//         advectionProgram.uniforms.dissipation,
+//         config.VELOCITY_DISSIPATION,
+//       );
+//       blit(velocity.write[1]);
+//       velocity.swap();
+
+//       gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read[2]);
+//       gl.uniform1i(advectionProgram.uniforms.uSource, density.read[2]);
+//       gl.uniform1f(
+//         advectionProgram.uniforms.dissipation,
+//         config.DENSITY_DISSIPATION,
+//       );
+//       blit(density.write[1]);
+//       density.swap();
+
+//       for (let i = 0; i < pointers.length; i++) {
+//         const pointer = pointers[i];
+//         if (pointer.moved) {
+//           splat(pointer.x, pointer.y, pointer.dx, pointer.dy, pointer.color);
+//           pointer.moved = false;
+//         }
+//       }
+
+//       curlProgram.bind();
+//       gl.uniform2f(
+//         curlProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(curlProgram.uniforms.uVelocity, velocity.read[2]);
+//       blit(curl[1]);
+
+//       vorticityProgram.bind();
+//       gl.uniform2f(
+//         vorticityProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read[2]);
+//       gl.uniform1i(vorticityProgram.uniforms.uCurl, curl[2]);
+//       gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
+//       gl.uniform1f(vorticityProgram.uniforms.dt, dt);
+//       blit(velocity.write[1]);
+//       velocity.swap();
+
+//       divergenceProgram.bind();
+//       gl.uniform2f(
+//         divergenceProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(divergenceProgram.uniforms.uVelocity, velocity.read[2]);
+//       blit(divergence[1]);
+
+//       clearProgram.bind();
+//       let pressureTexId = pressure.read[2];
+//       gl.activeTexture(gl.TEXTURE0 + pressureTexId);
+//       gl.bindTexture(gl.TEXTURE_2D, pressure.read[0]);
+//       gl.uniform1i(clearProgram.uniforms.uTexture, pressureTexId);
+//       gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE_DISSIPATION);
+//       blit(pressure.write[1]);
+//       pressure.swap();
+
+//       pressureProgram.bind();
+//       gl.uniform2f(
+//         pressureProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence[2]);
+//       pressureTexId = pressure.read[2];
+//       gl.uniform1i(pressureProgram.uniforms.uPressure, pressureTexId);
+//       gl.activeTexture(gl.TEXTURE0 + pressureTexId);
+//       for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+//         gl.bindTexture(gl.TEXTURE_2D, pressure.read[0]);
+//         blit(pressure.write[1]);
+//         pressure.swap();
+//       }
+
+//       gradienSubtractProgram.bind();
+//       gl.uniform2f(
+//         gradienSubtractProgram.uniforms.texelSize,
+//         1.0 / textureWidth,
+//         1.0 / textureHeight,
+//       );
+//       gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read[2]);
+//       gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read[2]);
+//       blit(velocity.write[1]);
+//       velocity.swap();
+
+//       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+//       displayProgram.bind();
+//       gl.uniform1i(displayProgram.uniforms.uTexture, density.read[2]);
+//       blit(null);
+
+//       requestAnimationFrame(update);
+//     }
+
+//     function splat(x, y, dx, dy, color) {
+//       splatProgram.bind();
+//       gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read[2]);
+//       gl.uniform1f(
+//         splatProgram.uniforms.aspectRatio,
+//         canvas.width / canvas.height,
+//       );
+//       gl.uniform2f(
+//         splatProgram.uniforms.point,
+//         x / canvas.width,
+//         1.0 - y / canvas.height,
+//       );
+//       gl.uniform3f(splatProgram.uniforms.color, dx, -dy, 1.0);
+//       gl.uniform1f(splatProgram.uniforms.radius, config.SPLAT_RADIUS);
+//       blit(velocity.write[1]);
+//       velocity.swap();
+
+//       gl.uniform1i(splatProgram.uniforms.uTarget, density.read[2]);
+//       gl.uniform3f(
+//         splatProgram.uniforms.color,
+//         color[0] * 0.3,
+//         color[1] * 0.3,
+//         color[2] * 0.3,
+//       );
+//       blit(density.write[1]);
+//       density.swap();
+//     }
+
+//     function multipleSplats(amount) {
+//       for (let i = 0; i < amount; i++) {
+//         const color = [
+//           Math.random() * 10,
+//           Math.random() * 10,
+//           Math.random() * 10,
+//         ];
+//         const x = canvas.width * Math.random();
+//         const y = canvas.height * Math.random();
+//         const dx = 1000 * (Math.random() - 0.5);
+//         const dy = 1000 * (Math.random() - 0.5);
+//         splat(x, y, dx, dy, color);
+//       }
+//     }
+//     function resizeCanvas() {
+//       const width = window.innerWidth;
+//       const height = window.innerHeight;
+
+//       if (canvas.width !== width || canvas.height !== height) {
+//         canvas.width = width;
+//         canvas.height = height;
+//         initFramebuffers();
+//       }
+//     }
+
+//     window.addEventListener("resize", resizeCanvas);
+
+//     const handleMouseMove = (e) => {
+//       pointers[0].moved = true;
+//       pointers[0].dx = (e.offsetX - pointers[0].x) * 10.0;
+//       pointers[0].dy = (e.offsetY - pointers[0].y) * 10.0;
+//       pointers[0].x = e.offsetX;
+//       pointers[0].y = e.offsetY;
+
+//       const hue = Math.random();
+//       const sat = 0.6 + Math.random() * 0.3;
+//       const val = 0.8 + Math.random() * 0.2;
+
+//       function hsv2rgb(h, s, v) {
+//         let r, g, b;
+//         const i = Math.floor(h * 6);
+//         const f = h * 6 - i;
+//         const p = v * (1 - s);
+//         const q = v * (1 - f * s);
+//         const t = v * (1 - (1 - f) * s);
+//         switch (i % 6) {
+//           case 0:
+//             r = v;
+//             g = t;
+//             b = p;
+//             break;
+//           case 1:
+//             r = q;
+//             g = v;
+//             b = p;
+//             break;
+//           case 2:
+//             r = p;
+//             g = v;
+//             b = t;
+//             break;
+//           case 3:
+//             r = p;
+//             g = q;
+//             b = v;
+//             break;
+//           case 4:
+//             r = t;
+//             g = p;
+//             b = v;
+//             break;
+//           case 5:
+//             r = v;
+//             g = p;
+//             b = q;
+//             break;
+//         }
+//         return [r, g, b];
+//       }
+
+//       pointers[0].color = hsv2rgb(hue, sat, val);
+//     };
+
+//     const handleTouchMove = (e) => {
+//       e.preventDefault();
+//       const touches = e.targetTouches;
+//       for (let i = 0; i < touches.length; i++) {
+//         let pointer = pointers[i];
+//         pointer.moved = pointer.down;
+//         pointer.dx = (touches[i].pageX - pointer.x) * 10.0;
+//         pointer.dy = (touches[i].pageY - pointer.y) * 10.0;
+//         pointer.x = touches[i].pageX;
+//         pointer.y = touches[i].pageY;
+//       }
+//     };
+
+//     const handleMouseDown = () => {
+//       pointers[0].down = true;
+//       pointers[0].color = [
+//         Math.random() + 0.2,
+//         Math.random() + 0.2,
+//         Math.random() + 0.2,
+//       ];
+//     };
+
+//     const handleTouchStart = (e) => {
+//       e.preventDefault();
+//       const touches = e.targetTouches;
+//       for (let i = 0; i < touches.length; i++) {
+//         if (i >= pointers.length) pointers.push(new pointerPrototype());
+
+//         pointers[i].id = touches[i].identifier;
+//         pointers[i].down = true;
+//         pointers[i].x = touches[i].pageX;
+//         pointers[i].y = touches[i].pageY;
+//         pointers[i].color = [
+//           Math.random() + 0.2,
+//           Math.random() + 0.2,
+//           Math.random() + 0.2,
+//         ];
+//       }
+//     };
+
+//     const handleMouseLeave = () => {
+//       pointers[0].down = false;
+//     };
+
+//     const handleTouchEnd = (e) => {
+//       const touches = e.changedTouches;
+//       for (let i = 0; i < touches.length; i++)
+//         for (let j = 0; j < pointers.length; j++)
+//           if (touches[i].identifier == pointers[j].id) pointers[j].down = false;
+//     };
+
+//     canvas.addEventListener("mousemove", handleMouseMove);
+//     canvas.addEventListener("touchmove", handleTouchMove, false);
+//     canvas.addEventListener("mousedown", handleMouseDown);
+//     canvas.addEventListener("touchstart", handleTouchStart);
+//     window.addEventListener("mouseleave", handleMouseLeave);
+//     window.addEventListener("touchend", handleTouchEnd);
+
+//     const animationId = requestAnimationFrame(update);
+
+//     return () => {
+//       cancelAnimationFrame(animationId);
+//       canvas.removeEventListener("mousemove", handleMouseMove);
+//       canvas.removeEventListener("touchmove", handleTouchMove);
+//       canvas.removeEventListener("mousedown", handleMouseDown);
+//       canvas.removeEventListener("touchstart", handleTouchStart);
+//       window.removeEventListener("mouseleave", handleMouseLeave);
+//       window.removeEventListener("touchend", handleTouchEnd);
+//     };
+//   }, []);
+
+//   return (
+//     <canvas
+//       ref={canvasRef}
+//       style={{
+//         width: "100vw",
+//         height: "100vh",
+//         position: "fixed",
+//         top: 0,
+//         left: 0,
+//         zIndex: 1,
+
+//         pointerEvents: disabled ? "none" : "auto",
+
+//         height: "-webkit-fill-available",
+//         minHeight: "-webkit-fill-available",
+//       }}
+//     />
+//   );
+// };
+
+const reviews = [
+  {
+    name: "James Pica",
+    text: "Frey Smiles has made the whole process from start to finish incredibly pleasant and sooo easy on my kids to follow. They were able to make a miracle happen with my son's tooth that was coming in sideways. He now has a perfect smile and I couldn't be happier. My daughter is halfway through her treatment and the difference already has been great. I 100% recommend this place to anyone!!!",
+    color: "bg-[#9482A3]",
+    image: "/images/_mesh_gradients/lightblue.png",
+
+    height: "h-[320px]",
+    width: "w-[320px]",
+  },
+  {
+    name: "Thomas StPierre",
+    text: "I had a pretty extreme case and it took some time, but FreySmiles gave me the smile I had always hoped for. Thank you!",
+    color: "bg-[#EB7104]",
+    image: "/images/_mesh_gradients/purplegrey.png",
+    height: "h-[240px]",
+    width: "w-[240px]",
+  },
+  {
+    name: "Fei Zhao",
+    text: "Our whole experience for the past 10 years of being under Dr. Gregg Frey’s care and his wonderful staff has been amazing. My son and my daughter have most beautiful smiles, and they received so many compliments on their teeth. It has made a dramatic and positive change in their lives. Dr. Frey is a perfectionist, and his treatment is second to none. I recommend Dr. Frey highly and without any reservation.",
+    color: "bg-[#80A192]",
+    image: "/images/_mesh_gradients/pantonepinkblue.png",
+    height: "h-[320px]",
+    width: "w-[320px]",
+  },
+  {
+    name: "Shelby Loucks",
+    text: "THEY ARE AMAZING!! Great staff and wonderful building. HIGHLY recommend to anyone looking for an orthodontist.",
+    color: "bg-[#A81919]",
+    image: "/images/_mesh_gradients/LilyWhite.jpg",
+
+    height: "h-[240px]",
+    width: "w-[240px]",
+  },
+  {
+    name: "Diana Gomez",
+    text: "After arriving at my sons dentist on a Friday, his dentist office now informs me that they don’t have a referral. I called the Frey smiles office when they were closed and left a message. I received a call back within minutes from Dr. Frey himself who sent the referral over immediately ( on his day off!!!) how amazing! Not to mention the staff was amazing when were were there and my children felt so comfortable! Looking forward to a wonderful smile for my son!!",
+    color: "bg-[#F3B700]",
+    image: "/images/_mesh_gradients/pinkwhite.png",
+    height: "h-[320px]",
+    width: "w-[320px]",
+  },
+  {
+    name: "Tracee Benton",
+    text: "Dr. Frey and his orthodontist techs are the absolute best! The team has such an attention to detail I absolutely love my new smile and my confidence has significantly grown! The whole process of using Invisalign has been phenomenal. I highly recommend Dr. Frey and his team to anyone considering orthodontic work!",
+    color: "bg-[#036523]",
+    image: "/images/_mesh_gradients/purpledred.png",
+  },
+  {
+    name: "Brandi Moyer",
+    text: "My experience with Dr. Frey orthodontics has been nothing but great. The staff is all so incredibly nice and willing to help. And better yet, today I found out I may be ahead of my time line to greater aligned teeth!.",
+    color: "bg-[#4C90B3]",
+    image: "/images/_mesh_gradients/purpleyellow.png",
+  },
+
+  {
+    name: "Andrew Cornell",
+    text: "Over 20 years ago, I went to Dr. Frey to fix my cross bite and get braces. Since then, my smile looks substantially nicer. My entire mouth feels better as well. The benefits of orthodontics under Dr. Frey continue paying dividends.",
+    color: "bg-[#56A0FC]",
+    image: "/images/_mesh_gradients/greenwhite.png",
+  },
+
+  {
+    name: "Vicki Weaver",
+    text: "We have had all four of our children receive orthodontic treatment from Dr. Frey. Dr. Frey is willing to go above and beyond for his patients before, during, and after the treatment is finished. It shows in their beautiful smiles!! We highly recommend FreySmiles to all of our friends and family!",
+    color: "bg-[#EA9CBE]",
+    image: "/images/_mesh_gradients/blueyellowgradient.png",
+  },
+
+  {
+    name: "Sara Moyer",
+    text: "We are so happy that we picked Freysmiles in Lehighton for both of our girls Invisalign treatment. Dr. Frey and all of his staff are always so friendly and great to deal with. My girls enjoy going to their appointments and love being able to see the progress their teeth have made with each tray change. We are 100% confident that we made the right choice when choosing them as our orthodontist!",
+    image: "/images/_mesh_gradients/turquoisegradient.png",
+    height: "h-[320px]",
+    width: "w-[320px]",
+  },
+
+  {
+    name: "Mandee Kaur",
+    image: "/images/_mesh_gradients/pinkparty.png",
+    text: "I would highly recommend FreySmiles! Excellent orthodontic care, whether it’s braces or Invisalign, Dr. Frey and his team pay attention to detail in making sure your smile is flawless! I would not trust anyone else for my daughter’s care other than FreySmiles.",
+    color: "bg-[#49ABA3]",
+  },
+];

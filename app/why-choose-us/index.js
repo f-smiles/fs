@@ -142,17 +142,14 @@ void main() {
 
   if (dist < radius) {
 
-    // Normalized falloff (soft edge)
     float percent = (radius - dist) / radius;
     percent = clamp(percent, 0.0, 1.0);
 
-    // Swirl angle (stronger toward center)
     float theta = percent * percent * uStrength;
 
     float s = sin(theta);
     float c = cos(theta);
 
-    // --- PURE ROTATIONAL SWIRL (circular, no oval bias) ---
     tc = vec2(
       tc.x * c - tc.y * s,
       tc.x * s + tc.y * c
@@ -163,16 +160,14 @@ void main() {
     float pull = pow(percent, 2.0) * 0.45;
     tc -= dir * pull;
 
-    // --- VERY SUBTLE BULGE (kept symmetric + restrained) ---
     float bulge = percent * percent * 0.18;
     tc *= 1.0 + bulge;
 
-    // --- MICRO TYPO WARP (organic, non-circular noise) ---
     float micro = sin(tc.x * 14.0 + tc.y * 9.0) * 0.004;
     tc += dir * micro * percent;
   }
 
-  // Convert back to UV space
+
   vec2 finalUV = tc / uPlaneSize + center;
 
   vec4 color = texture2D(uTexture, finalUV);
@@ -1526,7 +1521,287 @@ gl.disable(gl.BLEND);
     />
   );
 }
+function IntroCirclesBackground() {
+  const ref = useRef(null);
 
+  useLayoutEffect(() => {
+    const paths = document.querySelectorAll(".bg-lines path");
+
+    console.log("paths found:", paths.length);
+
+    paths.forEach((path, i) => {
+      const length = path.getTotalLength();
+
+      gsap.set(path, {
+        strokeDasharray: length,
+        strokeDashoffset: length,
+        opacity: 1,
+      });
+
+      gsap.to(path, {
+        strokeDashoffset: 0,
+        duration: 2.4,
+        ease: "power1.out",
+        delay: i * 0.3,
+        scrollTrigger: {
+          trigger: path.closest("svg"),
+          start: "top 75%",
+        },
+      });
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const glowPaths = document.querySelectorAll(".bg-line.glow");
+
+    glowPaths.forEach((path, i) => {
+      const length = path.getTotalLength();
+
+      gsap.set(path, {
+        strokeDasharray: `${length * 0.15} ${length}`,
+        strokeDashoffset: 0,
+      });
+
+      gsap.to(path, {
+        strokeDashoffset: -length,
+        duration: 6 + i * 0.8,
+        ease: "none",
+        repeat: -1,
+      });
+    });
+  }, []);
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      className="
+        pointer-events-none
+        absolute inset-0
+        overflow-visible
+        z-0
+        text-[#685AFF]
+      "
+    >
+      <svg 
+  className="bg-lines background background--cover background--top svg-fix is-hidden--sm-down
+    -translate-x-[10%]
+     translate-y-[2%]
+"
+  width="1420" 
+  height="1116" 
+  viewBox="0 0 1420 1116" 
+  
+  fill="none" 
+  xmlns="http://www.w3.org/2000/svg"
+  data-plugin="reveal"
+  data-reveal-group=""
+  data-reveal-distance="0"
+>
+  <path 
+    vectorEffect="non-scaling-stroke"
+    d="M430 90.0001V558.237C430 584.877 431.734 674.641 502.25 731.974C559.601 778.603 630.567 793.361 707.441 793.361C784.315 793.361 855.281 778.603 912.631 731.974C983.148 674.641 984.882 584.877 984.882 558.237V90.0001" 
+    stroke="url(#paint0_linear_5002_247)" 
+    strokeWidth=".7" 
+    className="bg-line base"
+    data-reveal-old="line block" 
+    style={{ "--line-length": "1877.288467343321px" }}
+  />
+    <path 
+    vectorEffect="non-scaling-stroke"
+    d="M430 90.0001V558.237C430 584.877 431.734 674.641 502.25 731.974C559.601 778.603 630.567 793.361 707.441 793.361C784.315 793.361 855.281 778.603 912.631 731.974C983.148 674.641 984.882 584.877 984.882 558.237V90.0001" 
+    stroke="url(#paint0_linear_5002_247)" 
+    strokeWidth=".7" 
+     className="bg-line glow"
+    data-reveal-old="line block" 
+    style={{ "--line-length": "1877.288467343321px" }}
+  />
+  <path 
+    vectorEffect="non-scaling-stroke"
+  
+    d="M1450.05 840.084V613.435C1450.05 577.982 1447.75 458.521 1353.83 382.22C1277.45 320.165 1182.94 300.524 1080.55 300.524C978.172 300.524 883.659 320.165 807.279 382.22C713.364 458.521 711.055 577.982 711.055 613.435V793" 
+    stroke="url(#paint1_linear_5002_247)" 
+    strokeWidth=".7" 
+  className="bg-line base" 
+    data-reveal-old="line block" 
+    style={{ "--line-length": "1604.3412038055833px" }}
+  />
+    <path 
+    vectorEffect="non-scaling-stroke"
+
+    d="M1450.05 840.084V613.435C1450.05 577.982 1447.75 458.521 1353.83 382.22C1277.45 320.165 1182.94 300.524 1080.55 300.524C978.172 300.524 883.659 320.165 807.279 382.22C713.364 458.521 711.055 577.982 711.055 613.435V793" 
+    stroke="url(#paint1_linear_5002_247)" 
+    strokeWidth=".7" 
+     className="bg-line glow"
+    data-reveal-old="line block" 
+    style={{ "--line-length": "1604.3412038055833px" }}
+  />
+  <defs>
+    <linearGradient 
+      id="paint0_linear_5002_247" 
+      x1="284.423" 
+      y1="1461" 
+      x2="999.65" 
+      y2="351.857" 
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stopColor="#D6D5DB" />
+      <stop offset="1" stopColor="#D6D5DB" stopOpacity="0" />
+    </linearGradient>
+    <linearGradient 
+      id="paint1_linear_5002_247" 
+      x1="1848.68" 
+      y1="771.505" 
+      x2="516.976" 
+      y2="670.931" 
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stopColor="#D6D5DB" />
+      <stop offset="1" stopColor="#D6D5DB" stopOpacity="0" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg 
+className="
+  l-focus__bottom-lines
+  svg-fix
+  absolute
+  left-0
+  bottom-0
+  
+  overflow-visible
+  -translate-x-[20%]
+  -translate-y-[0%]
+  pointer-events-none
+  hidden md:block
+"
+  width="1440"
+  height="1104"
+  viewBox="0 0 1440 1104"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path 
+    d="M980 1104V669.124C980 642.484 978.266 552.72 907.75 495.387C850.399 448.758 779.433 434 702.559 434C625.685 434 554.719 448.758 497.369 495.387C426.852 552.72 425.118 642.484 425.118 669.124V1104" 
+    stroke="url(#paint0_linear_2555_1025)" 
+    strokeOpacity="0.15" 
+    strokeWidth="1.2" 
+    vectorEffect="non-scaling-stroke" 
+    className="" 
+    data-reveal-old="line block" 
+    style={{ "--line-length": "1781.1614116665746px" }}
+  />
+  <path 
+    d="M720 2.76566e-05V508.006C720 548.453 717.366 684.744 610.234 771.795C523.105 842.592 415.291 865 298.5 865C181.709 865 73.8953 842.592 -13.2344 771.795C-120.366 684.744 -123 548.453 -123 508.006V2.76566e-05" 
+    stroke="url(#paint1_linear_2555_1025)" 
+    strokeOpacity="0.2" 
+    strokeWidth="1.2" 
+    vectorEffect="non-scaling-stroke" 
+    className="" 
+    data-reveal-old="line block" 
+    style={{ "--line-length": "2385.0443421114737px" }}
+  />
+  <defs>
+    <linearGradient 
+      id="paint0_linear_2555_1025" 
+      x1="369" 
+      y1="631" 
+      x2="825.168" 
+      y2="1151.17" 
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stopColor="currentColor" />
+      <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+    </linearGradient>
+    <linearGradient 
+      id="paint1_linear_2555_1025" 
+      x1="578.544" 
+      y1="780.928" 
+      x2="262.168" 
+      y2="320.698" 
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stopColor="currentColor" />
+     <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+    </linearGradient>
+  </defs>
+</svg>
+
+      <svg
+        className="bg-lines hidden md:block absolute top-0 left-1/2 -translate-x-1/2"
+        width="1420"
+        height="480"
+        viewBox="0 0 1420 480"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <g opacity="0.3" transform="translate(30 0)">
+  
+          <g opacity="0.5">
+            <path
+              d="M1280 -27.5596V139.995C1280 162.542 1278.53 238.517 1218.8 287.043C1170.22 326.509 1110.11 339 1045 339C979.885 339 919.776 326.509 871.198 287.043C811.469 238.517 810 162.542 810 139.995V-568"
+              stroke="url(#paint0)"
+              strokeWidth="1.2"
+              className="bg-line base"
+            />
+              <path
+              d="M1280 -27.5596V139.995C1280 162.542 1278.53 238.517 1218.8 287.043C1170.22 326.509 1110.11 339 1045 339C979.885 339 919.776 326.509 871.198 287.043C811.469 238.517 810 162.542 810 139.995V-568"
+              stroke="url(#paint0)"
+              strokeWidth="1.2"
+              className="bg-line glow"
+            />
+          </g>
+
+
+          <g opacity="0.5">
+            <path
+              d="M441 905.2V353.313C441 330.277 442.5 252.658 503.5 203.082C553.111 162.761 614.5 150 681 150C747.5 150 808.889 162.761 858.5 203.082C919.5 252.658 921 330.277 921 353.313V905.2"
+              stroke="url(#paint1)"
+              strokeOpacity="0.8"
+              strokeWidth="1.2"
+          className="bg-line base" 
+          
+            />
+                <path
+              d="M441 905.2V353.313C441 330.277 442.5 252.658 503.5 203.082C553.111 162.761 614.5 150 681 150C747.5 150 808.889 162.761 858.5 203.082C919.5 252.658 921 330.277 921 353.313V905.2"
+              stroke="url(#paint1)"
+              strokeOpacity="0.8"
+              strokeWidth="1.2"
+          className="bg-line glow" 
+          
+            />
+          </g>
+        </g>
+
+        <defs>
+          <linearGradient
+            id="paint0"
+            x1="1225.17"
+            y1="282.606"
+            x2="783.946"
+            y2="147.534"
+            gradientUnits="userSpaceOnUse"
+          >
+           <stop offset="0" stopColor="#D6D5DB" />
+      <stop offset="1" stopColor="#D6D5DB" stopOpacity="0" />
+          </linearGradient>
+
+          <linearGradient
+            id="paint1"
+            x1="521.544"
+            y1="197.88"
+            x2="978.646"
+            y2="392.615"
+            gradientUnits="userSpaceOnUse"
+          >
+         <stop offset="0" stopColor="#D6D5DB" />
+      <stop offset="1" stopColor="#D6D5DB" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
 function LivingLine() {
   const svgRef = useRef(null);
   const pathRef = useRef(null);
@@ -2060,14 +2335,14 @@ useLayoutEffect(() => {
     },
   });
 
-  // 1) fade WebGL text
+
   tl.to(uniforms.uOpacity, {
     value: 0,
     duration: 0.35,
     ease: "power2.out",
   });
 
-  // 2) punch out Section A
+
   tl.to(blocks, {
     scale: 0,
     opacity: 0,
@@ -2274,7 +2549,7 @@ BLAH BLAH BLAH
 {/* <LivingLine /> */}
              {/* <FluidSimulation /> */}
 
-          {/* <div className="relative w-full h-screen" style={{ zIndex: 1 }}>
+          <div className="relative w-full h-screen" style={{ zIndex: 1 }}>
             <Canvas
               className="absolute inset-0"
               camera={{ position: [0, 6, 12], fov: 45 }}
@@ -2289,7 +2564,7 @@ BLAH BLAH BLAH
               />
               <RibbonAroundSphere />
             </Canvas>
-          </div> */}
+          </div>
      
 
     </>

@@ -243,395 +243,6 @@ vec3 col = mix(colorA, colorB, mixAmt);
   );
 };
 
-CustomEase.create("hop", "0.9, 0, 0.1, 1");
-const Preloader = () => {
-  const loaderRef = useRef(null);
-  const svgRef = useRef(null);
-  const counterTextRef = useRef(null);
-  const heroBgRef = useRef(null);
-
-  const animationRefs = useRef([]);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      initializeAnimations();
-    });
-
-    return () => {
-      animationRefs.current.forEach((anim) => {
-        if (anim && anim.kill) anim.kill();
-      });
-      animationRefs.current = [];
-    };
-  }, []);
-
-  const initializeAnimations = () => {
-    const textPaths = document.querySelectorAll(".wheelloader svg textPath");
-    if (textPaths.length === 0) {
-      return;
-    }
-
-    const startTextLengths = Array.from(textPaths).map((tp) =>
-      parseFloat(tp.getAttribute("textLength")),
-    );
-
-    const startTextOffsets = Array.from(textPaths).map((tp) =>
-      parseFloat(tp.getAttribute("startOffset")),
-    );
-
-    const targetTextLengths = [3800, 3600, 3400, 3200, 3000, 3200, 2600, 2400];
-    const orbitRadii = [775, 700, 625, 550, 475, 400, 325, 250];
-
-    const maxOrbitRadius = orbitRadii[0];
-    const maxAnimDuration = 1.25;
-    const minAnimDuration = 1;
-
-    textPaths.forEach((textPath, index) => {
-      const animationDelay = (textPaths.length - 1 - index) * 0.1;
-      const currentOrbitRadius = orbitRadii[index];
-
-      const currentDuration =
-        minAnimDuration +
-        (currentOrbitRadius / maxOrbitRadius) *
-          (maxAnimDuration - minAnimDuration);
-
-      const pathLength = 2 * Math.PI * currentOrbitRadius * 3;
-      const textLengthIncrease =
-        targetTextLengths[index] - startTextLengths[index];
-      const offsetAdjustment = (textLengthIncrease / 2 / pathLength) * 100;
-      const targetOffset = startTextOffsets[index] - offsetAdjustment;
-
-      const anim = gsap.to(textPath, {
-        attr: {
-          textLength: targetTextLengths[index],
-          startOffset: targetOffset + "%",
-        },
-        duration: currentDuration,
-        delay: animationDelay,
-        ease: "power2.inOut",
-        yoyo: true,
-        repeat: -1,
-        repeatDelay: 0,
-      });
-
-      animationRefs.current.push(anim);
-    });
-
-    let loaderRotation = 0;
-
-    function animateRotation() {
-      const spinDirection = Math.random() < 0.5 ? 1 : -1;
-      loaderRotation += 25 * spinDirection;
-
-      const anim = gsap.to(svgRef.current, {
-        rotation: loaderRotation,
-        duration: 2,
-        ease: "power2.inOut",
-        onComplete: animateRotation,
-      });
-
-      animationRefs.current.push(anim);
-    }
-
-    animateRotation();
-
-    const count = { value: 0 };
-
-    const counterAnim = gsap.to(count, {
-      value: 100,
-      duration: 4,
-      delay: 1,
-      ease: "power1.out",
-      onUpdate: function () {
-        if (counterTextRef.current) {
-          counterTextRef.current.textContent = Math.floor(count.value);
-        }
-      },
-      onComplete: function () {
-        const opacityAnim = gsap.to(".counter", {
-          opacity: 0,
-          duration: 0.5,
-          delay: 1,
-        });
-        animationRefs.current.push(opacityAnim);
-      },
-    });
-
-    animationRefs.current.push(counterAnim);
-
-    const orbitTextElements = document.querySelectorAll(".orbit-text");
-    if (orbitTextElements.length > 0) {
-      gsap.set(orbitTextElements, { opacity: 0 });
-
-      const orbitTextsReversed = Array.from(orbitTextElements).reverse();
-
-      const fadeInAnim = gsap.to(orbitTextsReversed, {
-        opacity: 1,
-        duration: 0.75,
-        stagger: 0.125,
-        ease: "power1.out",
-      });
-
-      animationRefs.current.push(fadeInAnim);
-
-      const fadeOutAnim = gsap.to(orbitTextsReversed, {
-        opacity: 0,
-        duration: 0.75,
-        stagger: 0.1,
-        delay: 6,
-        ease: "power1.out",
-        onComplete: function () {
-          const removeLoaderAnim = gsap.to(loaderRef.current, {
-            opacity: 0,
-            duration: 1,
-            onComplete: () => {
-              if (loaderRef.current) {
-                loaderRef.current.style.display = "none";
-              }
-            },
-          });
-
-          animationRefs.current.push(removeLoaderAnim);
-
-          const scaleBgAnim = gsap.to(".wheelhero-bg", {
-            scale: 1,
-            duration: 2,
-            delay: -0.5,
-            ease: "hop",
-          });
-
-          animationRefs.current.push(scaleBgAnim);
-
-          const textRevealAnim = gsap.fromTo(
-            ".hero-copy p .word",
-            { y: "100%" },
-            {
-              y: 0,
-              duration: 2,
-              stagger: 0.1,
-              ease: "hop",
-            },
-          );
-          animationRefs.current.push(textRevealAnim);
-        },
-      });
-
-      animationRefs.current.push(fadeOutAnim);
-    }
-  };
-
-  return (
-    <>
-    
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100svh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-background: `
-  radial-gradient(
-    70% 60% at 35% 45%,
-    rgba(247, 200, 235, 0.35) 0%,
-    rgba(247, 200, 235, 0.15) 40%,
-    rgba(247, 200, 235, 0.0) 70%
-  ),
-  radial-gradient(
-    65% 55% at 65% 50%,
-    rgba(255, 215, 240, 0.3) 0%,
-    rgba(255, 215, 240, 0.12) 45%,
-    rgba(255, 215, 240, 0.0) 75%
-  ),
-  linear-gradient(
-    180deg,
-    #ffffff 0%,
-    #f2f3f9 50%,
-    #ffffff 100%
-  )
-`,
-          color: "#857B79",
-          willChange: "opacity",
-          zIndex: 9999,
-        }}
-        className="wheelloader"
-        ref={loaderRef}
-      >
-        <svg
-          ref={svgRef}
-          viewBox="-425 -425 1850 1850"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            id="wheelloader-orbit-1"
-            d="M 500,-275 A 775,775 0 0,1 500,1275 A 775,775 0 0,1 500,-275 A 775,775 0 0,1 500,1275 A 775,775 0 0,1 500,-275 A 775,775 0 0,1 500,1275 A 775,775 0 0,1 499.99,-275"
-          />
-          <path
-            id="wheelloader-orbit-2"
-            d="M 500,-200 A 700,700 0 0,1 500,1200 A 700,700 0 0,1 500,-200 A 700,700 0 0,1 500,1200 A 700,700 0 0,1 500,-200 A 700,700 0 0,1 500,1200 A 700,700 0 0,1 499.99,-200"
-          />
-          <path
-            id="wheelloader-orbit-3"
-            d="M 500,-125 A 625,625 0 0,1 500,1125 A 625,625 0 0,1 500,-125 A 625,625 0 0,1 500,1125 A 625,625 0 0,1 500,-125 A 625,625 0 0,1 500,1125 A 625,625 0 0,1 499.99,-125"
-          />
-          <path
-            id="wheelloader-orbit-4"
-            d="M 500,-50 A 550,550 0 0,1 500,1050 A 550,550 0 0,1 500,-50 A 550,550 0 0,1 500,1050 A 550,550 0 0,1 500,-50 A 550,550 0 0,1 500,1050 A 550,550 0 0,1 499.99,-50"
-          />
-          <path
-            id="wheelloader-orbit-5"
-            d="M 500,25 A 475,475 0 0,1 500,975 A 475,475 0 0,1 500,25 A 475,475 0 0,1 500,975 A 475,475 0 0,1 500,25 A 475,475 0 0,1 500,975 A 475,475 0 0,1 499.99,25"
-          />
-          <path
-            id="wheelloader-orbit-6"
-            d="M 500,100 A 400,400 0 0,1 500,900 A 400,400 0 0,1 500,100 A 400,400 0 0,1 500,900 A 400,400 0 0,1 500,100 A 400,400 0 0,1 500,900 A 400,400 0 0,1 499.99,100"
-          />
-          <path
-            id="wheelloader-orbit-7"
-            d="M 500,175 A 325,325 0 0,1 500,825 A 325,325 0 0,1 500,175 A 325,325 0 0,1 500,825 A 325,325 0 0,1 500,175 A 325,325 0 0,1 500,825 A 325,325 0 0,1 499.99,175"
-          />
-          <path
-            id="wheelloader-orbit-8"
-            d="M 500,250 A 250,250 0 0,1 500,750 A 250,250 0 0,1 500,250 A 250,250 0 0,1 500,750 A 250,250 0 0,1 500,250 A 250,250 0 0,1 500,750 A 250,250 0 0,1 499.99,250"
-          />
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-1"
-              startOffset="30%"
-              textLength="280"
-            >
-              Shop
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-2"
-              startOffset="31%"
-              textLength="270"
-            >
-              Your
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-3"
-              startOffset="33%"
-              textLength="300"
-            >
-              Smile
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-4"
-              startOffset="32%"
-              textLength="280"
-            >
-              Here
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-5"
-              startOffset="30%"
-              textLength="250"
-            >
-              Buy
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-6"
-              startOffset="31%"
-              textLength="380"
-            >
-              Something
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-7"
-              startOffset="33%"
-              textLength="180"
-            >
-              Or
-            </textPath>
-          </text>
-          <text className="orbit-text">
-            <textPath
-              href="#wheelloader-orbit-8"
-              startOffset="32%"
-              textLength="300"
-            >
-              Don't
-            </textPath>
-          </text>
-        </svg>
-
-        <div className="counter">
-          <p className="font-canelathin" ref={counterTextRef}>
-            0
-          </p>
-        </div>
-      </div>
-      <section
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100svh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          className="wheelhero-bg"
-          ref={heroBgRef}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: "100%",
-            height: "50%",
-            transform: "translate(-50%, -50%) scale(1.25)",
-            overflow: "hidden",
-          }}
-        >
-          {/* <img
-  src="/images/oval_desktop_top.svg"
-  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[95%] scale-[0.9] max-w-[1600px] h-auto z-1 pointer-events-none opacity-90"
-  alt="top oval"
-/>
-
-<img
-  src="/images/oval_desktop_bot.svg"
-  className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[-5.5%] scale-[0.9] max-w-[1600px] h-auto z-1 pointer-events-none opacity-90"
-  alt="bottom oval"
-/> */}
-
-          <video
-            src="/videos/whitewaves.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-            }}
-          />
-        </div>
-      </section>
-    </>
-  );
-};
-
 const CONFIG = {
   color: "#fff",
   spread: 0.5,
@@ -712,7 +323,7 @@ void main() {
 }
 `;
 
-const HeroSection = () => {
+const HeroSection = ({ isReady }) => {
   const canvasRef = useRef(null);
   const heroRef = useRef(null);
   const heroContentRef = useRef(null);
@@ -725,6 +336,22 @@ const HeroSection = () => {
   const animationIdRef = useRef(null);
   const scrollProgressRef = useRef(0);
   const dotGridWrapperRef = useRef(null);
+    const heroBgRef = useRef(null)
+
+useEffect(() => {
+  if (!isReady || !heroBgRef.current) return
+
+  gsap.set(heroBgRef.current, {
+    scale: 1.25
+  })
+
+  gsap.to(heroBgRef.current, {
+    scale: 1,
+    duration: 2.5,
+    ease: "power3.out"
+  })
+
+}, [isReady])
   useEffect(() => {
     const initThree = () => {
       const canvas = canvasRef.current;
@@ -956,8 +583,9 @@ const initTextAnimation = () => {
   }, []);
 
   return (
-    <section className="scroll-effect__hero-section" ref={heroRef}>
+    <section className="scroll-effect__hero-section bg-[#F2F2F2]" ref={heroRef}>
       <div className="scroll-effect__hero-image">
+
         {/* <AnimatedBackground /> */}
 
         {/* <img 
@@ -967,9 +595,47 @@ const initTextAnimation = () => {
       </div>
 
       <div className="scroll-effect__hero-header">
-        <p className="scroll-effect__hero-description">
-          <Preloader />
-        </p>
+
+        <section
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100svh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          className="wheelhero-bg"
+          ref={heroBgRef}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: "100%",
+            height: "80%",
+            transform: "translate(-50%, -50%) ",
+            overflow: "hidden",
+          }}
+        >
+
+          <video
+            src="/videos/shoploader.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+            }}
+          />
+        </div>
+      </section>
       </div>
 
       <canvas className="scroll-effect__hero-canvas" ref={canvasRef} />
@@ -988,6 +654,7 @@ const initTextAnimation = () => {
     </section>
   );
 };
+
 
 const CircleGridMouseFollow = () => {
   const containerRef = useRef(null);
@@ -1188,141 +855,12 @@ const CircleGridMouseFollow = () => {
 
   return <div ref={containerRef} className="dot-grid-canvas" />;
 };
-const Marquee = () => {
-  const text =
-    "Reserve an appointment to experience our year end holiday courtesy of up to 700 dollars off full treatment";
-  const repeatCount = 12;
 
-  return (
-    <div className="relative w-full overflow-hidden bg-[#F0EF59]">
-      <div className="marquee">
-        <div className="marquee__group">
-          {Array.from({ length: repeatCount }).map((_, i) => (
-            <div key={`a-${i}`} className="flex items-center">
-              <span className="px-6 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide">
-                {text}
-              </span>
-
-              <span className="mx-4 text-[12px] font-light opacity-70">+</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="marquee__group">
-          {Array.from({ length: repeatCount }).map((_, i) => (
-            <div key={`a-${i}`} className="flex items-center">
-              <span className="px-6 py-2 text-[12px] font-neuehaas45 whitespace-nowrap tracking-wide">
-                {text}
-              </span>
-
-              <span className="mx-4 text-[12px] font-light opacity-70">+</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-function DentalModel() {
-  const { scene, animations } = useGLTF("/models/art_gallery_test.glb");
-  const animatedRef = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, animatedRef);
-
-  useEffect(() => {
-    console.log("end mesh");
-    scene.traverse((child: any) => {
-      if (!child.isMesh || !child.material) return;
-
-      const mat = child.material as THREE.MeshStandardMaterial;
-
-      if (mat.name.includes("Wall")) {
-        mat.color.set("#f2f2f2");
-        mat.roughness = 0.9;
-      }
-
-      if (mat.name.includes("Floor")) {
-        mat.color.set("#e6e6e6");
-        mat.roughness = 0.6;
-      }
-
-      if (mat.name.includes("Ceiling")) {
-        mat.color.set("#fafafa");
-        mat.roughness = 1.0;
-      }
-
-      mat.needsUpdate = true;
-    });
-
-    console.log("end mesh");
-  }, [scene]);
-
-  useEffect(() => {
-    const tl = gsap.timeline({ delay: 1 });
-
-    tl.from(".line-inner", {
-      y: 100,
-      skewY: 7,
-      duration: 1.8,
-      ease: "power4.out",
-      stagger: 0.15,
-    });
-  }, []);
-  useEffect(() => {
-    if (!actions) return;
-
-    const firstAction = Object.values(actions)[0];
-    if (!firstAction) return;
-
-    firstAction.reset();
-    firstAction.setLoop(THREE.LoopRepeat, Infinity);
-    firstAction.play();
-
-    return () => firstAction.stop();
-  }, [actions]);
-
-  return (
-    <group rotation={[0, 0, 0]} scale={1}>
-      <group ref={animatedRef}>
-        <primitive object={scene} />
-      </group>
-    </group>
-  );
-}
 const Hero: React.FC = () => {
   return (
     <section>
-      {/* <Marquee /> */}
+ 
       <HeroSection />
-      {/* <div className="relative min-h-screen">
-
-<section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen px-6 py-20">
-
-<Canvas camera={{ position: [4, 3, 6], fov: 45 }}>
-  <Environment files="/images/studio_small_03_4k.hdr" />
-
-
-<ambientLight intensity={0.4} />
-
-<directionalLight
-  position={[5, 8, 5]}
-  intensity={1.2}
-  castShadow
-/>
-
-<directionalLight
-  position={[-5, 4, -5]}
-  intensity={0.6}
-/>
-
-
-  <DentalModel />
-
-  <OrbitControls enableZoom={false} enablePan={false} />
-</Canvas>
-
-</section>
-</div> */}
     </section>
   );
 };

@@ -21,7 +21,7 @@ export default function SelectColor({
       style={{ backgroundColor: color }}
       className={cn(
         " w-8 h-8 rounded-full cursor-pointer transition-all duration-300 ease-in-out hover:opacity-75",
-        selectedVariant === variantName ? "opacity-100 border-2 border-primary" : "opacity-50"
+        selectedVariant === variantName ? "opacity-100 border border-[#5f5f5f]" : "opacity-50"
       )}
       onClick={() =>
         router.push(`/shop/products/${id}?id=${id}&title=${title}&variant=${variantName}&prodId=${productID}`,

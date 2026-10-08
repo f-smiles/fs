@@ -32,7 +32,7 @@ import Link from "next/link";
 // import DotPattern from "../svg/DotPattern";
 import {
   motion,
-  useScroll,
+  // useScroll,
   useSpring,
   useAnimation,
   useTransform,
@@ -47,75 +47,13 @@ import * as THREE from "three";
 import { Vector2 } from "three";
 import { Canvas, useLoader, useFrame, useThree, extend } from "@react-three/fiber";
 import { useMemo } from "react";
-import { Environment, OrbitControls, useTexture, shaderMaterial, useGLTF, Text, Center, Stars,
+import { Environment, OrbitControls, useTexture, shaderMaterial, useGLTF, Text, Center, Stars, ScrollControls, useScroll
 } from "@react-three/drei";
 import { TextureLoader, CubeTextureLoader } from "three";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
-const RepeatText = ({ text = "FSF", totalLayers = 7 }) => {
-  const containerRef = useRef();
 
-  useEffect(() => {
-    const containers = gsap.utils.toArray(".stack-word-layer");
-
-    containers.forEach((el, i) => {
-      const inner = el.querySelector(".stack-word-inner");
-
-      gsap.fromTo(
-        inner,
-        { yPercent: 0 },
-        {
-          yPercent: 140,
-          ease: "none",
-          scrollTrigger: {
-            trigger: el,
-            start: `top center`,
-            end: "bottom top+=30%",
-            scrub: true,
-          },
-        }
-      );
-    });
-  }, []);
-
-  return (
-    <section
-      className="relative w-full bg-[#FAFAFA] overflow-hidden"
-      data-animation="stack-words"
-      ref={containerRef}
-    >
-      {new Array(totalLayers).fill(0).map((_, i) => {
-        const isLast = i === totalLayers - 1;
-
-        return (
-          <div
-            key={i}
-            className="overflow-hidden stack-word-layer"
-            style={{
-              height: isLast ? "20vw" : `${5 + i * 1.25}vw`,
-              marginTop: i === 0 ? 0 : "-.5vw",
-            }}
-          >
-            <div
-              className="stack-word-inner will-change-transform flex justify-center overflow-visible"
-              style={{ height: "100%" }}
-            >
-              <span
-                className="text-[48vw] font-bold text-black leading-none block"
-                style={{
-                  transform: `translateY(calc(-65% + ${i * 1.5}px))`,
-                }}
-              >
-                {text}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </section>
-  );
-};
 
 const DistortedImage = ({ imageSrc, xOffset = 0, yOffset = 0 }) => {
   const ref = useRef();
@@ -142,242 +80,6 @@ const DistortedImage = ({ imageSrc, xOffset = 0, yOffset = 0 }) => {
     </mesh>
   );
 };
-
-// const SmileyFace = ({ position = [0, 0, 0] }) => {
-//   const groupRef = useRef();
-
-//   useFrame(() => {
-//     if (groupRef.current) {
-//       groupRef.current.rotation.y += 0.003;
-//     }
-//   });
-
-//   const texture = useLoader(
-//     THREE.TextureLoader,
-//     "https://cdn.zajno.com/dev/codepen/cicada/texture.png"
-//   );
-//   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
-//   const generateNoiseTexture = (size = 512) => {
-//     const canvas = document.createElement("canvas");
-//     canvas.width = size;
-//     canvas.height = size;
-//     const ctx = canvas.getContext("2d");
-//     const imageData = ctx.getImageData(0, 0, size, size);
-//     const data = imageData.data;
-
-//     for (let i = 0; i < data.length; i += 4) {
-//       const value = Math.random() * 255;
-//       data[i] = value;
-//       data[i + 1] = value;
-//       data[i + 2] = value;
-//       data[i + 3] = 255;
-//     }
-
-//     ctx.putImageData(imageData, 0, 0);
-
-//     const tex = new THREE.CanvasTexture(canvas);
-//     tex.repeat.set(5, 5);
-//     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-//     tex.anisotropy = 16;
-
-//     return tex;
-//   };
-
-//   const noiseTexture = useMemo(() => generateNoiseTexture(), []);
-
-//   // const material = useMemo(() => new THREE.MeshPhysicalMaterial({
-//   //   color: new THREE.Color('#fdf6ec'),
-//   //   map: noiseTexture,
-//   //   metalness: 0.3,
-//   //   roughness: 0.1,
-//   //   transmission: 1,
-//   //   thickness: 1.5,
-//   //   transparent: true,
-//   //   clearcoat: 1,
-//   //   clearcoatRoughness: 0.05,
-//   //   iridescence: 1,
-//   //   iridescenceIOR: 1.6,
-//   //   iridescenceThicknessRange: [100, 300],
-//   //   sheen: 1,
-//   //   sheenRoughness: 0.05,
-//   // }), [noiseTexture]);
-//   const material = useMemo(
-//     () =>
-//       new THREE.MeshPhysicalMaterial({
-//         color: new THREE.Color("#fdf6ec"),
-//         metalness: 0.3,
-//         roughness: 0.1,
-//         transmission: 1,
-//         thickness: 1.5,
-//         transparent: true,
-//         clearcoat: 1,
-//         clearcoatRoughness: 0.05,
-//         iridescence: 1,
-//         iridescenceIOR: 1.6,
-//         iridescenceThicknessRange: [100, 300],
-//         sheen: 1,
-//         sheenRoughness: 0.05,
-//         roughnessMap: noiseTexture,
-//         bumpMap: noiseTexture,
-//         bumpScale: 0.05,
-//       }),
-//     [noiseTexture]
-//   );
-
-//   const { ring, smile, leftEye, rightEye } = useMemo(() => {
-//     const arcSegments = 100;
-
-//     const ringCurve = new THREE.ArcCurve(0, 0, 5.6, 0, Math.PI * 2, false);
-//     const ringPoints = ringCurve
-//       .getPoints(arcSegments)
-//       .map((p) => new THREE.Vector3(p.x, p.y, 0));
-//     const ringPath = new THREE.CatmullRomCurve3(ringPoints, true);
-
-//     const ringRect = new THREE.Shape();
-//     const rw = 0.4;
-//     const rh = 0.6;
-//     ringRect.moveTo(-rw / 2, -rh / 2);
-//     ringRect.lineTo(rw / 2, -rh / 2);
-//     ringRect.lineTo(rw / 2, rh / 2);
-//     ringRect.lineTo(-rw / 2, rh / 2);
-//     ringRect.lineTo(-rw / 2, -rh / 2);
-
-//     const ringGeo = new THREE.ExtrudeGeometry(ringRect, {
-//       steps: arcSegments,
-//       bevelEnabled: false,
-//       extrudePath: ringPath,
-//     });
-
-//     const smilePath = new THREE.CurvePath();
-//     const smileCurve = new THREE.ArcCurve(0, -1.5, 2.4, Math.PI, 0, false);
-
-//     const smilePoints = smileCurve
-//       .getPoints(50)
-//       .map((p) => new THREE.Vector3(p.x, p.y, 0));
-//     const smileCatmull = new THREE.CatmullRomCurve3(smilePoints);
-
-//     const rectShape = new THREE.Shape();
-//     const w = 0.4;
-//     const h = 0.6;
-//     rectShape.moveTo(-w / 2, -h / 2);
-//     rectShape.lineTo(w / 2, -h / 2);
-//     rectShape.lineTo(w / 2, h / 2);
-//     rectShape.lineTo(-w / 2, h / 2);
-//     rectShape.lineTo(-w / 2, -h / 2);
-
-//     const smileGeo = new THREE.ExtrudeGeometry(rectShape, {
-//       steps: 50,
-//       bevelEnabled: false,
-//       extrudePath: smileCatmull,
-//     });
-
-//     const makeEye = (x, y) => {
-//       const geo = new THREE.CylinderGeometry(0.5, 0.5, 0.6, 32);
-//       geo.rotateX(Math.PI / 2);
-//       geo.translate(x, y, 0);
-//       return geo;
-//     };
-
-//     return {
-//       ring: ringGeo,
-//       smile: smileGeo,
-//       leftEye: makeEye(-2, 1),
-//       rightEye: makeEye(2, 1),
-//     };
-//   }, []);
-
-//   return (
-//     <group ref={groupRef} position={position} scale={[0.3, 0.3, 0.3]}>
-//       <mesh geometry={ring} material={material} />
-//       <mesh geometry={smile} material={material} />
-//       <mesh geometry={leftEye} material={material} />
-//       <mesh geometry={rightEye} material={material} />
-//     </group>
-//   );
-// };
-
-const WavePlane = forwardRef(({ uniformsRef }, ref) => {
-  const texture = useTexture("/images/mockup_c.png");
-  const gl = useThree((state) => state.gl);
-  useMemo(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
-    texture.needsUpdate = true;
-  }, [texture, gl]);
-
-//   const image = useRef();
-//   const meshRef = ref || useRef();
-//   // const { amplitude, waveLength } = useControls({
-//   //   amplitude: { value: 0.1, min: 0, max: 2, step: 0.1 },
-//   //   waveLength: { value: 5, min: 0, max: 20, step: 0.5 },
-//   // });
-
-//   const amplitude = 0.2;
-//   const waveLength = 5;
-
-//   const uniforms = useRef({
-//     uTime: { value: 0 },
-//     uAmplitude: { value: amplitude },
-//     uWaveLength: { value: waveLength },
-//     uTexture: { value: texture },
-//   });
-
-//   useFrame(() => {
-//     uniforms.current.uTime.value += 0.04;
-//     // uniforms.current.uAmplitude.value = amplitude;
-//     uniforms.current.uWaveLength.value = waveLength;
-//   });
-
-//   const vertexShader = `
-// uniform float uTime;
-// uniform float uAmplitude;
-// uniform float uWaveLength;
-// varying vec2 vUv;
-// void main() {
-//     vUv = uv;
-//     vec3 newPosition = position;
-
-// float wave   = uAmplitude * sin(position.y * uWaveLength + uTime);
-// float ripple = uAmplitude * 0.01 * sin((position.y + position.x) * 10.0 + uTime * 2.0);
-// float bulge  = uAmplitude * 0.05 * sin(position.y * 5.0 + uTime) *
-//                                       cos(position.x * 5.0 + uTime * 1.5);
-// newPosition.z += wave + ripple + bulge;
-
-//     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-// }
-//   `;
-
-//   const fragmentShader = `
-//   uniform sampler2D uTexture; 
-//   varying vec2 vUv; 
-//     void main() {
-//   gl_FragColor = texture2D(uTexture, vUv);
-//     }
-//   `;
-//   useEffect(() => {
-//     if (uniformsRef) {
-//       uniformsRef.current = uniforms.current;
-//     }
-//   }, [uniformsRef]);
-
-  return (
-    <mesh
-      ref={meshRef}
-      position={[0, 0, 1]}
-      scale={[2, 2, 1]}
-      rotation={[-Math.PI * 0.4, 0.3, Math.PI / 2]}
-    >
-      <planeGeometry args={[1.5, 2, 100, 200]} />
-      <shaderMaterial
-        wireframe={false}
-        fragmentShader={fragmentShader}
-        vertexShader={vertexShader}
-        uniforms={uniforms.current}
-      />
-    </mesh>
-  );
-});
 
 const MorphingSphere = ({sectionRef}) => {
   const canvasRef = useRef(null);
@@ -1098,39 +800,6 @@ ScrollTrigger.create({
 };
 
 const Invisalign = () => {
-  const headingRef = useRef(null);
-
-  useEffect(() => {
-    gsap.killTweensOf(".lineChild, .lineParent");
-
-    const split = new SplitText(headingRef.current, {
-      type: "lines",
-      linesClass: "lineChild",
-    });
-    new SplitText(headingRef.current, {
-      type: "lines",
-      linesClass: "lineParent",
-    });
-
-    var tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: headingRef.current,
-        start: "top bottom",
-        toggleActions: "restart pause resume pause",
-      },
-    });
-    tl.from(".lineChild", {
-      y: 50,
-      duration: 0.75,
-      stagger: 0.25,
-      autoAlpha: 0,
-    });
-
-    return () => {
-      split.revert();
-      ScrollTrigger.getAll().forEach((st) => st.kill());
-    };
-  }, []);
 
   const controls = useAnimation();
 
@@ -1216,93 +885,6 @@ const Invisalign = () => {
   }, []);
 
   const uniformsRef = useRef();
-
-  const services = [
-    { normal: "Nearly ", italic: "Invisible" },
-    { normal: "Designed for Comfort" },
-    { normal: "Tailored to", italic: "You" },
-    { normal: "Removable", italic: "& Flexible" },
-    { normal: "Proven", italic: "Results" },
-  ];
-
-  const imageRef = useRef(null);
-
-  useEffect(() => {
-    if (!imageRef.current) return;
-
-    gsap.fromTo(
-      imageRef.current,
-      { scale: 1 },
-      {
-        scale: 0.7,
-        scrollTrigger: {
-          trigger: imageRef.current,
-          start: "top bottom",
-          end: "top top",
-          scrub: true,
-        },
-        transformOrigin: "center center",
-        ease: "none",
-      }
-    );
-  }, []);
-
-  const containerRef = useRef();
-  const lineRefs = useRef([]);
-  const textRefs = useRef([]);
-  const sectionLineRefs = useRef([]);
-
-  const addToLineRefs = (el) => el && lineRefs.current.push(el);
-  const addToTextRefs = (el) => el && textRefs.current.push(el);
-  const addToSectionLineRefs = (el) => el && sectionLineRefs.current.push(el); 
-  
-useEffect(() => {
-  gsap.set([...lineRefs.current, ...sectionLineRefs.current], {
-    scaleX: 0,
-    transformOrigin: "center center", 
-  });
-
-  gsap.set(textRefs.current, { y: 20, opacity: 0 });
-
-  const tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: containerRef.current,
-      start: "top 80%",
-      toggleActions: "play none none none",
-    },
-  });
-
-
-  sectionLineRefs.current.forEach((line) => {
-    tl.to(line, {
-      scaleX: 1,
-      duration: 1.6,
-      ease: "power3.out",
-    }, 0);
-  });
-
-
-  lineRefs.current.forEach((line, i) => {
-    tl.to(line, {
-      scaleX: 1,
-      duration: 1.3,
-      ease: "power3.out",          
-    }, 0.4 + i * 0.12);   
-  });
-
-
-  textRefs.current.forEach((text, i) => {
-    tl.to(text, {
-      y: 0,
-      opacity: 1,
-      duration: 0.9,
-      ease: "power2.out",
-    }, 0.6 + i * 0.08);
-  });
-
-  return () => ScrollTrigger.getAll().forEach(t => t.kill());
-}, []);
-  
   const sectionRef = useRef(null);
   const sphereRef = useRef(null);
 
@@ -1323,65 +905,8 @@ useEffect(() => {
     return () => ctx.revert();
   }, []);
 
-  const sectionsRef = useRef([]);
 useEffect(() => {
-  let ctx = gsap.context(() => {
-    sectionsRef.current.forEach((section) => {
-      const numberEl = section.querySelector(".big-number");
 
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.5,
-          pin: true,       
-          pinSpacing: true, 
-        }
-      })
-      .fromTo(
-        numberEl,
-        { fontSize: "170px", y: 0 },
-        { fontSize: "30px", y: -20, ease: "power2.out" }
-      );
-    });
-  });
-
-  return () => ctx.revert();
-}, []);
-
-const panes = [
-  {
-    position: [-5.2,  0.3,  1.6],
-    rotation: [0, 0, -0.12], 
-    scale: .75,
-    title: "With over 40 years of combined experience, our doctors were the first in the region to offer Invisalign—setting the benchmark well before it became the industry standard.",
-    tag: "Expertise"
-  },
-  {
-    position: [-1.8, -0.2,  0.9],
-    rotation: [0, 0, 0.08],
-    scale: .75,
-    title: "We've proudly ranked among the top 1% of certified Invisalign providers nationwide — every year since 2000.",
-    tag: "Recognition"
-  },
-  {
-    position: [ 1.9,  0.4,  0.4],
-    rotation: [0, 0, -0.06],
-    scale: .75,
-    title: "We've treated over 10,000 cases.",
-    tag: "Proven Results"
-  },
-  {
-    position: [ 5.6, -0.1, -0.2],
-    rotation: [0, 0, 0.14],
-    scale: .75,
-    title: "Optional fourth card (matches the Coinbase one in the ref).",
-    tag: "Bonus"
-  }
-];
-useEffect(() => {
-  gsap.registerPlugin(ScrollTrigger);
 
   const tl = gsap.timeline({
     scrollTrigger: {
@@ -1526,29 +1051,42 @@ useEffect(() => {
   <div className="orb orb--right" />
 </section> */}
 
-    <Scene />
-    <NeonShaderBackground />
+
+    <AtmosphereBackground />
 
 
+<div className="h-screen w-full">
 
-      <div className="absolute inset-0 -z-10">
-        {/* <Canvas
-          orthographic
-          camera={{ zoom: 1, position: [0, 0, 1] }}
-          className="w-full h-full"
-        >
-          <ShaderBackground />
-        </Canvas> */}
-      </div>
+
+    <Canvas
+  camera={{ fov: 42, position: [0, 0, 12] }}
+  gl={{
+    toneMapping: THREE.ACESFilmicToneMapping,
+    outputColorSpace: THREE.SRGBColorSpace,
+  }}
+        onCreated={({ scene }) => {
+
+        scene.fog = new THREE.FogExp2(0x000000, 0.001);
+      }}
+>
+  <ExposureControl exposure={2} />
+  
+  <Environment files="/images/qwantani_dusk_2_puresky_4k.hdr" />
+  <ambientLight intensity={0.3} />
+
+  <ScrollControls pages={3} damping={0.1}>
+    <PortalJourneyModel />
+    
+  </ScrollControls>
+</Canvas>
+
+</div>
+
       {/* <div className=" font-neuehaas35 min-h-screen px-8 pt-32 relative text-black "> */}
 
 <section className="relative min-h-screen flex flex-col">
   <div className="flex flex-col md:flex-row justify-between items-start px-8 md:px-16 gap-12">
-    {/* Left */}
-        <div className="relative pt-[33vh]">
-       <div className="relative">
 
-  <div className="fixed top-0 left-0 w-full h-screen pointer-events-none flex items-center justify-center">
 
 {/* 
     <div id="text-holder" className="text-container max-w-[500px] px-6">
@@ -1572,11 +1110,10 @@ useEffect(() => {
       </div>
       
     </div> */}
-  </div>
 
 
   {/* <div id="scroll-zone" className="h-[200vh]"></div> */}
-</div>
+
   {/* The science of Invisalign is not in the clear aligners, but in overall design and prescription for tooth movement by our doctors based on the full facial evaluation to craft the smile that is perfect for you. Our experienced doctors are top experts and providers in clear aligner treatment. */}
     {/* <h2 className="text-5xl md:text-6xl leading-tight text-[#0f172a]">
             <Copy>
@@ -1592,19 +1129,11 @@ useEffect(() => {
               </div>
             </Copy>
           </h2> */}
-        </div>
 
-    {/* Right */}
-    <div className="flex-1 space-y-6 max-w-md">
-     <div className="pt-[33vh] flex flex-col space-y-6">
 
-        </div>
-    </div>
+
   </div>
 </section>
-
-
-
 
         {/* <Canvas
           className="pointer-events-none"
@@ -1637,60 +1166,6 @@ useEffect(() => {
       {/* </div> */}
       <div className="relative">
         <section className="mt-[20vh] relative min-h-screen">
-          <div className="flex justify-start px-10 font-canelathin text-[18px]">Accolades</div>
-            <div
-              ref={containerRef}
-              className="mt-[10vh] w-full max-w-7xl mx-auto text-[11px] relative"
-            >
-              <div
-                ref={addToSectionLineRefs}
-                className="absolute top-0 left-0 right-0 h-[1px] bg-black origin-left"
-              />
-
-         <div className="font-canelathin  flex-1 flex flex-col justify-center text-[1.2em]">
-  {[
-    ["6x Winner Best Orthodontist", "Best of the Valley"],
-    ["5x Winner Best Orthodontist", "Readers' Choice The Morning Call"],
-    ["Nationally Recognized Top Orthodontist", "Top Dentists"],
-    ["Invisalign", "25+ Years of Experience"],
-    ["Invisalign Teen", "5000+ Cases Treated"],
-    ["Diamond Plus", "Top 1% of All Providers"],
-  ].map(([left, right], i) => (
-    <div key={i} className="flex py-4 items-center px-5 relative">
-
-      {i < 5 && (
-        <div
-          ref={addToLineRefs}
-          className="absolute inset-x-0 bottom-0 h-[1px] bg-black origin-center"
-          style={{
-            transform: "scaleX(0)",
-            transformOrigin: "center center",
-          }}
-        />
-      )}
-
-      <div ref={addToTextRefs} className="flex-1 pr-8">
-        {left}
-      </div>
-      <div ref={addToTextRefs} className="w-[350px] text-left text-black pr-6">
-        {right}
-      </div>
-      <div ref={addToTextRefs} className="w-[80px] text-right opacity-50">
-        DATE
-      </div>
-    </div>
-  ))}
-</div>
-   
-
-
-
-              <div
-                ref={addToSectionLineRefs}
-                className="absolute bottom-0 left-0 right-0 h-[1px] bg-black origin-left"
-              />
-            </div>
-
 
             {/* <div className="py-20 relative flex flex-col items-center w-full">
 <div className="relative w-[75%]">
@@ -1851,7 +1326,7 @@ With over 40 years of combined experience, our doctors were the first in the reg
 </div> */}
 
               {/* <img
-                ref={imageRef}
+             
                 src="/images/ipadmockup.png"
                 className="max-w-[90%] sm:max-w-[90%] lg:max-w-[90%] h-auto"
                 alt="Man holding laptop"
@@ -1877,11 +1352,9 @@ With over 40 years of combined experience, our doctors were the first in the reg
                 </p>
               </Copy>
             </div>
-<div         ref={(el) => (sectionsRef.current[0] = el)} className="relative border-t border-gray-300">
+<div   className="relative border-t border-gray-300">
 <div className="relative py-8 md:py-10">
-    <div aria-hidden className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12 text-[90px] md:text-[140px] lg:text-[170px] leading-none font-neuehaas45 text-black select-none z-0">
-      1
-    </div>
+
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
       <div className="hidden md:block md:col-span-6 lg:col-span-7" />
       <div className="col-span-12 md:col-span-6 lg:col-span-5 justify-self-end max-w-[760px] pt-8 md:pt-10">
@@ -1895,17 +1368,8 @@ With over 40 years of combined experience, our doctors were the first in the reg
     </div>
   </div>
 </div>
- <div ref={(el) => (sectionsRef.current[1] = el)}  className="relative border-t border-gray-300">
+ <div  className="relative border-t border-gray-300">
   <div className="relative py-8 md:py-10">
-
-    <div
-      aria-hidden
-      className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12
-                 text-[90px] md:text-[140px] lg:text-[170px]
-                 leading-none font-neuehaas45 text-black select-none z-0"
-    >
-      2
-    </div>
 
  
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
@@ -1925,17 +1389,9 @@ With over 40 years of combined experience, our doctors were the first in the reg
     </div>
   </div>
 </div>
-      <div ref={(el) => (sectionsRef.current[2] = el)}  className="relative border-t border-gray-300">
+      <div className="relative border-t border-gray-300">
   <div className="relative py-8 md:py-10">
 
-    <div
-      aria-hidden
-      className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12
-                 text-[90px] md:text-[140px] lg:text-[170px]
-                 leading-none font-neuehaas45 text-black select-none z-0"
-    >
-      3
-    </div>
 
  
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
@@ -1959,17 +1415,9 @@ With over 40 years of combined experience, our doctors were the first in the reg
     </div>
   </div>
 </div>
-      <div ref={(el) => (sectionsRef.current[3] = el)}   className="relative border-t border-gray-300">
+      <div  className="relative border-t border-gray-300">
   <div className="relative py-8 md:py-10">
 
-    <div
-      aria-hidden
-      className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12
-                 text-[90px] md:text-[140px] lg:text-[170px]
-                 leading-none font-neuehaas45 text-black select-none z-0"
-    >
-      4
-    </div>
 
  
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
@@ -1990,17 +1438,9 @@ With over 40 years of combined experience, our doctors were the first in the reg
     </div>
   </div>
 </div>
-      <div ref={(el) => (sectionsRef.current[4] = el)} className="relative border-t border-gray-300">
+      <div className="relative border-t border-gray-300">
   <div className="relative py-8 md:py-10">
 
-    <div
-      aria-hidden
-      className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12
-                 text-[90px] md:text-[140px] lg:text-[170px]
-                 leading-none font-neuehaas45 text-black select-none z-0"
-    >
-      5
-    </div>
 
  
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
@@ -2018,17 +1458,8 @@ With over 40 years of combined experience, our doctors were the first in the reg
     </div>
   </div>
 </div>
-                <div ref={(el) => (sectionsRef.current[5] = el)} className="relative border-t border-gray-300">
+                <div className="relative border-t border-gray-300">
   <div className="relative py-8 md:py-10">
-
-    <div
-      aria-hidden
-      className="big-number absolute left-6 md:left-10 lg:left-16 top-10 md:top-12
-                 text-[90px] md:text-[140px] lg:text-[170px]
-                 leading-none font-neuehaas45 text-black select-none z-0"
-    >
-      6
-    </div>
 
  
     <div className="grid grid-cols-12 gap-6 px-6 md:px-10 lg:px-16">
@@ -2052,10 +1483,10 @@ Treatment Duration
             </div>
       </section>
             <div className="flex justify-center gap-6 p-6">
-              {/* <img
+              <img
                 src="/images/manholdinglaptop.png"
                 className="max-w-[45%] h-auto rounded-md"
-              /> */}
+              />
 
             </div>
 
@@ -2146,13 +1577,7 @@ Treatment Duration
    
         </section>
 
-        <section className="relative w-full flex flex-col min-h-screen ">
-          {/* 
-            <div className="relative">
-          
-              <RepeatText />
-            </div> */}
-        </section>
+    
         {/* <div className="min-h-screen relative">
             <div className="font-neuehaas45 perspective-1500 text-[#0414EA]">
               <div className="flip-wrapper">
@@ -2202,19 +1627,7 @@ Treatment Duration
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        {/* <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-            <div className="w-[800px] h-[800px]">
-            <Canvas>
-              <ambientLight intensity={0.5} />
-              <pointLight color="#ffe9c4" intensity={2} position={[0, 0, -2]} />
 
-              <SmileyFace position={[0, 0, 0]} />
-              <Environment preset="sunset" />
-
-              <OrbitControls enableZoom={false} />
-            </Canvas>
-          </div>
-          </div> */}
         {/* <Suspense fallback={null}>
           <BulgeGallery
             slides={[
@@ -2223,13 +1636,7 @@ Treatment Duration
             ]}
           />
         </Suspense> */}
-        {/* <section className="pointer-events-none canvas-section relative h-[100vh] z-10">
-          <Canvas camera={{ position: [0, 0, 4] }}>
-            <ambientLight intensity={0.5} />
-            <WavePlane ref={meshRef} uniformsRef={uniformsRef} />
-            <OrbitControls enableZoom={false} />
-          </Canvas>
-        </section> */}
+     
       </div>
     </>
   );
@@ -2237,20 +1644,295 @@ Treatment Duration
 
 export default Invisalign;
 
+function ExposureControl({ exposure = 2 }) {
+  const { gl } = useThree()
 
-const SUNSET_THEME = {
-  sphere: [
-    "#e6f1f7", 
-    "#d9ecf5",
-    "#cfdff0",
-    "#e4dcf4",
-    "#f0f4fa", 
-  ],
-  hdr: 'https://www.spacespheremaps.com/wp-content/uploads/HDR_silver_and_gold_nebulae.hdr',
-};
+  useEffect(() => {
+    gl.toneMappingExposure = exposure
+  }, [gl, exposure])
 
-const pointMaterialShader = {
-  vertexShader: `
+  return null
+}
+
+function EnvMap() {
+  const { scene, gl } = useThree()
+  const texture = useLoader(THREE.TextureLoader, "/images/environment-map.jpg")
+
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl)
+    pmrem.compileEquirectangularShader()
+
+    const envMap = pmrem.fromEquirectangular(texture).texture
+
+    scene.environment = envMap
+
+    texture.dispose()
+    pmrem.dispose()
+  }, [texture, scene, gl])
+
+  return null
+}
+function PortalJourneyModel() {
+  const { scene } = useGLTF("/models/femalehead.glb")
+  const { camera, gl } = useThree()
+  const anomalyRef = useRef()
+  const groupRef = useRef(null)
+  const materialRef = useRef(null)
+
+  useEffect(() => {
+    scene.updateMatrixWorld(true)
+  scene.position.set(0, 0, 0)
+  scene.scale.set(1, 1, 1)
+
+    const box = new THREE.Box3().setFromObject(scene)
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+
+    scene.position.x -= center.x
+    scene.position.z -= center.z
+    scene.position.y -= center.y
+
+    const desiredHeight = 14; 
+    const scaleFactor = desiredHeight / size.y;
+    scene.scale.setScalar(scaleFactor);
+
+    scene.position.y = -5;
+scene.updateMatrixWorld(true)
+
+const finalBox = new THREE.Box3().setFromObject(scene)
+const finalCenter = finalBox.getCenter(new THREE.Vector3())
+const finalSize = finalBox.getSize(new THREE.Vector3())
+
+console.log("FINAL CENTER", finalCenter)
+console.log("FINAL SIZE", finalSize)
+  if (anomalyRef.current) {
+    anomalyRef.current.position.set(
+      finalCenter.x - finalSize.x * 0.2,
+      finalCenter.y + finalSize.y * 0.26,
+      finalCenter.z - finalSize.z * -.1
+    )
+
+    anomalyRef.current.scale.setScalar(finalSize.y * 0.025)
+  }
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        
+        if (!child.geometry.attributes.normal) {
+          child.geometry.computeVertexNormals();
+        }
+
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            viewVector: { value: camera.position.clone() },
+            
+            baseColorVec: { value: new THREE.Color(0xFFF5FA) }, // Pale pinkish white
+            fresnelColorVec: { value: new THREE.Color(0xC8B3FF) }, // Soft Violet/Blue
+            rimColorVec: { value: new THREE.Color(0xFFCD80) }, // Warm Orange/Yellow
+            
+
+            iridIntensity: { value: 0.2 },
+            iridMix: { value: 0.7 },
+            fresnelPower: { value: 3.0 },
+            fresnelMix: { value: 1.5 },
+            rimPower: { value: 4.0 },
+            rimMix: { value: 0.8 },
+            timeSpeed: { value: 0.2 },
+            rotationSpeed: { value: 0.01 },
+          },
+          
+          vertexShader: `
+            uniform float time;
+            uniform float rotationSpeed;
+            
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            varying vec3 vWorldPosition;
+            varying vec3 vPosition;
+            varying vec3 vOriginalNormal;
+
+            // Rotation matrix functions
+            mat3 rotationX(float angle) {
+              float s = sin(angle);
+              float c = cos(angle);
+              return mat3(
+                1.0, 0.0, 0.0,
+                0.0, c, -s,
+                0.0, s, c
+              );
+            }
+
+            mat3 rotationY(float angle) {
+              float s = sin(angle);
+              float c = cos(angle);
+              return mat3(
+                c, 0.0, s,
+                0.0, 1.0, 0.0,
+                -s, 0.0, c
+              );
+            }
+
+            mat3 rotationZ(float angle) {
+              float s = sin(angle);
+              float c = cos(angle);
+              return mat3(
+                c, -s, 0.0,
+                s, c, 0.0,
+                0.0, 0.0, 1.0
+              );
+            }
+
+            void main() {
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                vViewPosition = -mvPosition.xyz;
+                vec3 objectNormal = normal;      
+         float angle = time * 0.05;
+mat3 rotation = rotationY(angle);
+vec3 rotatedNormal = rotation * normal;
+vNormal = normalize(normalMatrix * rotatedNormal);
+                vOriginalNormal = normalize(normalMatrix * objectNormal);
+                vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                vPosition = position;
+                gl_Position = projectionMatrix * mvPosition;
+            }
+          `,
+          
+          fragmentShader: `
+            uniform float time;
+            uniform float timeSpeed;
+            uniform vec3 viewVector;
+
+            uniform vec3 baseColorVec;
+            uniform float iridIntensity;
+            uniform float iridMix;
+
+            uniform vec3 fresnelColorVec;
+            uniform float fresnelPower;
+            uniform float fresnelMix;
+
+            uniform vec3 rimColorVec;
+            uniform float rimPower;
+            uniform float rimMix;
+
+            uniform float rotationSpeed;
+
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            varying vec3 vWorldPosition;
+            varying vec3 vPosition;
+            varying vec3 vOriginalNormal;
+
+            void main() {
+                // Normalize inputs - use the rotated normal from vertex shader
+                vec3 normal = normalize(vNormal);
+                vec3 viewDir = normalize(vViewPosition);
+                
+                float dotNV = abs(dot(normal, viewDir));
+                dotNV = clamp(dotNV, 0.0, 1.0);
+                
+                float posVariation = sin(vPosition.x * 10.0 + time * 2.0) * 
+                                    cos(vPosition.y * 8.0 + time * 1.5) * 0.15;
+
+             // Mid-range spectral separation (between chrome and pearl)
+vec3 hueShift = 0.5 + 0.5 * cos(
+  time * timeSpeed +
+  dotNV * 6.0 +
+  vec3(0.0, 0.8, 1.6)   // middle ground offsets
+);
+                
+                vec3 irid = baseColorVec + hueShift * iridIntensity;
+                
+                vec3 finalColor = irid * iridMix;
+                
+                // Fresnel edge glow - will now shift and flow across the surface
+                float fresnel = pow(1.0 - dotNV, fresnelPower);
+                finalColor += fresnel * fresnelColorVec * fresnelMix;
+                
+                // Rim lighting - will create flowing highlights
+                float rim = pow(1.0 - dotNV, rimPower);
+                finalColor += rim * rimColorVec * rimMix;
+                
+                finalColor += posVariation * 0.2;
+                
+                float normalShift = sin(normal.x * 5.0 + time) * 
+                                   cos(normal.y * 5.0 + time * 0.8) * 
+                                   sin(normal.z * 5.0 + time * 1.2);
+                finalColor += vec3(normalShift * 0.1, normalShift * 0.05, normalShift * 0.15);
+                
+                finalColor = max(finalColor, vec3(0.0));
+                
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+          `,
+          side: THREE.DoubleSide,
+        });
+
+        child.material = material;
+        materialRef.current = material;
+      
+        material.needsUpdate = true;
+      }
+    });
+
+    camera.position.set(-22, 2, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+
+  }, [scene, camera]);
+
+
+const scroll = useScroll()
+const camStart = new THREE.Vector3(-22, 2, 10)
+const camNearSkull = new THREE.Vector3(-8, 1.5, 8)
+const camInside = new THREE.Vector3(0, 0, -2)
+useFrame((state) => {
+  const t = scroll.offset
+
+  scene.traverse((child) => {
+    if (child.isMesh && child.material.uniforms?.time) {
+      child.material.uniforms.time.value = state.clock.elapsedTime
+    }
+  })
+
+  if (t < 0.5) {
+    const ease = Math.pow(t / 0.5, 0.9)
+
+    camera.position.lerpVectors(
+      camStart,
+      camNearSkull,
+      ease
+    )
+
+    camera.lookAt(0, 0, 0)
+  } else {
+    const ease = (t - 0.5) / 0.5
+
+    camera.position.lerpVectors(
+      camNearSkull,
+      camInside,
+      ease
+    )
+
+    camera.lookAt(0, 0, -3)
+  }
+})
+  return (
+<group ref={groupRef}>
+  <primitive object={scene} />
+  <group ref={anomalyRef}>
+    <CosmicField />
+  </group>
+  
+</group>
+  );
+}
+const createPointMaterial = (mouseRef) => {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      uMouse: { value: new THREE.Vector2(-10, -10) }
+    },
+    vertexShader: `
       attribute float size;
       attribute vec3 randomDir;
       varying vec3 vColor;
@@ -2258,7 +1940,6 @@ const pointMaterialShader = {
       varying float vMouseEffect;
       uniform float time;
       uniform vec2 uMouse;
-      uniform float uExplode;
       
       vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
       vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -2266,333 +1947,324 @@ const pointMaterialShader = {
       vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
       
       float snoise(vec3 v) {
-          const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-          const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-          vec3 i = floor(v + dot(v, C.yyy));
-          vec3 x0 = v - i + dot(i, C.xxx);
-          vec3 g = step(x0.yzx, x0.xyz);
-          vec3 l = 1.0 - g;
-          vec3 i1 = min(g.xyz, l.zxy);
-          vec3 i2 = max(g.xyz, l.zxy);
-          vec3 x1 = x0 - i1 + C.xxx;
-          vec3 x2 = x0 - i2 + C.yyy;
-          vec3 x3 = x0 - D.yyy;
-          i = mod289(i);
-          vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-          float n_ = 0.142857142857;
-          vec3 ns = n_ * D.wyz - D.xzx;
-          vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-          vec4 x_ = floor(j * ns.z);
-          vec4 y_ = floor(j - 7.0 * x_);
-          vec4 x = x_ * ns.x + ns.yyyy;
-          vec4 y = y_ * ns.x + ns.yyyy;
-          vec4 h = 1.0 - abs(x) - abs(y);
-          vec4 b0 = vec4(x.xy, y.xy);
-          vec4 b1 = vec4(x.zw, y.zw);
-          vec4 s0 = floor(b0)*2.0 + 1.0;
-          vec4 s1 = floor(b1)*2.0 + 1.0;
-          vec4 sh = -step(h, vec4(0.0));
-          vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-          vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-          vec3 p0 = vec3(a0.xy,h.x);
-          vec3 p1 = vec3(a0.zw,h.y);
-          vec3 p2 = vec3(a1.xy,h.z);
-          vec3 p3 = vec3(a1.zw,h.w);
-          vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-          p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-          vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-          m = m * m;
-          return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod289(i);
+        vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 0.142857142857;
+        vec3 ns = n_ * D.wyz - D.xzx;
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ * ns.x + ns.yyyy;
+        vec4 y = y_ * ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+        vec3 p0 = vec3(a0.xy,h.x);
+        vec3 p1 = vec3(a0.zw,h.y);
+        vec3 p2 = vec3(a1.xy,h.z);
+        vec3 p3 = vec3(a1.zw,h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
       }
       void main() {
-          vColor = color;
-          
-          float explodeAmount = uExplode * 35.0;
-          float turbulence = snoise(position * 0.4 + randomDir * 2.0 + time * 0.8) * 10.0 * uExplode;
-          vec3 explodedPos = position + randomDir * (explodeAmount + turbulence);
-          vec3 mixedPos = mix(position, explodedPos, uExplode);
-          
-          vec4 projectedVertex = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          vec2 screenPos = projectedVertex.xy / projectedVertex.w;
-          float mouseDist = distance(screenPos, uMouse);
-          float mouseEffect = 1.0 - smoothstep(0.0, 0.05, mouseDist);
-          vMouseEffect = mouseEffect;
-          
-          float noiseFrequency = 0.4;
-          float noiseAmplitude = (0.6 + mouseEffect * 0.3) * (1.0 - uExplode);
-          vec3 noiseInput = mixedPos * noiseFrequency + time * 0.5;
-          vec3 displacement = vec3(snoise(noiseInput), snoise(noiseInput + vec3(10.0)), snoise(noiseInput + vec3(20.0)));
-          vec3 finalPos = mixedPos + displacement * noiseAmplitude;
-          float pulse = sin(time + length(position)) * 0.1 + 1.0;
-          
-          vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-          vDistance = -mvPosition.z;
-          gl_PointSize = size * (400.0 / -mvPosition.z) * pulse * (1.0 + vMouseEffect * 0.5);
-          gl_Position = projectionMatrix * mvPosition;
+        vColor = color;
+        
+        float noiseFrequency = 0.7;
+        float noiseAmplitude = (0.8 + vMouseEffect * 3.5);
+        vec3 noiseInput = position * noiseFrequency + time * 0.15;
+        vec3 displacement = vec3(snoise(noiseInput), snoise(noiseInput + vec3(10.0)), snoise(noiseInput + vec3(20.0)));
+        vec3 finalPos = position + displacement * noiseAmplitude;
+        
+        vec4 projectedVertex = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vec2 screenPos = projectedVertex.xy / projectedVertex.w;
+        float mouseDist = distance(screenPos, uMouse);
+        float mouseEffect = 1.0 - smoothstep(0.0, 0.25, mouseDist);
+        vMouseEffect = mouseEffect;
+        
+        float pulse = sin(time + length(position)) * 0.1 + 1.0;
+        
+        vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+        vDistance = -mvPosition.z;
+        gl_PointSize = size * (400.0 / -mvPosition.z) * pulse * (1.0 + vMouseEffect * 0.5);
+        gl_Position = projectionMatrix * mvPosition;
       }
-  `,
-fragmentShader: `
-    varying vec3 vColor;
-    varying float vMouseEffect;
-      varying float vDistance;
-    uniform float time;
-    uniform float uExplode;
-
-    float rand(vec2 co){
-        return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-    }
-
-    void main() {
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vMouseEffect;
+      uniform float time;
+      
+      float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
+      void main() {
         vec2 cxy = 2.0 * gl_PointCoord - 1.0;
         float r = dot(cxy, cxy);
         if (r > 1.0) discard;
-
-  float core = exp(-r * 55.0);  
-
-float outer = exp(-r * 6.5);
-outer = pow(outer, 1.2);  
-
-   float sparkleShift = rand(gl_PointCoord + time * 0.7) * 0.15;
-vec3 sparkleTint = vec3(
-  1.0,
-  0.95 - sparkleShift,
-  1.05
-);
-
-vec3 blueCore = vec3(0.55, 0.72, 1.0);
-vec3 coreGlow = blueCore * pow(core, 0.7) * 0.08;
-vec3 coloredHalo = vColor * sparkleTint * outer * 0.9;
-
-vec3 finalColor = coloredHalo + coreGlow;
-float depthSat = smoothstep(6.0, 2.0, vDistance);
-finalColor = mix(
-  vec3(dot(finalColor, vec3(0.333))),
-  finalColor,
-  depthSat * 0.85
-);
-float alpha = core * 0.05 + outer * 0.18;
-        gl_FragColor = vec4(finalColor, alpha);
-    }
-`
-};
-function CosmicScene({ scrollProgress, mouse }) {
-  const ringsRef = useRef();
-  const lightRef = useRef();
-  const { scene } = useThree();
-
-  useEffect(() => {
-    const loader = new RGBELoader();
-    loader.load(SUNSET_THEME.hdr, (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      scene.background = texture;
-      scene.environment = texture;
-    });
-  }, [scene]);
-
-  const ringsGroup = useMemo(() => {
-    const group = new THREE.Group();
-    const vs = pointMaterialShader.vertexShader;
-    const fs = pointMaterialShader.fragmentShader;
-
-    if (!vs || !fs) return group;
-
-for (let r = 0; r < 8; r++) {
-  const ringCount = 4000;
-
-  const ringGeo  = new THREE.BufferGeometry();
-  const ringPos  = new Float32Array(ringCount * 3);
-  const ringCol  = new Float32Array(ringCount * 3);
-  const ringSize = new Float32Array(ringCount);
-  const ringRand = new Float32Array(ringCount * 3);
-
-  for (let i = 0; i < ringCount; i++) {
-    const i3 = i * 3;
-    const angle = (i / ringCount) * Math.PI * 2;
-
-    const baseRadius = 5.5 + r * 0.6;
-    const jitter = (Math.random() - 0.5) * 1.5;
-    const ellipseBias = 1.0 + Math.sin(i * 0.5) * 0.2;
-
-    const radius = baseRadius * ellipseBias + jitter;
-    const vertical = (Math.random() - 0.5) * (0.4 + r * 0.05);
-
-    ringPos[i3]     = Math.cos(angle) * radius;
-    ringPos[i3 + 1] = vertical;
-    ringPos[i3 + 2] = Math.sin(angle) * radius;
-
-    ringSize[i] = Math.random() * 0.15 + 0.08;
-
-    ringRand[i3]     = Math.random() * 2 - 1;
-    ringRand[i3 + 1] = Math.random() * 2 - 1;
-    ringRand[i3 + 2] = Math.random() * 2 - 1;
-
-
-    const PINK =  [  "#7fb8ff", 
-  "#8fc4ff", 
-  "#9fcfff", 
-  "#6faeff",
-  "#84bfff", ];
-
-    const t = i / ringCount;
-    const idx = Math.floor(t * (PINK.length - 1));
-
-    const c1 = new THREE.Color(PINK[idx]);
-    const c2 = new THREE.Color(PINK[Math.min(idx + 1, PINK.length - 1)]);
-    const f = (t * (PINK.length - 1)) % 1;
-
-    const col = c1.clone().lerp(c2, f);
-
-    ringCol[i3]     = col.r;
-    ringCol[i3 + 1] = col.g;
-    ringCol[i3 + 2] = col.b;
-  }
-
-  ringGeo.setAttribute("position", new THREE.BufferAttribute(ringPos, 3));
-  ringGeo.setAttribute("color",    new THREE.BufferAttribute(ringCol, 3));
-  ringGeo.setAttribute("size",     new THREE.BufferAttribute(ringSize, 1));
-  ringGeo.setAttribute("randomDir",new THREE.BufferAttribute(ringRand, 3));
-
-  const material = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    uMouse: { value: new THREE.Vector2() },
-    uExplode: { value: 0 },
-  },
-  vertexShader: vs,
-  fragmentShader: fs,
-  vertexColors: true,
-  transparent: true,
-  depthWrite: false,
-
+        
+        float glow = exp(-r * 3.5) + vMouseEffect * 0.5;
+        float twinkle = rand(gl_PointCoord + time) * 0.5 + 0.5;
+        
+        vec3 finalColor = vColor * (1.1 + sin(time * 0.8) * 0.2 + vMouseEffect * 0.5) * glow * twinkle;
+        gl_FragColor = vec4(finalColor, smoothstep(0.0, 1.0, glow));
+      }
+    `,
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
   });
+};
 
-  const ring = new THREE.Points(ringGeo, material);
+const defaultTheme = {
+  sphere: [
+    new THREE.Color().setHSL(0.45, 0.8, 0.6), 
+    new THREE.Color().setHSL(0.50, 0.8, 0.6), 
+    new THREE.Color().setHSL(0.55, 0.8, 0.6), 
+    new THREE.Color().setHSL(0.60, 0.8, 0.6), 
+    new THREE.Color().setHSL(0.65, 0.8, 0.6), 
+  ],
+  rings: (i, count, j, pCount) => {
+    const baseHue = 0.45 + (i / count) * 0.15; 
+    const variation = (j / pCount) * 0.03; 
+    const hue = Math.min(baseHue + variation, 0.65);
+    return new THREE.Color().setHSL(hue, 0.8, 0.6);
+  }
+};
 
-  ring.rotation.x = Math.random() * Math.PI;
-  ring.rotation.y = Math.random() * Math.PI;
+const LensflareSprite = () => {
+  const texture = useTexture('https://threejs.org/examples/textures/lensflare/lensflare0.png');
+  
+  return (
+    <sprite position={[0, 0, 0]} scale={[2, 2, 1]}>
+      <spriteMaterial 
+        map={texture} 
+        blending={THREE.AdditiveBlending} 
+        depthWrite={false}
+        transparent
+        opacity={0.8}
+      />
+    </sprite>
+  );
+};
 
-  group.add(ring);
-}
+const SpiralSphere = ({ mouseRef }) => {
+  const pointsRef = useRef();
+  const materialRef = useRef(createPointMaterial(mouseRef));
+  
+  const [geometry] = useMemo(() => {
+    const particleCount = 40000;
+    const radius = 5;
+    
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    const randomDirs = new Float32Array(particleCount * 3).fill(0);
 
-    return group;
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      const phi = Math.acos(-1 + (2 * i) / particleCount);
+      const theta = Math.sqrt(particleCount * Math.PI) * phi;
+      
+      positions[i3] = radius * Math.cos(theta) * Math.sin(phi);
+      positions[i3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+      positions[i3 + 2] = radius * Math.cos(phi);
+      
+      sizes[i] = Math.random() * 0.2 + 0.1;
+    }
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      const colorPos = (i / particleCount) * (defaultTheme.sphere.length - 1);
+      const c1 = defaultTheme.sphere[Math.floor(colorPos)];
+      const c2 = defaultTheme.sphere[Math.min(Math.floor(colorPos) + 1, defaultTheme.sphere.length - 1)];
+      const color = new THREE.Color().copy(c1).lerp(c2, colorPos - Math.floor(colorPos));
+      
+      colors[i3] = color.r;
+      colors[i3 + 1] = color.g;
+      colors[i3 + 2] = color.b;
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geom.setAttribute('randomDir', new THREE.BufferAttribute(randomDirs, 3));
+
+    return [geom];
   }, []);
-
-  useEffect(() => {
-    if (!ringsRef.current) return;
-    ringsGroup.children.forEach((child) => ringsRef.current.add(child));
-  }, [ringsGroup]);
-
-  const sceneGroupRef = useRef();
 
   useFrame((state) => {
-    sceneGroupRef.current.scale.setScalar(0.5);
-    const t = state.clock.getElapsedTime();
-    const explodeAmount = THREE.MathUtils.smoothstep(scrollProgress, 0, 1);
-
-    ringsRef.current.rotation.y = t * 0.0001;
-
-    // expand + move rings toward camera
-    ringsRef.current.scale.setScalar(1 + scrollProgress * 3);
-    ringsRef.current.position.z = -scrollProgress * 6.0;
-
-    ringsRef.current.children.forEach((ring, i) => {
-      ring.rotation.z += 0.001 * (i + 1);
-      ring.rotation.x += 0.0003 * (i + 1);
-
-      const m = ring.material.uniforms;
-      m.time.value = t;
-      m.uMouse.value.copy(mouse);
-      m.uExplode.value = explodeAmount;
-    });
+    if (materialRef.current) {
+      materialRef.current.uniforms.time.value = state.clock.elapsedTime;
+      materialRef.current.uniforms.uMouse.value.copy(mouseRef.current);
+    }
+    if (pointsRef.current) {
+      const breathe = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.05;
+      pointsRef.current.scale.set(breathe, breathe, breathe);
+    }
   });
 
-const sunRef = useRef();
   return (
-    <>
-      <fog attach="fog" args={["#000", 10, 100]} />
-      <ambientLight intensity={0.3} />
-      <pointLight ref={lightRef} position={[0, 0, 0]} intensity={2} />
-      
-      <group ref={sceneGroupRef}>
-        <group ref={ringsRef} />
-      </group>
-      
-      {/* <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} /> */}
-      {/* <OrbitControls enableDamping dampingFactor={0.04} rotateSpeed={0.6} minDistance={10} maxDistance={50} /> */}
-
-      <EffectComposer>
-<Bloom
-  luminanceThreshold={0.28}
-  luminanceSmoothing={0.85}
-  intensity={0.25}
-  radius={0.45}
-/>
-      </EffectComposer>
-    </>
+    <points ref={pointsRef} geometry={geometry} material={materialRef.current} />
   );
-}
+};
 
-function Scene() {
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const mouse = useRef(new THREE.Vector2(-10, -10));
+const OrbitRings = ({ mouseRef }) => {
+  const groupRef = useRef();
+  const materialsRef = useRef([]);
+
+  const rings = useMemo(() => {
+    const rings = [];
+    const count = 8;
+    const radius = 7.5;
+    const thickness = 0.6;
+
+    for (let i = 0; i < count; i++) {
+      const particleCount = 4000;
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      const sizes = new Float32Array(particleCount);
+      const randomDirs = new Float32Array(particleCount * 3);
+      const randomVec = new THREE.Vector3();
+
+      for (let j = 0; j < particleCount; j++) {
+        const j3 = j * 3;
+        const angle = (j / particleCount) * Math.PI * 2;
+        const radiusVariation = radius + (Math.random() - 0.5) * thickness;
+        
+        positions[j3] = Math.cos(angle) * radiusVariation;
+        positions[j3 + 1] = (Math.random() - 0.5) * (thickness * 0.5);
+        positions[j3 + 2] = Math.sin(angle) * radiusVariation;
+        
+        sizes[j] = Math.random() * 0.15 + 0.08;
+        
+        randomVec.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize();
+        randomDirs[j3] = randomVec.x;
+        randomDirs[j3 + 1] = randomVec.y;
+        randomDirs[j3 + 2] = randomVec.z;
+
+        const color = defaultTheme.rings(i, count, j, particleCount);
+        colors[j3] = color.r;
+        colors[j3 + 1] = color.g;
+        colors[j3 + 2] = color.b;
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      geom.setAttribute('randomDir', new THREE.BufferAttribute(randomDirs, 3));
+
+      const material = createPointMaterial(mouseRef);
+      materialsRef.current.push(material);
+
+      rings.push(
+        <points 
+          key={i} 
+          geometry={geom} 
+          material={material}
+          rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}
+        />
+      );
+    }
+    return rings;
+  }, [mouseRef]);
+
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+    materialsRef.current.forEach(mat => {
+      mat.uniforms.time.value = time;
+      mat.uniforms.uMouse.value.copy(mouseRef.current);
+    });
+
+    if (groupRef.current) {
+      groupRef.current.children.forEach((ring, index) => {
+        const speed = 0.0005 * (index + 1);
+        ring.rotation.z += speed;
+        ring.rotation.x += speed * 0.3;
+        ring.rotation.y += speed * 0.2;
+        ring.scale.y = 1.0 + Math.sin(time * 3.0 + index * 0.5) * 0.2;
+      });
+    }
+  });
+
+  return <group ref={groupRef}>{rings}</group>;
+};
+
+const CosmicField = ({ 
+  mouseRef: externalMouseRef,
+  enableBloom = true,
+  enableFog = true,
+  enableRotation = true 
+}) => {
+  const internalMouseRef = useRef(new THREE.Vector2(-10, -10));
+  const groupRef = useRef();
+  const { scene } = useThree();
+
+  const mouseRef = externalMouseRef || internalMouseRef;
 
   useEffect(() => {
-    const updateScroll = () => {
-      const scrollY = window.scrollY;
-      const maxScroll = document.body.scrollHeight - window.innerHeight;
-      setScrollProgress(Math.min(scrollY / maxScroll, 1));
-    };
-
-    const updateMouse = (e) => {
-      mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-
-    window.addEventListener("scroll", updateScroll);
-    window.addEventListener("mousemove", updateMouse);
+    if (enableFog) {
+      scene.fog = new THREE.FogExp2(0x000000, 0.008);
+    }
 
     return () => {
-      window.removeEventListener("scroll", updateScroll);
-      window.removeEventListener("mousemove", updateMouse);
+      if (enableFog) {
+        scene.fog = null;
+      }
     };
-  }, []);
+  }, [scene, enableFog]);
+
+  useEffect(() => {
+    if (!externalMouseRef) {
+      const handleMouseMove = (event) => {
+        mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => window.removeEventListener('mousemove', handleMouseMove);
+    }
+  }, [externalMouseRef, mouseRef]);
+
+  useFrame(() => {
+    if (enableRotation && groupRef.current) {
+      groupRef.current.rotation.y += 0.0005;
+    }
+  });
 
   return (
-    <div style={{ width: "100vw", height: "300vh" }}>
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          pointerEvents: "none",
-        }}
-      >
-        <Canvas gl={{ alpha: true }} style={{ background: "transparent" }}>
-          <CosmicScene
-            mouse={mouse.current}
-            scrollProgress={scrollProgress}
-          />
-        </Canvas>
-      </div>
+    <group ref={groupRef}>
+      <SpiralSphere mouseRef={mouseRef} />
+      <OrbitRings mouseRef={mouseRef} />
 
-      <div
-      className="font-neuehaas45"
-        style={{
-          position: "fixed",
-          bottom: 30,
-          left: "50%",
-          transform: "translateX(-50%)",
-          color: "white",
-          opacity: scrollProgress < 0.9 ? 1 : 0,
-          transition: "opacity 0.8s",
-          pointerEvents: "none",
-        }}
-      >
-        Scroll to explore
-      </div>
-    </div>
+      
+      <pointLight position={[0, 0, 0]} intensity={2} distance={0} />
+      {/* <LensflareSprite /> */}
+    </group>
   );
-}
-const vertexShader = `
+};
+
+function Atmosphere() {
+  const vertexShader = `
 attribute float randomAmp;
   varying vec2 vUv;
   void main() {
@@ -2665,64 +2337,112 @@ float wave(vec2 p, float phase, float freq) {
     vec2 uv = worldUV;
     vec2 uv0 = worldUV;
 
-vec3 coolPearl     = vec3(0.82, 0.86, 0.92); // blue-gray
-vec3 mistBlue      = vec3(0.78, 0.83, 0.90); // foggy blue
-vec3 glassNeutral  = vec3(0.86, 0.87, 0.90); // aluminum gray
-vec3 babyBlueCore = vec3(0.86, 0.92, 0.97); // luminous cyan-blue
-vec3 lavenderMist = vec3(0.80, 0.82, 0.90);
-vec3 pearlGlow     = vec3(0.92, 0.94, 0.96); // cold light
-vec3 mistHighlight = vec3(0.84, 0.88, 0.92);
+vec3 baseGray = vec3(0.72, 0.74, 0.76);
+vec3 softGray = vec3(0.68, 0.70, 0.72);
 
-float t = smoothstep(0.0, 1.0, vUv.x);
+vec3 bg = mix(softGray, baseGray, vUv.x);
 
-vec3 bg = mix(coolPearl, mistBlue, t);
 
-bg = mix(bg, glassNeutral, t * 0.25);
+vec3 etherealBlue = vec3(0.78, 0.84, 0.90);  
+vec3 creamEdge    = vec3(0.88, 0.92, 0.96);  
 
-// radial pearl glow - REDUCED SPREAD
-float glowDist = length(uv0);
-float glowAmt = smoothstep(0.9, 0.0, glowDist);
-bg = mix(bg, pearlGlow, glowAmt * 0.25); // Reduced from 0.4
-bg = mix(bg, mistHighlight, t * 0.25);
+float arc = smoothstep(
+    1.35,
+    0.15,
+    length(vec2(uv0.x * 0.75 - 0.35, uv0.y * 1.15))
+);
 
-// fog noise
-float fog = snoise(uv0 * 0.6 + uTime * 0.03) * 0.08;
+bg = mix(bg, etherealBlue, arc * 0.35);
+
+
+float verticalBand = exp(-abs(uv0.x - 0.12) * 4.0);
+bg = mix(bg, creamEdge, verticalBand * 0.24);
+
+float verticalFalloff = smoothstep(1.0, -0.5, uv0.y);
+bg = mix(bg, vec3(0.80, 0.83, 0.87), verticalFalloff * 0.12);
+
+
+float fog = snoise(uv0 * 0.35 + uTime * 0.02) * 0.025;
 bg += fog;
 
-// TIGHTER CENTER GLOW to reduce bloom
-float centerGlow = exp(-length(uv0) * 2.0); // Increased from 1.2 to 2.0
-// Diffuse milky density (NOT glow)
-float density = exp(-length(uv0) * 1.4); // softer falloff
-density = pow(density, 1.6);             // flatten peak
 
-vec3 milkBlue = vec3(0.78, 0.86, 0.94);  // desaturated baby blue
-bg = mix(bg, milkBlue, density * 0.25);
+float luma = dot(bg, vec3(0.299, 0.587, 0.114));
+bg = mix(vec3(luma), bg, 0.95);
+
+bg *= 1.04;
 
 vec3 col = bg;
-  
-    //  Mouse interaction
-  
+
+float bandNoise = snoise(uv0 * 0.25 + vec2(uTime * 0.01, 0.0));
+bandNoise = bandNoise * 0.5 + 0.5;
+
+float orangeBand = smoothstep(0.2, 0.8, abs(uv0.x + 0.15));
+orangeBand *= smoothstep(0.8, 0.2, abs(uv0.x - 0.4));
+
+float bandMask = bandNoise * orangeBand;
+
+vec3 softPeach = vec3(0.96, 0.78, 0.68);  // desaturated orange
+vec3 mutedApricot = vec3(0.94, 0.72, 0.62);
+
+vec3 orangeTone = mix(softPeach, mutedApricot, bandNoise * 0.4);
+
+
+col = mix(col, orangeTone, bandMask * 0.10);
+
+
+float milkCloud1 = snoise(uv0 * 0.6 + vec2(uTime * 0.01, 0.0));
+float milkCloud2 = snoise(uv0 * 1.2 + vec2(0.0, uTime * 0.015));
+
+float milkCloud = (milkCloud1 * 0.6 + milkCloud2 * 0.4);
+milkCloud = milkCloud * 0.5 + 0.5; // normalize
+
+milkCloud = smoothstep(0.35, 0.85, milkCloud);
+
+float creamField = snoise(uv0 * 0.45 + vec2(uTime * 0.01, 0.0));
+creamField = creamField * 0.5 + 0.5;
+creamField = smoothstep(0.4, 0.8, creamField);
+
+vec3 softCream = vec3(0.98, 0.96, 0.92);
+vec3 warmWhite = vec3(1.0, 0.99, 0.97);
+
+// vertical bias 
+float creamLift = smoothstep(-0.2, 0.8, uv0.y);
+
+vec3 creamTone = mix(softCream, warmWhite, creamLift * 0.5);
+
+col = mix(col, creamTone, creamField * 0.18);
+
+vec3 pearlBase = vec3(0.985, 0.99, 1.0);
+vec3 pearlCool = vec3(0.96, 0.98, 1.0);
+
+float pearlShift = sin(uTime * 0.05) * 0.5 + 0.5;
+vec3 pearlTone = mix(pearlBase, pearlCool, pearlShift * 0.4);
+
+col = mix(col, pearlTone, milkCloud * 0.25);
     vec2 mouse_uv = (uMouse - 0.5) * 2.0;
     mouse_uv.x *= uResolution.x / uResolution.y;
     float mouseDist = length(uv - mouse_uv);
 
     uv += (mouse_uv - uv) * (0.3 / (mouseDist + 0.5));  // warp space toward cursor
 
-
-
     vec2 uvNoise = uv * rot(uTime * 0.05);
     float waveNoise = snoise(uvNoise * 2.0 + uTime * 0.2) * 0.1;
 
-vec3 ribbonDark      = vec3(0.42, 0.58, 0.74);
-vec3 ribbonMid       = vec3(0.64, 0.78, 0.92);
-vec3 ribbonLight     = vec3(0.78, 0.86, 0.96);
-vec3 ribbonCoreGlow  = vec3(0.52, 0.74, 0.94);
+vec3 ribbonDark     = vec3(0.30, 0.55, 0.85);
+vec3 ribbonMid      = vec3(0.40, 0.70, 1.00);
+vec3 ribbonLight    = vec3(0.65, 0.85, 1.00);
+vec3 ribbonCoreGlow = vec3(0.55, 0.90, 1.00);
 
     float segLen = 10.0;  // lifetime of ribbon
+float milkLuma = dot(col, vec3(0.299, 0.587, 0.114));
+col = mix(vec3(milkLuma), col, 0.92);
 
+
+float brightness = dot(col, vec3(0.299, 0.587, 0.114));
+col += vec3(1.0) * pow(brightness, 2.2) * 0.035;
     for (int i = 0; i < 2; i++) {
       float slotIndex = float(i);
-      float slotTime = uTime + slotIndex * 3.17;           // offset ribbon
+      float slotTime = uTime + slotIndex * 5.17;       
       float lifeIndex = floor(slotTime / segLen);
       float tNorm = fract(slotTime / segLen);  
 
@@ -2730,7 +2450,6 @@ vec3 ribbonCoreGlow  = vec3(0.52, 0.74, 0.94);
       float centerY = mix(2.4, -2.4, tNorm);
       float yRel = worldUV.y - centerY;
 
-      // Fade out when ribbon is far off-screen 
       float bodyMask = 1.0 - smoothstep(1.4, 1.8, abs(yRel));
       float timeMask = smoothstep(0.05, 0.15, tNorm) * (1.0 - smoothstep(0.85, 0.95, tNorm));
       float visibility = bodyMask * timeMask;
@@ -2738,62 +2457,76 @@ vec3 ribbonCoreGlow  = vec3(0.52, 0.74, 0.94);
       if (visibility > 0.001) {
         float seed = lifeIndex + slotIndex * 23.71;
         float xCenter = mix(-0.9, 0.9, rand1(seed * 1.3));
-        float freq    = mix(0.4, 0.9, rand1(seed * 2.1));
+       float freq = mix(0.25, 0.55, rand1(seed * 2.1));
         float phase   = rand1(seed * 3.7) * 6.28318;
         float ampMod  = mix(0.7, 1.2, rand1(seed * 4.9));
 
         float waveVal = wave(vec2(worldUV.y * ampMod + phase, worldUV.y * 0.5),
                              uTime * 1.2 + phase, freq);
-        waveVal += waveNoise * 0.6;  // shared turbulence
+      waveVal += waveNoise * 0.35;
 
         float distX = (worldUV.x - xCenter) - waveVal;
 
-        // ribbon glow - TIGHTER to reduce spread
-        float thickness = 0.4;   // Reduced from 0.5  
-        float intensity = 0.11;  // Reduced from 0.13     
+float thickness = 0.2;  // slightly tighter
+float intensity = 0.18;  // much brighter
         
-        // base core (keep it tight)
+
 float core = smoothstep(thickness, 0.0, abs(distX)) * intensity * visibility;
 
-        // secondary soft body (reduced to prevent spread)
-float body = smoothstep(thickness * 2.0, 0.0, abs(distX)) * (intensity * 0.20) * visibility;
+float body = exp(-pow(distX / (thickness * 1.4), 2.0))
+             * intensity * 0.7 * visibility;
 
-        // gentle atmospheric haze (reduced)
         float haze = exp(-abs(distX) * 8.0) * 0.025 * visibility; // Tighter
 
-        // inner core glow (more intense but tighter)
-        float innerCore = glowLine(distX, thickness * 0.3, intensity * 0.6) * visibility;
+float innerCore = exp(-pow(distX / (thickness * 0.45), 2.0)) 
+                  * intensity * 0.9 * visibility;
 
         float grad = smoothstep(-0.25, 0.25, distX);
         grad = pow(grad, 1.1);     // soften
         float edge = smoothstep(0.15, 0.75, abs(distX));
 
-        // core color: dark → mid with more blue emphasis
         vec3 coreTone = mix(ribbonDark, ribbonMid, grad * 1.2);
 
-        // final ribbon color: core → bright edge with blue emphasis
         vec3 ribbonColor = mix(coreTone, ribbonLight, edge * 0.8);
 
         // Add the inner core glow with the special glow color
-        col += ribbonCoreGlow * innerCore * 0.2; // Reduced from 0.25
-        col += ribbonColor * core * 0.4;
-        col += ribbonColor * haze * 0.8; // Reduced
+  col += ribbonCoreGlow * innerCore * 0.35;
+col += ribbonColor * body * 0.6;
+col += ribbonColor * haze * 0.4;
         
-        // Add a subtle blue tint to the entire ribbon area
         float ribbonArea = max(core, body) * 0.5; // Reduced from 0.7
         col = mix(col, mix(col, vec3(0.75, 0.88, 0.98), 0.1), ribbonArea); // Reduced
       }
     }
-    
-    
-    // Final tightening of overall brightness
+
+
+float orangeField = snoise(uv0 * 0.18 + vec2(uTime * 0.01, 0.0));
+orangeField = orangeField * 0.5 + 0.5;
+
+// bias toward right side
+float rightBias = smoothstep(-0.2, 0.6, uv0.x);
+
+float orangeMask = orangeField * rightBias;
+
+
+vec3 peachTone = vec3(0.98, 0.72, 0.58);
+
+
+col = mix(col, peachTone, orangeMask * 0.18);
+float milkNoise = snoise(vUv * 0.4 + uTime * 0.01);
+milkNoise = milkNoise * 0.5 + 0.5;
+milkNoise = smoothstep(0.3, 0.9, milkNoise);
+
+vec3 babyBlue = mix(ribbonLight, vec3(1.0), 0.8);  
+vec3 iceMilk  = mix(vec3(0.94, 0.97, 1.0), babyBlue, 0.4);
+
+col = mix(col, iceMilk, 0.07 + milkNoise * 0.06);
     col = clamp(col, 0.0, 1.0);
     col = pow(col, vec3(0.97)); // Slightly less contrast
     gl_FragColor = vec4(col, 1.0);
   }
 `;
 
-function ShaderPlane() {
   const materialRef = useRef();
   const mouse = useRef(new THREE.Vector2(0.5, 0.5));
   const targetMouse = useRef(new THREE.Vector2(0.5, 0.5));
@@ -2836,19 +2569,19 @@ function ShaderPlane() {
         fragmentShader={fragmentShader}
         uniforms={{
           uTime: { value: 0 },
-          uResolution: { value: new THREE.Vector2() },      // ← Vector2
-          uMouse: { value: new THREE.Vector2(0.5, 0.5) },   // ← Vector2
+          uResolution: { value: new THREE.Vector2() },      //  Vector2
+          uMouse: { value: new THREE.Vector2(0.5, 0.5) },   // Vector2
         }}
       />
     </mesh>
   );
 }
 
- function NeonShaderBackground() {
+ function AtmosphereBackground() {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1 }}>
       <Canvas orthographic camera={{ zoom: 1, position: [0, 0, 1] }}>
-        <ShaderPlane />
+        <Atmosphere />
       </Canvas>
     </div>
   );

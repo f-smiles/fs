@@ -24,7 +24,11 @@ import {
   shaderMaterial,
   useTexture,
   OrthographicCamera,
-  Clouds, Cloud, CameraControls, Sky as SkyImpl, StatsGl
+  Clouds,
+  Cloud,
+  CameraControls,
+  Sky as SkyImpl,
+  StatsGl,
 } from "@react-three/drei";
 import { Media } from "/utils/Media.js";
 import { EffectComposer } from "@react-three/postprocessing";
@@ -37,10 +41,23 @@ import {
   useSpring,
   useAnimation,
 } from "framer-motion";
-import React, { useState, useEffect, useRef, forwardRef, useLayoutEffect, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useLayoutEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { ScrollTrigger, MotionPathPlugin, SplitText, CustomEase } from "gsap/all";
+import {
+  ScrollTrigger,
+  MotionPathPlugin,
+  SplitText,
+  CustomEase,
+} from "gsap/all";
 import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 import { TextPlugin } from "gsap/TextPlugin";
 
@@ -50,9 +67,8 @@ gsap.registerPlugin(
   ScrollTrigger,
   SplitText,
   MorphSVGPlugin,
-  CustomEase
+  CustomEase,
 );
-
 
 
 
@@ -136,16 +152,16 @@ function CrossCursor() {
   );
 }
 
-const ShaderBackground = ({ className = '' }) => {
+const ShaderBackground = ({ className = "" }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext('webgl');
+    const gl = canvas.getContext("webgl");
     if (!gl) {
-      console.error('WebGL not supported');
+      console.error("WebGL not supported");
       return;
     }
 
@@ -155,7 +171,6 @@ const ShaderBackground = ({ className = '' }) => {
         gl_Position = vec4(position, 0.0, 1.0);
       }
     `;
-
 
     const fragmentShaderSource = `
       precision mediump float;
@@ -241,7 +256,7 @@ const ShaderBackground = ({ className = '' }) => {
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        console.error("Shader compile error:", gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
         return null;
       }
@@ -256,34 +271,33 @@ const ShaderBackground = ({ className = '' }) => {
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
+      console.error("Program link error:", gl.getProgramInfoLog(program));
       return;
     }
 
     gl.useProgram(program);
-
 
     const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
-    const positionLocation = gl.getAttribLocation(program, 'position');
+    const positionLocation = gl.getAttribLocation(program, "position");
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-    const timeLocation = gl.getUniformLocation(program, 'u_time');
-    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+    const timeLocation = gl.getUniformLocation(program, "u_time");
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
 
-const resize = () => {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = canvas.clientWidth * dpr;
-  canvas.height = canvas.clientHeight * dpr;
-  canvas.style.width = canvas.clientWidth + 'px';
-  canvas.style.height = canvas.clientHeight + 'px';
-  gl.viewport(0, 0, canvas.width, canvas.height);
-};
-    window.addEventListener('resize', resize);
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      canvas.style.width = canvas.clientWidth + "px";
+      canvas.style.height = canvas.clientHeight + "px";
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    };
+    window.addEventListener("resize", resize);
     resize();
 
     // Animation loop
@@ -299,7 +313,7 @@ const resize = () => {
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener("resize", resize);
       gl.deleteProgram(program);
       gl.deleteShader(vs);
       gl.deleteShader(fs);
@@ -307,11 +321,16 @@ const resize = () => {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className={className} style={{ display: 'block' }} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ display: "block" }}
+    />
+  );
 };
 
 const FinancingTreatment = () => {
-
   // const containerRef = useRef(null);
   // const pathRef = useRef(null);
   // const dottedEllipsesRef = useRef([]);
@@ -499,7 +518,6 @@ const FinancingTreatment = () => {
   const svgPathRef = useRef();
   const pathRef = useRef();
 
-
   const lineRef = useRef();
 
   useEffect(() => {
@@ -536,7 +554,7 @@ const FinancingTreatment = () => {
           x: 0,
           ease: "power2.in",
         },
-        0
+        0,
       );
 
     const handleScroll = () => {
@@ -650,161 +668,106 @@ const FinancingTreatment = () => {
     });
   }, []);
 
-
-
-
-  
   return (
     <>
-
-<Loader />
+      <Loader />
       <div className="relative bg-[#FEFCFF]">
-
-
         <CrossCursor />
-                <section className="relative min-h-screen grid grid-cols-2 bg-[#f8f8f8] text-[#111]">
-                  
-  {/* LEFT SECTION */}
-  <div className="relative flex flex-col h-screen">
-    
-    {/* TOP HALF */}
-    <div className="flex-1 flex flex-col justify-start items-center pt-[8vh]">
-      {/* <WebGLGalleryApp /> */}
-  
-      <div className="mt-8 flex flex-wrap justify-center gap-12 text-[0.75rem] uppercase tracking-wider text-[#555] max-w-[480px]">
-        <p className="font-neuehaas45">
-      Main Heading
+        <section className="relative min-h-screen grid grid-cols-2 bg-[#f8f8f8] text-[#111]">
+          {/* LEFT SECTION */}
+          <div className="relative flex flex-col h-screen">
+            {/* TOP HALF */}
+            <div className="flex-1 flex flex-col justify-start items-center pt-[8vh]">
+              {/* <WebGLGalleryApp /> */}
 
-Orthodontic treatment is more than just straightening teeth — it’s about setting the foundation for long-term health, confidence, and facial harmony.
+              <div className="mt-8 flex flex-wrap justify-center gap-12 text-[0.75rem] uppercase tracking-wider text-[#555] max-w-[480px]">
+                <p className="font-neuehaas45">
+                  Main Heading Orthodontic treatment is more than just
+                  straightening teeth — it’s about setting the foundation for
+                  long-term health, confidence, and facial harmony. ⸻ Body Copy
+                  While many orthodontists offer Invisalign or braces, the
+                  difference lies in how they approach treatment — what they’re
+                  aiming to achieve, and how precisely they execute it. Advances
+                  in modern orthodontics now allow us to do far more than align
+                  teeth. We can optimize jaw positioning, enhance facial
+                  balance, and design results that feel both natural and
+                  transformative. We understand that cost matters — but choosing
+                  an orthodontist is ultimately about trust. Who do you believe
+                  will deliver the best result? Who sees the full picture, not
+                  just the teeth? A slightly lower fee might save money in the
+                  short term, but true value comes from results that last a
+                  lifetime. How Coverage Influences Care Every system produces
+                  the outcomes it is designed to produce. In many in-network
+                  settings, insurance companies set not only pricing, but also
+                  guidelines around when certain treatments are considered
+                  “necessary.” In some cases, providers are encouraged to delay
+                  or avoid specific interventions unless strict criteria are
+                  met. That can meaningfully change the treatment path being
+                  recommended. So when you compare consultations, it’s often not
+                  the same plan with a discount—it’s a different approach shaped
+                  by different rules. Our philosophy is to recommend treatment
+                  based on timing and outcomes, not insurance thresholds.
+                </p>
+              </div>
+            </div>
 
-⸻
+            {/* BOTTOM HALF */}
+            <div className="flex justify-center items-end pb-[8vh]">
+              <button className="border border-[#ccc] px-10 py-4 flex items-center justify-center gap-3 text-[0.7rem] uppercase tracking-widest font-neuehaas45 text-gray-500 hover:bg-[#111] hover:text-white transition-all duration-300">
+                Learn More
+                <span className="inline-flex w-4 h-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-full h-full"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
 
-Body Copy
+          {/* RIGHT SECTION */}
+          <div className="relative flex flex-col justify-center items-start px-[8vw]">
+            <div className="absolute top-10 right-10 flex gap-3 text-[#d69a2d] text-4xl font-serif select-none"></div>
 
-While many orthodontists offer Invisalign or braces, the difference lies in how they approach treatment — what they’re aiming to achieve, and how precisely they execute it.
+            <div className="mb-8">
+              <p className="text-[0.7rem] uppercase tracking-widest font-neuehaas45 text-gray-400">
+                Our Expertise
+              </p>
+            </div>
 
-Advances in modern orthodontics now allow us to do far more than align teeth. We can optimize jaw positioning, enhance facial balance, and design results that feel both natural and transformative.
+            <p className="max-w-[520px] text-[clamp(1rem,1.6vw,1.4rem)] font-canelathin leading-[1]">
+              ⸻ Card Content Complimentary Consultation Initial Consultations
+              Whether in person or virtual, your first consultation is free. ⸻
+              Full Evaluation This initial visit includes an in-depth
+              orthodontic evaluation, digital radiographs, and professional
+              imaging. ⸻ Plan and Prepare We encourage all decision-makers to
+              attend the initial visit so we can discuss the path ahead with
+              clarity and transparency — ensuring everyone is aligned on
+              expectations, preferences, and the ideal time to begin. ⸻
+              Treatment Roadmap If treatment isn’t yet needed, no-cost
+              observation check-ups will be coordinated every 6–12 months until
+              treatment is needed. These are shorter, fun visits where you’ll
+              have access to all four of our locations to play video games and
+              get to know our team. Payment Plans Available We offer payment
+              plans through Klarna and OrthoBanc. ⸻ No Hidden Fees Comprehensive
+              treatment plans include a set of retainers and ongoing
+              supervision. ⸻ One Year Post-Treatment Follow-Up
+            </p>
+          </div>
+        </section>
 
-We understand that cost matters — but choosing an orthodontist is ultimately about trust. Who do you believe will deliver the best result? Who sees the full picture, not just the teeth?
-
-A slightly lower fee might save money in the short term, but true value comes from results that last a lifetime.
-
-How Coverage Influences Care
-Every system produces the outcomes it is designed to produce.
-In many in-network settings, insurance companies set not only pricing, but also guidelines around when certain treatments are considered “necessary.” In some cases, providers are encouraged to delay or avoid specific interventions unless strict criteria are met. That can meaningfully change the treatment path being recommended.
-So when you compare consultations, it’s often not the same plan with a discount—it’s a different approach shaped by different rules. Our philosophy is to recommend treatment based on timing and outcomes, not insurance thresholds.
-        </p>
-
-      </div>
-    </div>
-
-    {/* BOTTOM HALF */}
-    <div className="flex justify-center items-end pb-[8vh]">
-      <button className="border border-[#ccc] px-10 py-4 flex items-center justify-center gap-3 text-[0.7rem] uppercase tracking-widest font-neuehaas45 text-gray-500 hover:bg-[#111] hover:text-white transition-all duration-300">
-       Learn More
-         <span className="inline-flex w-4 h-4">
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={1.5}
-    stroke="currentColor"
-    className="w-full h-full"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"
-    />
-  </svg>
-</span>
-      </button>
-    </div>
-  </div>
-
-  {/* RIGHT SECTION */}
-  <div className="relative flex flex-col justify-center items-start px-[8vw]">
-
-    <div className="absolute top-10 right-10 flex gap-3 text-[#d69a2d] text-4xl font-serif select-none">
-     
-    </div>
-
-    <div className="mb-8">
-      <p className="text-[0.7rem] uppercase tracking-widest font-neuehaas45 text-gray-400">
-       Our Expertise
-      </p>
-    </div>
-
-    <p className="max-w-[520px] text-[clamp(1rem,1.6vw,1.4rem)] font-canelathin leading-[1]">
-⸻
-
-Card Content
-
-Complimentary Consultation
-Initial Consultations
-
-Whether in person or virtual,
-your first consultation is free.
-
-⸻
-Full Evaluation
-
-This initial visit includes an
-in-depth orthodontic evaluation,
-digital radiographs, and
-professional imaging.
-
-⸻
-
-Plan and Prepare
-
-We encourage all decision-makers to attend
-the initial visit so we can discuss the path
-ahead with clarity and transparency —
-ensuring everyone is aligned on expectations,
-preferences, and the ideal time to begin.
-
-⸻
-
-Treatment Roadmap
-
-If treatment isn’t yet needed,
-no-cost observation check-ups will be
-coordinated every 6–12 months until
-treatment is needed.
-
-These are shorter, fun visits where
-you’ll have access to all four of our locations
-to play video games and get to know our team.
-
-
-Payment Plans Available
-We offer payment plans through Klarna and OrthoBanc.
-
-⸻
-
-No Hidden Fees
-Comprehensive treatment plans include a set of retainers and ongoing supervision.
-
-⸻
-
-One Year Post-Treatment Follow-Up
-    </p>
-  </div>
-</section>
-
-  <div className="bg-[#E2DD70] min-h-screen relative text-[#f6f1df] overflow-hidden flex flex-col justify-start">
-
-  <div className="bg-[#E2DD70] relative z-10 mt-[15vh] pl-[8vw]">
-
-
-
-    <div className="mt-[-2vh] w-[60vw] h-[55vh] bg-gradient-to-br from-[#ffb98d] via-[#f9c0a0] to-[#e5cec7] flex items-end p-10">
-     
-    </div>
-  </div>
-
-{/* <section className="relative h-screen flex items-center justify-center z-[10]">
+        <div className="bg-[#E2DD70] min-h-screen relative text-[#f6f1df] overflow-hidden flex flex-col justify-start">
+          {/* <section className="relative h-screen flex items-center justify-center z-[10]">
   <svg
     ref={starRef}
     xmlns="http://www.w3.org/2000/svg"
@@ -855,29 +818,22 @@ One Year Post-Treatment Follow-Up
   </svg>
 </section> */}
 
-
-
-
-
-
-
-  <section className="relative w-full h-screen font-neuehaas45">
-    <svg viewBox="-960 -540 1920 1080" width="100%" height="100%">
-      <path
-        ref={lineRef}
-        strokeLinecap="round"
-        strokeLinejoin="miter"
-        fillOpacity="0"
-        strokeMiterlimit="4"
-        stroke="rgb(248,134,63)"
-        strokeOpacity="1"
-        strokeWidth="1.5"
-        d="M-954,-192 C-954,-192 -659,-404 -520,-431 C-379,-454 -392,-360 -588,-33 C-730,212 -926,640 -350,397 C135.86099243164062,192.0279998779297 324,-61 523,-160 C705.1939697265625,-250.63900756835938 828,-256 949,-194"
-      />
-    </svg>
-  </section>
-</div>
-
+          <section className="relative w-full h-screen font-neuehaas45">
+            <svg viewBox="-960 -540 1920 1080" width="100%" height="100%">
+              <path
+                ref={lineRef}
+                strokeLinecap="round"
+                strokeLinejoin="miter"
+                fillOpacity="0"
+                strokeMiterlimit="4"
+                stroke="rgb(248,134,63)"
+                strokeOpacity="1"
+                strokeWidth="1.5"
+                d="M-954,-192 C-954,-192 -659,-404 -520,-431 C-379,-454 -392,-360 -588,-33 C-730,212 -926,640 -350,397 C135.86099243164062,192.0279998779297 324,-61 523,-160 C705.1939697265625,-250.63900756835938 828,-256 949,-194"
+              />
+            </svg>
+          </section>
+        </div>
 
         <div className="relative z-0 h-screen w-full">
           <div ref={cardRef} className="relative">
@@ -900,8 +856,8 @@ One Year Post-Treatment Follow-Up
                 className="h-[90vh] max-w-7xl p-10"
               >
                 <div className="absolute w-[400px] h-[400px] bg-purple-500 opacity-20 blur-[140px] rounded-full top-1/3 left-[-140px] pointer-events-none mix-blend-screen"></div>
-            <div className="absolute w-[400px] h-[400px] bg-orange-500 opacity-20 blur-[140px] rounded-full top-[40%] left-[-100px] pointer-events-none mix-blend-screen"></div>
-            <div className="absolute w-[400px] h-[400px] bg-sky-300 opacity-30 blur-[140px] rounded-full top-1/4 right-[-120px] pointer-events-none"></div>
+                <div className="absolute w-[400px] h-[400px] bg-orange-500 opacity-20 blur-[140px] rounded-full top-[40%] left-[-100px] pointer-events-none mix-blend-screen"></div>
+                <div className="absolute w-[400px] h-[400px] bg-sky-300 opacity-30 blur-[140px] rounded-full top-1/4 right-[-120px] pointer-events-none"></div>
 
                 <div className="grid grid-cols-3 gap-4 h-full">
                   <div className="flex flex-col items-center justify-center h-full">
@@ -1053,7 +1009,7 @@ One Year Post-Treatment Follow-Up
                     <div className="w-full bg-gray-200 rounded-full h-[6px] relative mb-1">
                       <div className="bg-[#ffb3d6] h-full rounded-full w-[65%]"></div>
                     </div>
-            
+
                     <span className="text-[10px] text-[#7f187f] font-khteka uppercase tracking-wider">
                       Prequalifying with Klarna...
                     </span>
@@ -1122,8 +1078,6 @@ One Year Post-Treatment Follow-Up
             </div>
           </div>
         </div>
-    
-
       </div>
 
       {/* <div ref={sectionRef} className="relative h-[200vh] bg-[#F2F2F4]">
@@ -1154,263 +1108,7 @@ One Year Post-Treatment Follow-Up
   );
 };
 
-const SkyShader = () => {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-
-    const gl = canvas.getContext('webgl');
-    if (!gl) {
-      console.error('WebGL not supported');
-      return;
-    }
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-
-    const vertexShaderSource = `
-      attribute vec2 position;
-      void main() {
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `;
-
-    const fragmentShaderSource = `
-      precision mediump float;
-
-      uniform vec3 iResolution;
-      uniform float iTime;
-
-      const float PI = 3.14159265359;
-      const float MAX = 10000.0;
-
-      float radians(float deg) {
-        return deg * PI / 180.0;
-      }
-
-      vec2 ray_vs_sphere( vec3 p, vec3 dir, float r ) {
-        float b = dot( p, dir );
-        float c = dot( p, p ) - r * r;
-        float d = b * b - c;
-        if ( d < 0.0 ) {
-          return vec2( MAX, -MAX );
-        }
-        d = sqrt( d );
-        return vec2( -b - d, -b + d );
-      }
-
-      float phase_mie( float g, float c, float cc ) {
-        float gg = g * g;
-        float a = ( 1.0 - gg ) * ( 1.0 + cc );
-        float b = 1.0 + gg - 2.0 * g * c;
-        b *= sqrt( b );
-        b *= 2.0 + gg;
-        return ( 3.0 / 8.0 / PI ) * a / b;
-      }
-
-      float phase_ray( float cc ) {
-        return ( 3.0 / 16.0 / PI ) * ( 1.0 + cc );
-      }
-
-      const float R_INNER = 1.0;
-      const float R = R_INNER + 0.5;
-      const int NUM_OUT_SCATTER = 4;  // Low for perf
-      const int NUM_IN_SCATTER = 20;  // Low for perf
-
-      float density( vec3 p, float ph ) {
-        return exp( -max( length( p ) - R_INNER, 0.0 ) / ph );
-      }
-
-      float optic( vec3 p, vec3 q, float ph ) {
-        vec3 s = ( q - p ) / float( NUM_OUT_SCATTER );
-        vec3 v = p + s * 0.5;
-        float sum = 0.0;
-        for ( int i = 0; i < NUM_OUT_SCATTER; i++ ) {
-          sum += density( v, ph );
-          v += s;
-        }
-        sum *= length( s );
-        return sum;
-      }
-
-      vec3 in_scatter( vec3 o, vec3 dir, vec2 e, vec3 l ) {
-        const float ph_ray = 0.05;
-        const float ph_mie = 0.02;
-       
-        const vec3 k_ray = vec3( 3.8, 13.5, 33.1 );
-        const vec3 k_mie = vec3( 21.0 );
-        const float k_mie_ex = 1.1;
-       
-        vec3 sum_ray = vec3( 0.0 );
-        vec3 sum_mie = vec3( 0.0 );
-       
-        float n_ray0 = 0.0;
-        float n_mie0 = 0.0;
-       
-        float len = ( e.y - e.x ) / float( NUM_IN_SCATTER );
-        vec3 s = dir * len;
-        vec3 v = o + dir * ( e.x + len * 0.5 );
-       
-        for ( int i = 0; i < NUM_IN_SCATTER; i++, v += s ) {
-          float d_ray = density( v, ph_ray ) * len;
-          float d_mie = density( v, ph_mie ) * len;
-         
-          n_ray0 += d_ray;
-          n_mie0 += d_mie;
-         
-          vec2 f = ray_vs_sphere( v, l, R );
-          vec3 u = v + l * f.y;
-         
-          float n_ray1 = optic( v, u, ph_ray );
-          float n_mie1 = optic( v, u, ph_mie );
-          vec3 att = exp( - ( n_ray0 + n_ray1 ) * k_ray - ( n_mie0 + n_mie1 ) * k_mie * k_mie_ex );
-         
-          sum_ray += d_ray * att;
-          sum_mie += d_mie * att;
-        }
-        float c = dot( dir, -l );
-        float cc = c * c;
-        vec3 scatter =
-            sum_ray * k_ray * phase_ray( cc ) +
-          sum_mie * k_mie * phase_mie( -0.78, c, cc );
-       
-        return 100.0 * scatter;  // Bumped up for more visible blue
-      }
-
-      mat3 rot3xy( vec2 angle ) {
-        vec2 c = cos( angle );
-        vec2 s = sin( angle );
-        return mat3(
-          c.y , 0.0, -s.y,
-          s.y * s.x, c.x, c.y * s.x,
-          s.y * c.x, -s.x, c.y * c.x
-        );
-      }
-
-      vec3 ray_dir( float fov, vec2 size, vec2 pos ) {
-        vec2 xy = pos - size * 0.5;
-        float cot_half_fov = tan( radians( 90.0 - fov * 0.5 ) );
-        float z = size.y * 0.5 * cot_half_fov;
-        return normalize( vec3( xy, -z ) );
-      }
-
-      void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
-        vec3 dir = ray_dir( 45.0, iResolution.xy, fragCoord );
-        vec3 eye = vec3( 0.0, 0.0, 3.0 );
-        mat3 rot = rot3xy( vec2( 0.0, iTime * 0.5 ) );
-        dir = rot * dir;
-        eye = rot * eye;
-        vec3 l = vec3( 0.0, 0.0, 1.0 );
-     
-        vec2 e = ray_vs_sphere( eye, dir, R );
-        if ( e.x > e.y ) {
-          fragColor = vec4( 0.0, 0.0, 0.1, 1.0 );  // Subtle space blue fallback
-          return;
-        }
-        vec2 f = ray_vs_sphere( eye, dir, R_INNER );
-        e.y = min( e.y, f.x );
-        vec3 I = in_scatter( eye, dir, e, l );
-        fragColor = vec4( pow( max(I, 0.0), vec3( 1.0 / 2.2 ) ), 1.0 );
-      }
-
-      void main() {
-        mainImage(gl_FragColor, gl_FragCoord.xy);
-      }
-    `;
-
-    const compileShader = (source, type) => {
-      const shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        const error = gl.getShaderInfoLog(shader);
-        console.error('Shader compile error:', error);
-        gl.deleteShader(shader);
-        return null;
-      }
-      return shader;
-    };
-
-    const vs = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
-    if (!vs) return;
-
-    const fs = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
-    if (!fs) return;
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
-      return;
-    }
-
-    gl.useProgram(program);
-
-    // Quad buffer
-    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    const positionLoc = gl.getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(positionLoc);
-    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-    const resolutionLoc = gl.getUniformLocation(program, 'iResolution');
-    const timeLoc = gl.getUniformLocation(program, 'iTime');
-
-    const handleResize = () => {
-      resizeCanvas();
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    };
-    window.addEventListener('resize', handleResize);
-
-    let startTime = Date.now();
-    const render = (time) => {
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      
-      const currentTime = (Date.now() - startTime) / 1000;
-      gl.uniform3f(resolutionLoc, gl.canvas.width, gl.canvas.height, 1);
-      gl.uniform1f(timeLoc, currentTime);
-
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-      requestAnimationFrame(render);
-    };
-    render();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      gl.deleteProgram(program);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      gl.deleteBuffer(buffer);
-    };
-  }, []);
-
-  return (
-    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
-      <canvas
-        ref={canvasRef}
-        style={{ display: 'block', width: '100%', height: '100%' }}
-      />
-    </div>
-  );
-};
-
 export default FinancingTreatment;
-
 
 const fragment = `precision highp float;
 
@@ -1485,37 +1183,33 @@ function WebGLGalleryApp() {
     cameraRef.current = camera;
     geometryRef.current = geometry;
 
-const resize = () => {
-  screenRef.current = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
+    const resize = () => {
+      screenRef.current = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
 
-  renderer.dpr = Math.min(window.devicePixelRatio, 2);
+      renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
-  renderer.setSize(
-    screenRef.current.width,
-    screenRef.current.height
-  );
+      renderer.setSize(screenRef.current.width, screenRef.current.height);
 
-  camera.perspective({
-    aspect: gl.canvas.width / gl.canvas.height,
-  });
+      camera.perspective({
+        aspect: gl.canvas.width / gl.canvas.height,
+      });
 
-  const fov = camera.fov * (Math.PI / 180);
-  const height =
-    2 * Math.tan(fov / 2) * camera.position.z;
-  const width = height * camera.aspect;
+      const fov = camera.fov * (Math.PI / 180);
+      const height = 2 * Math.tan(fov / 2) * camera.position.z;
+      const width = height * camera.aspect;
 
-  viewportRef.current = { width, height };
+      viewportRef.current = { width, height };
 
-  mediasRef.current.forEach((media) =>
-    media.onResize({
-      screen: screenRef.current,
-      viewport: viewportRef.current,
-    })
-  );
-};
+      mediasRef.current.forEach((media) =>
+        media.onResize({
+          screen: screenRef.current,
+          viewport: viewportRef.current,
+        }),
+      );
+    };
 
     resize();
 
@@ -1530,7 +1224,7 @@ const resize = () => {
         viewport: viewportRef.current,
         vertex,
         fragment,
-      })
+      }),
     );
     mediasRef.current = medias;
 
@@ -1542,14 +1236,14 @@ const resize = () => {
       scrollRef.current.current = lerp(
         scrollRef.current.current,
         scrollRef.current.target,
-        scrollRef.current.ease
+        scrollRef.current.ease,
       );
 
       const direction =
         scrollRef.current.current > scrollRef.current.last ? "down" : "up";
 
       mediasRef.current.forEach((media) =>
-        media.update(scrollRef.current, direction)
+        media.update(scrollRef.current, direction),
       );
 
       renderer.render({ scene, camera });
@@ -1563,7 +1257,6 @@ const resize = () => {
 
     window.addEventListener("resize", resize);
 
-
     return () => {
       window.removeEventListener("resize", resize);
     };
@@ -1571,14 +1264,13 @@ const resize = () => {
 
   return (
     <>
-
       <canvas ref={canvasRef} className="h-screen w-full webgl-canvas" />
       <div className="gallery1" ref={galleryRef}>
         <main>
           <section className="gallery-section">
-            <div className="gallery1 flex flex-col space-y-8"> 
+            <div className="gallery1 flex flex-col space-y-8">
               {images.map((src, i) => (
-                <figure key={i} className="gallery__item w-full"> 
+                <figure key={i} className="gallery__item w-full">
                   <img
                     className="gallery__image w-full h-auto"
                     src={src}
@@ -1605,11 +1297,11 @@ function createMedia({
   fragment,
 }) {
   const img = element.querySelector("img");
-const texture = new Texture(gl, {
-  generateMipmaps: true,
-  minFilter: gl.LINEAR_MIPMAP_LINEAR,
-  magFilter: gl.LINEAR,
-});
+  const texture = new Texture(gl, {
+    generateMipmaps: true,
+    minFilter: gl.LINEAR_MIPMAP_LINEAR,
+    magFilter: gl.LINEAR,
+  });
   const image = new Image();
   image.crossOrigin = "anonymous";
   image.src = img.src;
@@ -1646,28 +1338,25 @@ const texture = new Texture(gl, {
     state.plane.scale.y = (rect.height / screen.height) * viewport.height;
   };
 
-const snap = (value, step = 1) =>
-  Math.round(value / step) * step;
+  const snap = (value, step = 1) => Math.round(value / step) * step;
 
-const updateX = () => {
-  const rect = element.getBoundingClientRect();
-  const x =
-    ((rect.left + rect.width / 2) / screen.width) *
-      viewport.width -
-    viewport.width / 2;
+  const updateX = () => {
+    const rect = element.getBoundingClientRect();
+    const x =
+      ((rect.left + rect.width / 2) / screen.width) * viewport.width -
+      viewport.width / 2;
 
-  state.plane.position.x = snap(x, viewport.width / screen.width);
-};
+    state.plane.position.x = snap(x, viewport.width / screen.width);
+  };
 
-const updateY = () => {
-  const rect = element.getBoundingClientRect();
-  const y =
-    viewport.height / 2 -
-    ((rect.top + rect.height / 2) / screen.height) *
-      viewport.height;
+  const updateY = () => {
+    const rect = element.getBoundingClientRect();
+    const y =
+      viewport.height / 2 -
+      ((rect.top + rect.height / 2) / screen.height) * viewport.height;
 
-  state.plane.position.y = snap(y, viewport.height / screen.height);
-};
+    state.plane.position.y = snap(y, viewport.height / screen.height);
+  };
 
   const updateBounds = () => {
     updateScale();
@@ -1699,14 +1388,13 @@ const updateY = () => {
     updateY();
 
     // Calculate base strength using smoothed scroll delta
-const rawStrength =
-  ((scroll.current - scroll.last) / screen.width) * 30;
+    const rawStrength = ((scroll.current - scroll.last) / screen.width) * 30;
 
-// Clamp to prevent blur at rest
-const strength = Math.min(Math.abs(rawStrength), 1.5);
+    // Clamp to prevent blur at rest
+    const strength = Math.min(Math.abs(rawStrength), 1.5);
 
-state.program.uniforms.uStrength.value =
-  direction === "down" ? -strength : strength;
+    state.program.uniforms.uStrength.value =
+      direction === "down" ? -strength : strength;
 
     state.program.uniforms.uPlaneSizes.value = [
       state.plane.scale.x,
@@ -1749,7 +1437,7 @@ CustomEase.create("customEase", "0.6, 0.01, 0.05, 1");
 gsap.config({ force3D: true });
 
 const preloaderImages = [
-    "/images/Sustainablepackage.jpg",
+  "/images/Sustainablepackage.jpg",
   "/images/Free-Poster-02.jpg",
   "/images/handholdingbook.png",
   "/images/futureffscard.png",
@@ -1757,12 +1445,12 @@ const preloaderImages = [
   // "https://images.unsplash.com/photo-1658498042419-be460a938f93?q=80&w=2187&auto=format&fit=crop"
 ];
 function Loader() {
+  const scrollAwayRef = useRef(null);
 
-
-    const scrollAwayRef = useRef(null);
+  const [isPreloaderComplete, setIsPreloaderComplete] = useState(false);
+  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    
     const ctx = gsap.context(() => {
       const items = gsap.utils.toArray(".work-item");
 
@@ -1770,10 +1458,11 @@ function Loader() {
         const img = item.querySelector(".work-item-img");
         const nameH1 = item.querySelector(".work-item-name h1");
 
-
-        const split = SplitText.create(nameH1, { type: "chars", mask: "chars" });
+        const split = SplitText.create(nameH1, {
+          type: "chars",
+          mask: "chars",
+        });
         gsap.set(split.chars, { y: "125%" });
-
 
         split.chars.forEach((char, index) => {
           ScrollTrigger.create({
@@ -1784,60 +1473,59 @@ function Loader() {
             animation: gsap.fromTo(
               char,
               { y: "125%" },
-              { y: "0%", ease: "none" }
+              { y: "0%", ease: "none" },
             ),
           });
         });
 
+        ScrollTrigger.create({
+          trigger: item,
+          start: "top+=120 bottom",
+          end: "top top",
+          scrub: 0.8,
+          animation: gsap.fromTo(
+            img,
+            {
+              clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
+              rotateX: 15,
+              scale: 0.9,
+              transformOrigin: "center bottom",
+            },
+            {
+              clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+              rotateX: 0,
+              scale: 1,
+              ease: "power2.out",
+            },
+          ),
+        });
 
-ScrollTrigger.create({
-  trigger: item,
-  start: "top+=120 bottom",
-  end: "top top",
-  scrub: 0.8,
-  animation: gsap.fromTo(
-    img,
-    {
-      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
-      rotateX: 15,
-      scale: 0.9,
-      transformOrigin: "center bottom",
-    },
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      rotateX: 0,
-      scale: 1,
-      ease: "power2.out",
-    }
-  ),
-});
-
-
-ScrollTrigger.create({
-  trigger: item,
-  start: "bottom+=120 bottom", 
-  end: "bottom top",
-  scrub: 0.8,
-  animation: gsap.fromTo(
-    img,
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-      rotateX: 0,
-      scale: 1,
-    },
-    {
-      clipPath: "polygon(0% 0%, 100% 0%, 75% 60%, 25% 75%)",
-      rotateX: -12,
-      scale: 0.95,
-      ease: "power2.inOut",
-    }
-  ),
-});
+        ScrollTrigger.create({
+          trigger: item,
+          start: "bottom+=120 bottom",
+          end: "bottom top",
+          scrub: 0.8,
+          animation: gsap.fromTo(
+            img,
+            {
+              clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+              rotateX: 0,
+              scale: 1,
+            },
+            {
+              clipPath: "polygon(0% 0%, 100% 0%, 75% 60%, 25% 75%)",
+              rotateX: -12,
+              scale: 0.95,
+              ease: "power2.inOut",
+            },
+          ),
+        });
       });
     }, scrollAwayRef);
 
     return () => ctx.revert();
   }, []);
+
   const preloaderRef = useRef(null);
   const textContainerRef = useRef(null);
   const cosmicRef = useRef(null);
@@ -1850,53 +1538,76 @@ ScrollTrigger.create({
   const heroMetaRef = useRef(null);
   const heroImageRef = useRef(null);
 
+  CustomEase.create("hop", "M0,0 C0.3,0 0.1,1 1,1");
+
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
-      const images = imagesContainerRef.current.querySelectorAll(".striped-preloader__image");
+      const tl = gsap.timeline({
+        onComplete: () => {
+          setIsPreloaderComplete(true);
+        }
+      });
+      
+      const images = imagesContainerRef.current.querySelectorAll(
+        ".striped-preloader__image",
+      );
 
       if (!images || images.length === 0) return;
 
+      gsap.set(images, { clearProps: "all" });
+
       gsap.set(images, {
-        clearProps: "transform",
-        y: "100%",
-        opacity: 0
+        clipPath: "polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)",
+        opacity: 0,
+        scale: 1.5,
+        zIndex: 0,
       });
 
       gsap.set(images[0], {
-        y: "0%",
-        opacity: 1
+        clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+        opacity: 1,
+        scale: 1,
+        zIndex: 2,
+        immediateRender: true,
       });
-      
-      gsap.set([...images].slice(1), {
-        y: "100%",
-        opacity: 0,
-        zIndex: 1
-      });
+
+      if (images.length > 1) {
+        gsap.set([...images].slice(1), {
+          clipPath: "polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)",
+          opacity: 0,
+          scale: 1.5,
+          zIndex: 1,
+        });
+      }
 
       tl.fromTo(
         textContainerRef.current,
         { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+        { opacity: 1, y: 0, duration: 0.6, ease: "hop" },
       );
 
       for (let i = 1; i < images.length; i++) {
         const img = images[i];
 
-        tl
-          .to({}, { duration: i === 1 ? 0.7 : 0.4 })
-          .fromTo(
-            img,
-            { y: "100%", opacity: 0 },
-            {
-              y: "0%",
-              opacity: 1,
-              duration: 1.4,
-              ease: "power4.out",
-              immediateRender: false
-            }
-          )
-          .set(img, { clearProps: "transform" });
+        tl.add(() => {}, i === 1 ? 0.5 : 0.3).fromTo(
+          img,
+          {
+            clipPath: "polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)",
+            opacity: 0,
+            scale: 1.5,
+            zIndex: 1,
+          },
+          {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            opacity: 1,
+            scale: 1,
+            zIndex: 2,
+            duration: 1,
+            ease: "hop",
+            immediateRender: false,
+          },
+          "+=0",
+        );
       }
 
       const windowWidth = window.innerWidth;
@@ -1907,10 +1618,10 @@ ScrollTrigger.create({
         {
           x: -moveDistance,
           color: "#2c3e50",
-          duration: 1.2,
-          ease: "customEase"
+          duration: 1,
+          ease: "hop",
         },
-        "+=0.6"
+        "+=0.4",
       );
 
       tl.to(
@@ -1918,38 +1629,37 @@ ScrollTrigger.create({
         {
           x: moveDistance,
           color: "#2c3e50",
-          duration: 1.2,
-          ease: "customEase"
+          duration: 1,
+          ease: "hop",
         },
-        "-=1.2"
+        "-=1",
       );
 
-      tl.to({}, { duration: 0.8 });
+      tl.to({}, { duration: 0.4 });
 
       tl.to(preloaderRef.current, {
         y: "-100%",
-        duration: 1,
+        duration: 0.8,
         ease: "power3.inOut",
         onComplete: () => {
           preloaderRef.current.style.display = "none";
-
+          setShowContent(true); 
           animateGridAndHero();
-
-
-
           ScrollTrigger.refresh();
-        }
+        },
       });
     });
 
     function animateGridAndHero() {
-      const validGridColumns = gridColumnsRef.current.filter(col => col !== null);
-      
+      const validGridColumns = gridColumnsRef.current.filter(
+        (col) => col !== null,
+      );
+
       gsap.to(validGridColumns, {
         height: "100%",
-        duration: 1.2,
-        ease: "power3.out",
-        stagger: 0.06
+        duration: 0.8,
+        ease: "hop",
+        stagger: 0.04,
       });
 
       const heroTl = gsap.timeline();
@@ -1957,9 +1667,9 @@ ScrollTrigger.create({
       heroTl.to(titleLinesRef.current, {
         y: 0,
         opacity: 1,
-        duration: 1.4,
-        stagger: 0.2,
-        ease: "power4.out"
+        duration: 0.8,
+        stagger: 0.15,
+        ease: "hop",
       });
 
       heroTl.to(
@@ -1967,63 +1677,71 @@ ScrollTrigger.create({
         {
           y: 0,
           opacity: 1,
-          duration: 1.2,
-          stagger: 0.2,
-          ease: "power3.out"
+          duration: 0.8,
+          stagger: 0.15,
+          ease: "hop",
         },
-        "-=0.9"
+        "-=0.6",
       );
 
       heroTl.to(
         heroImageRef.current,
         {
           scale: 1,
-          duration: 2.2,
-          ease: "power3.inOut"
+          duration: 1.4,
+          ease: "hop",
         },
-        "-=1.4"
+        "-=0.8",
       );
     }
 
     return () => ctx.revert();
   }, []);
-useEffect(() => {
-  ScrollTrigger.create({
-    trigger: ".content-wrapper",
-    start: "top bottom",
-    end: "top top",
-    scrub: true,
-    onUpdate: (self) => {
-      document.documentElement.style.setProperty(
-        "--hero-darken",
-        (self.progress * 0.5).toFixed(3)
-      );
-    }
-  });
-}, []);
 
+  useEffect(() => {
+    ScrollTrigger.create({
+      trigger: ".content-wrapper",
+      start: "top bottom",
+      end: "top top",
+      scrub: true,
+      onUpdate: (self) => {
+        document.documentElement.style.setProperty(
+          "--hero-darken",
+          (self.progress * 0.5).toFixed(3),
+        );
+      },
+    });
+  }, []);
 
   return (
     <>
       <style jsx global>{`
         :root {
-          --bg: #E6E7E8;
+          --bg: #e6e7e8;
           --text: #2c3e50;
-          --text-secondary: rgba(44,62,80,0.75);
-          --grid: rgba(44,62,80,0.02);
+          --text-secondary: rgba(44, 62, 80, 0.75);
+          --grid: rgba(44, 62, 80, 0.02);
           --spacing-lg: 2rem;
           --spacing-xl: 4rem;
           --grid-gap: 1rem;
           --spacing-md: 1.5rem;
-          --color-text-secondary: rgba(44,62,80,0.75);
-          --color-text-muted: rgba(44,62,80,0.5);
+          --color-text-secondary: rgba(44, 62, 80, 0.75);
+          --color-text-muted: rgba(44, 62, 80, 0.5);
           --letter-spacing-wide: 0.1em;
           --font-weight-bold: 600;
           --z-index-main: 10;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); overflow-x: hidden; }
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          background: var(--bg);
+          color: var(--text);
+          overflow-x: hidden;
+        }
 
         /* Responsive Grid System */
         .striped-grid-container {
@@ -2042,7 +1760,7 @@ useEffect(() => {
         }
 
         /* On mobile, only show first 3 columns */
-        .striped-grid-container .striped-grid-column:nth-child(n+4) {
+        .striped-grid-container .striped-grid-column:nth-child(n + 4) {
           display: none;
         }
 
@@ -2051,60 +1769,58 @@ useEffect(() => {
             grid-template-columns: repeat(5, 1fr);
             padding: 0 var(--spacing-lg);
           }
-          
+
           /* On desktop, show all columns */
-          .striped-grid-container .striped-grid-column:nth-child(n+4) {
+          .striped-grid-container .striped-grid-column:nth-child(n + 4) {
             display: block;
           }
         }
 
-.striped-grid-column {
-  height: 0;
-  position: relative;
-  background: transparent;
-}
+        .striped-grid-column {
+          height: 0;
+          position: relative;
+          background: transparent;
+        }
 
-.striped-grid-column::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-image: linear-gradient(
-    to bottom,
-    rgba(44, 62, 80, 0.08) 50%,
-    transparent 50%
-  );
-  background-size: 1px 10px; /* 1px wide, 10px tall (5px dash, 5px gap) */
-  background-position: 0 0;
-  background-repeat: repeat-y;
-  pointer-events: none;
-}
+        .striped-grid-column::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background-image: linear-gradient(
+            to bottom,
+            rgba(44, 62, 80, 0.08) 50%,
+            transparent 50%
+          );
+          background-size: 1px 10px; /* 1px wide, 10px tall (5px dash, 5px gap) */
+          background-position: 0 0;
+          background-repeat: repeat-y;
+          pointer-events: none;
+        }
 
+        .striped-grid-column::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: calc(100% - 1px);
+          right: 0;
+          background-image: linear-gradient(
+            to bottom,
+            rgba(44, 62, 80, 0.08) 50%,
+            transparent 50%
+          );
+          background-size: 1px 10px;
+          background-position: 0 0;
+          background-repeat: repeat-y;
+          pointer-events: none;
+        }
 
-.striped-grid-column::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(100% - 1px);
-  right: 0;
-  background-image: linear-gradient(
-    to bottom,
-    rgba(44, 62, 80, 0.08) 50%,
-    transparent 50%
-  );
-  background-size: 1px 10px;
-  background-position: 0 0;
-  background-repeat: repeat-y;
-  pointer-events: none;
-}
-
-
-.striped-grid-column:last-child::after {
-  display: none;
-}
+        .striped-grid-column:last-child::after {
+          display: none;
+        }
 
         .striped-preloader {
           position: fixed;
@@ -2126,13 +1842,13 @@ useEffect(() => {
           color: var(--bg);
           z-index: 10;
         }
-        
+
         @media (min-width: 768px) {
           .striped-preloader__text-container {
             font-size: 2rem;
           }
         }
-        
+
         .striped-preloader__content {
           width: 90%;
           max-width: 450px;
@@ -2140,14 +1856,14 @@ useEffect(() => {
           position: relative;
           overflow: hidden;
         }
-        
+
         @media (min-width: 768px) {
           .striped-preloader__content {
             width: 450px;
             height: 280px;
           }
         }
-        
+
         .striped-preloader__image {
           position: absolute;
           inset: 0;
@@ -2160,7 +1876,7 @@ useEffect(() => {
         .striped-preloader__overlay {
           position: absolute;
           inset: 0;
-          background: rgba(44,62,80,0.2);
+          background: rgba(44, 62, 80, 0.2);
           z-index: 2;
         }
 
@@ -2234,7 +1950,6 @@ useEffect(() => {
           }
         }
 
-        /* 12-grid system - responsive */
         .striped-container {
           width: 100%;
           max-width: 100%;
@@ -2253,31 +1968,31 @@ useEffect(() => {
         }
 
         .striped-hero {
-  position: fixed;
-  inset: 0;
-  height: 100vh;
-  width: 100%;
-  z-index: 0;
-  overflow: hidden;
+          position: fixed;
+          inset: 0;
+          height: 100vh;
+          width: 100%;
+          z-index: 0;
+          overflow: hidden;
         }
-  .content-wrapper {
-  margin-top: 100vh;
-}
-.striped-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, var(--hero-darken, 0));
-  pointer-events: none;
-  transition: opacity 0.1s linear;
-}
-/* scrolling content */
-.content {
-  position: relative;
-  z-index: 2;
-  min-height: 100vh;
-      background: #DDE5DE;
-}
+        .content-wrapper {
+          margin-top: 100vh;
+        }
+        .striped-hero::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, var(--hero-darken, 0));
+          pointer-events: none;
+          transition: opacity 0.1s linear;
+        }
+
+        .content {
+          position: relative;
+          z-index: 2;
+          min-height: 100vh;
+          background: #dde5de;
+        }
 
         .striped-hero__content {
           grid-column: 1 / -1;
@@ -2300,7 +2015,7 @@ useEffect(() => {
           color: var(--color-text-secondary);
           margin-bottom: var(--spacing-md);
           transform: translateY(20px);
-          opacity: 0;
+          opacity: ${showContent ? 1 : 0};
           color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: var(--letter-spacing-wide);
@@ -2325,12 +2040,12 @@ useEffect(() => {
         }
 
         .striped-hero__description {
-          font-size: 1rem;
+          // font-size: 1rem;
           line-height: 1.6;
           color: var(--color-text-secondary);
           max-width: 100%;
           transform: translateY(20px);
-          opacity: 0;
+          opacity: ${showContent ? 1 : 0};
           margin-bottom: var(--spacing-lg);
         }
 
@@ -2343,7 +2058,7 @@ useEffect(() => {
         }
 
         .striped-hero__meta {
-          font-size: 0.75rem;
+        
           color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: var(--letter-spacing-wide);
@@ -2351,7 +2066,7 @@ useEffect(() => {
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
           transform: translateY(20px);
-          opacity: 0;
+          opacity: ${showContent ? 1 : 0};
         }
 
         @media (min-width: 768px) {
@@ -2392,94 +2107,122 @@ useEffect(() => {
 
       <div className="striped-grid-container">
         {Array.from({ length: 5 }, (_, i) => (
-          <div 
-            key={i} 
-            className="striped-grid-column" 
-            ref={el => {
+          <div
+            key={i}
+            className="striped-grid-column"
+            ref={(el) => {
               if (el && !gridColumnsRef.current[i]) {
                 gridColumnsRef.current[i] = el;
               }
-            }} 
+            }}
           />
         ))}
       </div>
 
       {/* Preloader */}
       <div className="striped-preloader" ref={preloaderRef}>
-        <div className="font-neuehaas45 striped-preloader__text-container" ref={textContainerRef}>
+        <div
+          className="font-neuehaas45 striped-preloader__text-container"
+          ref={textContainerRef}
+        >
           <div ref={cosmicRef}>Your</div>
           <div ref={reflectionsRef}>Care</div>
         </div>
         <div className="striped-preloader__content" ref={imagesContainerRef}>
           <div className="striped-preloader__overlay" />
           {preloaderImages.map((src, i) => (
-            <img key={i} src={src} alt="Space" className="striped-preloader__image" />
+            <img
+              key={i}
+              src={src}
+              alt="Space"
+              className="striped-preloader__image"
+            />
           ))}
         </div>
       </div>
 
-
-        <section className="striped-hero">
-          <div className="striped-container">
-            <div className="striped-hero__content">
-              <div className="striped-hero__project font-neuehaas45" ref={heroProjectRef}>Our Expertise</div>
-              <h1 className="striped-hero__title">
-                {/* <span className="striped-hero__title-line font-canelathin" ref={el => titleLinesRef.current[0] = el}>Our</span>
+      <section className="striped-hero">
+        <div className="striped-container">
+          <div className="striped-hero__content">
+            <div
+              className="striped-hero__project font-neuehaas45"
+              ref={heroProjectRef}
+            >
+              Our Expertise
+            </div>
+            <h1 className="striped-hero__title">
+              {/* <span className="striped-hero__title-line font-canelathin" ref={el => titleLinesRef.current[0] = el}>Our</span>
                 <span className="striped-hero__title-line font-canelathin" ref={el => titleLinesRef.current[1] = el}>Expertise</span> */}
-              </h1>
-              <p className="font-canelathin striped-hero__description" ref={heroDescRef}>
-                While any orthodontist can move teeth into place, we focus on how alignment integrates with facial harmony — creating results that feel naturally your own.
-              </p>
-              <div className="striped-hero__meta font-neuehaas45 text-[12px]" ref={heroMetaRef}>
-                <div>
-                  <p className="font-neuehaas45 text-[10px]">Craft</p>
-                  <p className="font-neuehaas45 text-[12px]">Detail-Driven Care</p>
-                </div>
-                <div>
-                  <p className="font-neuehaas45 text-[10px]">Perspective</p>
-                  <p className="font-neuehaas45 text-[12px]">Form Meets Function</p>
-                </div>
+            </h1>
+            <p
+              className="font-canelathin striped-hero__description"
+              ref={heroDescRef}
+            >
+              While any orthodontist can move teeth into place, we focus on how
+              alignment integrates with facial harmony — creating results that
+              feel naturally your own.
+            </p>
+            <div
+              className="striped-hero__meta font-neuehaas45"
+              ref={heroMetaRef}
+            >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <SlidingText
+                  text="CRAFT"
+                  effect="2"
+                  totalCells={4}
+                  className="font-xxs gray-color letter-spacing"
+                  isPreloaderComplete={isPreloaderComplete}
+                />
+
+             <SlidingText
+    text="DETAIL-DRIVEN CARE"
+    effect="2"
+    totalCells={4}
+    className="font-xs gray-color letter-spacing"
+    isPreloaderComplete={isPreloaderComplete}
+  />
+              </div>
+              <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+  <SlidingText
+    text="PERSPECTIVE"
+    effect="2"
+    totalCells={4}
+    className="font-xxs gray-color letter-spacing"
+    isPreloaderComplete={isPreloaderComplete}
+  />
+  <SlidingText
+    text="FORM MEETS FUNCTION"
+    effect="2"
+    totalCells={4}
+    className="font-xs gray-color letter-spacing"
+    isPreloaderComplete={isPreloaderComplete}
+  />
+</div>
               </div>
             </div>
-            <div className="striped-hero__image-container">
-              <img
-                src="/images/aurela-redenica-VuN-RYI4XU4-unsplash_2400x3600.jpg"
-                alt="Astronaut"
-                className="striped-hero__image"
-                ref={heroImageRef}
-              />
-            </div>
           </div>
-        </section>
+          <div className="striped-hero__image-container">
+            <img
+              src="/images/aurela-redenica-VuN-RYI4XU4-unsplash_2400x3600.jpg"
+              alt="Astronaut"
+              className="striped-hero__image"
+              ref={heroImageRef}
+            />
+          </div>
+        </div>
+      </section>
 
-   <div className="content-wrapper">
-    <section className="content">
-
-<section
-  ref={scrollAwayRef}
-  className="relative w-screen pt-[60px] overflow-hidden flex flex-col"
->
-{/* <div className="relative z-10 w-full px-[10vw] max-w-[900px] mb-[15vh]">
-  <div className="w-fit mb-6 px-6 py-4 backdrop-blur-[10px] bg-[rgba(160,253,208,0.85)] border border-white/10">
-    <div className="text-gray-500 uppercase tracking-widest font-neuehaas45 text-[11px]">
-      First Impressions
-    </div>
-        <div className="text-gray-500 font-neuehaas45 text-[12px]">
-            Your first visit is where it all begins. We’ll get to know you, take
-        digital photos and X-rays, and map out your smile goals together. It’s
-        a simple, one-on-one visit that gives us a clear picture of your
-        orthodontic needs.
-    </div>
-
-  </div>
-
-
-</div> */}
-<section className="relative h-screen flex items-center justify-center">
-  {/* OUTER ARCH */}
-  <div
-  
-    className="
+      <div className="content-wrapper">
+        <section className="content">
+          <section
+            ref={scrollAwayRef}
+            className="relative w-screen pt-[60px] overflow-hidden flex flex-col"
+          >
+            <section className="relative h-screen flex items-center justify-center">
+              <div
+                className="
       relative
       w-[36vw]
       h-[90vh]
@@ -2488,117 +2231,256 @@ useEffect(() => {
       flex items-center justify-center
       z-10
     "
-  >
-
-    <div
-      className="
+              >
+                <div
+                  className="
         absolute
         inset-[5%]    
         rounded-t-[540px]  
         overflow-hidden
       "
-    >
-      <Canvas camera={{ position: [0, -10, 10], fov: 75 }}>
-        <StatsGl />
-        <Sky />
-        <ambientLight intensity={Math.PI / 1.5} />
-        <spotLight position={[0, 40, 0]} decay={0} distance={45} penumbra={1} intensity={100} />
-        <spotLight position={[-20, 0, 10]} color="purple" angle={0.15} decay={0} penumbra={-1} intensity={30} />
-        <spotLight position={[20, -10, 10]} color="red" angle={0.2} decay={0} penumbra={-1} intensity={20} />
-        <CameraControls />
-      </Canvas>
-    </div>
+                >
+                  <Canvas camera={{ position: [0, -10, 10], fov: 75 }}>
+                    <StatsGl />
+                    <Sky />
+                    <ambientLight intensity={Math.PI / 1.5} />
+                    <spotLight
+                      position={[0, 40, 0]}
+                      decay={0}
+                      distance={45}
+                      penumbra={1}
+                      intensity={100}
+                    />
+                    <spotLight
+                      position={[-20, 0, 10]}
+                      color="purple"
+                      angle={0.15}
+                      decay={0}
+                      penumbra={-1}
+                      intensity={30}
+                    />
+                    <spotLight
+                      position={[20, -10, 10]}
+                      color="red"
+                      angle={0.2}
+                      decay={0}
+                      penumbra={-1}
+                      intensity={20}
+                    />
+                    <CameraControls />
+                  </Canvas>
+                </div>
 
-
-<div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-  <div
-    className="
+                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                  <div
+                    className="
       w-full
       leading-none
       max-w-[360px]
 
     "
-  >
-    <h2 className="text-[11px] uppercase tracking-wider font-neuehaas45 mb-3">
-      First Impressions
-    </h2>
+                  >
+                    <h2 className="text-[11px] uppercase tracking-wider font-neuehaas45 mb-3">
+                      First Impressions
+                    </h2>
 
-    <p className="text-[14px] opacity-80 font-neuehaas45 leading-[1.3]">
-      Your first visit is where it all begins. We’ll get to know you, take
-      digital photos and X-rays, and map out your smile goals together.
-      It’s a simple, one-on-one visit that gives us a clear picture of
-      your orthodontic needs.
-    </p>
-  </div>
-</div>
-  </div>
-</section>
-{[
-  { id: 1, name: "Discuss" }, 
-  { id: 2, name: "Digital Records", video: "/videos/cbctscan.mp4" }, 
-  { id: 3, name: "Personalized Plan", img: "/images/flower.jpeg" }, 
-].map((work) => (
- <div
-  key={work.id}
-  className="relative work-item h-[90svh] w-full flex items-center justify-center"
->
-  <div
-    className="work-item-img relative w-[60vw] h-[60vh] overflow-hidden"
-    style={{
-      clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
-      willChange: "clip-path",
-    }}
-  >
-    {work.id === 1 ? (
+                    <p className="text-[14px] opacity-80 font-neuehaas45 leading-[1.3]">
+                      Your first visit is where it all begins. We’ll get to know
+                      you, take digital photos and X-rays, and map out your
+                      smile goals together. It’s a simple, one-on-one visit that
+                      gives us a clear picture of your orthodontic needs.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+            {[
+              { id: 1, name: "Discuss" },
+              { id: 2, name: "Digital Records", video: "/videos/cbctscan.mp4" },
+              { id: 3, name: "Personalized Plan", img: "/images/flower.jpeg" },
+            ].map((work) => (
+              <div
+                key={work.id}
+                className="relative work-item h-[90svh] w-full flex items-center justify-center"
+              >
+                <div
+                  className="work-item-img relative w-[60vw] h-[60vh] overflow-hidden"
+                  style={{
+                    clipPath: "polygon(25% 25%, 75% 40%, 100% 100%, 0% 100%)",
+                    willChange: "clip-path",
+                  }}
+                >
+                  {work.id === 1 ? (
+                    <ShaderBackground className="w-full h-full" />
+                  ) : work.id === 2 ? (
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      poster={work.img || "/images/background_min.png"}
+                    >
+                      <source
+                        src={work.video || "/videos/cbctscan.mp4"}
+                        type="video/mp4"
+                      />
 
-      <ShaderBackground className="w-full h-full" />
-    ) : work.id === 2 ? (
+                      <img
+                        src="/images/background_min.png"
+                        alt={work.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </video>
+                  ) : (
+                    <img
+                      src={work.img}
+                      alt={work.name}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
 
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline 
-        className="w-full h-full object-cover"
-        poster={work.img || "/images/background_min.png"} 
-      >
-        <source src={work.video || "/videos/cbctscan.mp4"} type="video/mp4" />
-   
-        <img src="/images/background_min.png" alt={work.name} className="w-full h-full object-cover" />
-      </video>
-    ) : (
-   
-      <img
-        src={work.img}
-        alt={work.name}
-        className="w-full h-full object-cover"
-      />
-    )}
-  </div>
-
-
-  <div className="work-item-name absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full z-[1]">
-    <h1
-      className="text-center text-white font-neuehaas35 leading-[1]"
-      style={{
-        fontSize: "5rem",
-      }}
-    >
-      {work.name}
-    </h1>
-  </div>
-</div>
-  ))}
-</section>
-    </section>
-  </div>
-
+                <div className="work-item-name absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full z-[1]">
+                  <h1
+                    className="text-center text-white font-neuehaas35 leading-[1]"
+                    style={{
+                      fontSize: "5rem",
+                    }}
+                  >
+                    {work.name}
+                  </h1>
+                </div>
+              </div>
+            ))}
+          </section>
+        </section>
+      </div>
     </>
   );
 }
+
+
+const SlidingText = ({ 
+  text = "DEFAULT",
+  totalCells = 4, 
+  className = "",
+  isPreloaderComplete = false
+}) => {
+  const containerRef = useRef(null);
+  const innerRefs = useRef([]);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !innerRefs.current.length) return;
+
+    const setLayout = () => {
+      const firstInner = innerRefs.current[0];
+      
+      const computedStyle = window.getComputedStyle(firstInner);
+      const letterSpacing = parseFloat(computedStyle.letterSpacing) || 0;
+      const fontSize = parseFloat(computedStyle.fontSize);
+      
+      const rect = firstInner.getBoundingClientRect();
+      const textWidth = rect.width;
+
+      const offset = textWidth / totalCells;
+
+      container.style.setProperty("--text-width", `${textWidth}px`);
+      container.style.setProperty("--gsplits", totalCells);
+      container.style.setProperty("--offset", `${offset}px`);
+
+      innerRefs.current.forEach((inner, i) => {
+
+        gsap.set(inner, {
+          x: Math.round(-i * offset * 100) / 100, 
+          position: 'relative',
+          display: 'inline-block',
+          willChange: 'transform',
+        });
+      });
+    };
+
+    const initLayout = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(setLayout);
+      });
+    };
+
+    initLayout();
+    window.addEventListener("resize", initLayout);
+
+    return () => {
+      window.removeEventListener("resize", initLayout);
+    };
+  }, [totalCells, text]);
+
+  useEffect(() => {
+    if (!isPreloaderComplete || hasAnimated) return;
+
+    const el = containerRef.current;
+    if (!el || !innerRefs.current.length) return;
+
+    const timer = setTimeout(() => {
+      const firstInner = innerRefs.current[0];
+      const rect = firstInner.getBoundingClientRect();
+      const textWidth = rect.width;
+      const offset = textWidth / totalCells;
+
+      gsap.fromTo(
+        innerRefs.current,
+        {
+          x: (i) => {
+            const targetX = -i * offset;
+
+            const randomOffset = (i % 2 === 0 ? -40 : 40);
+            return targetX + randomOffset;
+          },
+          opacity: 0,
+        },
+        {
+          x: (i) => -i * offset,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.03,
+          ease: "power2.out",
+          clearProps: "position",
+          onComplete: () => setHasAnimated(true),
+        },
+      );
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      gsap.killTweensOf(innerRefs.current);
+    };
+  }, [isPreloaderComplete, hasAnimated, totalCells, text]);
+
+  useEffect(() => {
+    if (!isPreloaderComplete) {
+      gsap.set(innerRefs.current, { opacity: 0 });
+    }
+  }, [isPreloaderComplete]);
+
+  return (
+    <div ref={containerRef} className={`gtext ${className}`}>
+      {Array.from({ length: totalCells }).map((_, i) => (
+        <span key={i} className="gtext__box">
+          <span
+            className="gtext__box-inner"
+            ref={(el) => (innerRefs.current[i] = el)}
+          >
+            {text}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+};
 function Sky() {
-  const ref = useRef()
-  const cloud0 = useRef()
+  const ref = useRef();
+  const cloud0 = useRef();
   const { color, x, y, z, range, ...config } = useControls({
     seed: { value: 1, min: 1, max: 100, step: 1 },
     segments: { value: 20, min: 1, max: 80, step: 1 },
@@ -2611,31 +2493,41 @@ function Sky() {
     y: { value: 1, min: 0, max: 100, step: 1 },
     z: { value: 1, min: 0, max: 100, step: 1 },
     color: "white",
-  })
+  });
   useFrame((state, delta) => {
-const t = state.clock.elapsedTime
+    const t = state.clock.elapsedTime;
 
-ref.current.rotation.y = Math.cos(t * 0.1) * 0.08
-ref.current.rotation.x = Math.sin(t * 0.1) * 0.04
-cloud0.current.rotation.y -= delta * 0.1
-  })
+    ref.current.rotation.y = Math.cos(t * 0.1) * 0.08;
+    ref.current.rotation.x = Math.sin(t * 0.1) * 0.04;
+    cloud0.current.rotation.y -= delta * 0.1;
+  });
   return (
     <>
       <SkyImpl />
       <group ref={ref}>
-        <Clouds   ref={cloud0}
-  {...config}
-  bounds={[x, y, z]}
-  position={[0, -6, -4]}   
-  color={color}>
+        <Clouds
+          ref={cloud0}
+          {...config}
+          bounds={[x, y, z]}
+          position={[0, -6, -4]}
+          color={color}
+        >
           <Cloud ref={cloud0} {...config} bounds={[x, y, z]} color={color} />
           {/* <Cloud {...config} bounds={[x, y, z]} color="#eed0d0" seed={2} position={[15, 0, 0]} /> */}
           {/* <Cloud {...config} bounds={[x, y, z]} color="#d0e0d0" seed={3} position={[-15, 0, 0]} /> */}
           {/* <Cloud {...config} bounds={[x, y, z]} color="#a0b0d0" seed={4} position={[0, 0, -12]} /> */}
           {/* <Cloud {...config} bounds={[x, y, z]} color="#c0c0dd" seed={5} position={[0, 0, 12]} /> */}
-          <Cloud concentrate="outside" growth={100} color="#ffccdd" opacity={1.25} seed={0.3} bounds={200} volume={200} />
+          <Cloud
+            concentrate="outside"
+            growth={100}
+            color="#ffccdd"
+            opacity={1.25}
+            seed={0.3}
+            bounds={200}
+            volume={200}
+          />
         </Clouds>
       </group>
     </>
-  )
+  );
 }

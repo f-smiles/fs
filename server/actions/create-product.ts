@@ -12,7 +12,7 @@ import { redirect } from "next/navigation"
 
 export const createProduct = actionClient
   .schema(ProductSchema)
-  .action(async ({ parsedInput: { id, title, description, price } }) => {
+  .action(async ({ parsedInput: { id, title, description, price, category } }) => {
     try {
       const existingProduct = await db.query.products.findFirst({
         where: eq(products.id, id!)
@@ -25,7 +25,7 @@ export const createProduct = actionClient
       if (!existingProduct) {
         const newProduct = await db
           .insert(products)
-          .values({ title, description, price })
+          .values({ title, description, price, category })
           .returning()
 
         revalidatePath("/dashboard/products")

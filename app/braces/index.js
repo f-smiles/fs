@@ -1620,7 +1620,7 @@ void main() {
 
   return (
     <>
-<Canvas
+{/* <Canvas
   shadows
   style={{
     position: "fixed",
@@ -1653,8 +1653,8 @@ void main() {
 
 
   <LandscapeBackground />
-  <PortalFrame />
-</Canvas>
+
+</Canvas> */}
 
 
 <section className="relative w-full h-screen overflow-hidden pointer-events-none">
@@ -1970,62 +1970,6 @@ void main() {
 
 export default Braces;
 
-function PortalFrame() {
-  const { scene } = useGLTF("/models/portal_room.glb");
-
-  useEffect(() => {
-    const wallMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#b7b2c2"),
-      roughness: 0.88,
-      metalness: 0.0,
-
-
-      envMapIntensity: 0.2,
-
-
-      clearcoat: 0.05,
-      clearcoatRoughness: 0.9,
-    });
-
-    scene.traverse((child) => {
-
-      if (child.name === "Human_1_5") {
-        child.visible = false;
-        return;
-      }
-
-      if (!child.isMesh) return;
-
-      if (child.name === "skybox_3") {
-        child.visible = false;
-        return;
-      }
-
-      if (child.name === "Object_12") {
-        const mat = child.material.clone();
-        mat.colorWrite = false;
-        mat.depthWrite = true;
-        mat.depthTest = true;
-        child.material = mat;
-        child.renderOrder = 0;
-        child.castShadow = false;
-        child.receiveShadow = false;
-        return;
-      }
-
-      child.material = wallMaterial;
-      child.castShadow = true;
-      child.receiveShadow = true;
-      child.renderOrder = 1;
-    });
-  }, [scene]);
-
-  return (
-    <group position={[0, -1.4, 0]}>
-      <primitive object={scene} />
-    </group>
-  );
-}
 function Backdrop() {
   return (
     <mesh position={[0, 0, -2]}>

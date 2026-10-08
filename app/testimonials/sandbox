@@ -1,0 +1,503 @@
+const StackMotionEffect = () => {
+  const wrapRef = useRef(null);
+  const contentRef = useRef(null);
+  const cardsRef = useRef([]);
+  const tlRef = useRef(null);
+
+  const winsizeRef = useRef({
+    width: typeof window !== "undefined" ? window.innerWidth : 1200,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  });
+
+  const reviews = useMemo(() => {
+    const repeatedReviews = [];
+    while (repeatedReviews.length < 27) {
+      repeatedReviews.push(
+        ...[
+          {
+            name: "James Pica",
+            text: "Frey Smiles has made the whole process from start to finish incredibly pleasant and sooo easy on my kids to follow. They were able to make a miracle happen with my son's tooth that was coming in sideways. He now has a perfect smile and I couldn't be happier. My daughter is halfway through her treatment and the difference already has been great. I 100% recommend this place to anyone!!!",
+
+            image: "/images/_mesh_gradients/lightblue.png",
+          },
+          {
+            name: "Thomas StPierre",
+            text: "I had a pretty extreme case and it took some time, but FreySmiles gave me the smile I had always hoped for. Thank you!",
+
+            image: "/images/_mesh_gradients/purplegrey.png",
+          },
+          {
+            name: "Fei Zhao",
+            text: "Our whole experience for the past 10 years of being under Dr. Gregg Frey's care and his wonderful staff has been amazing. My son and my daughter have most beautiful smiles, and they received so many compliments on their teeth. It has made a dramatic and positive change in their lives. Dr. Frey is a perfectionist, and his treatment is second to none. I recommend Dr. Frey highly and without any reservation.",
+
+            image: "/images/_mesh_gradients/pantonepinkblue.png",
+          },
+          {
+            name: "Shelby Loucks",
+            text: "THEY ARE AMAZING!! Great staff and wonderful building. HIGHLY recommend to anyone looking for an orthodontist.",
+
+            image: "/images/_mesh_gradients/LilyWhite.jpg",
+          },
+          {
+            name: "Diana Gomez",
+            text: "After arriving at my sons dentist on a Friday, his dentist office now informs me that they don't have a referral. I called the Frey smiles office when they were closed and left a message. I received a call back within minutes from Dr. Frey himself who sent the referral over immediately ( on his day off!!!) how amazing! Not to mention the staff was amazing when were were there and my children felt so comfortable! Looking forward to a wonderful smile for my son!!",
+
+            image: "/images/_mesh_gradients/pinkwhite.png",
+          },
+          {
+            name: "Tracee Benton",
+            text: "Dr. Frey and his orthodontist techs are the absolute best! The team has such an attention to detail I absolutely love my new smile and my confidence has significantly grown! The whole process of using Invisalign has been phenomenal. I highly recommend Dr. Frey and his team to anyone considering orthodontic work!",
+
+            image: "/images/_mesh_gradients/purpledred.png",
+          },
+          {
+            name: "Brandi Moyer",
+            text: "My experience with Dr. Frey orthodontics has been nothing but great. The staff is all so incredibly nice and willing to help. And better yet, today I found out I may be ahead of my time line to greater aligned teeth!.",
+
+            image: "/images/_mesh_gradients/purpleyellow.png",
+          },
+          {
+            name: "Andrew Cornell",
+            text: "Over 20 years ago, I went to Dr. Frey to fix my cross bite and get braces. Since then, my smile looks substantially nicer. My entire mouth feels better as well. The benefits of orthodontics under Dr. Frey continue paying dividends.",
+
+            image: "/images/_mesh_gradients/greenwhite.png",
+          },
+          {
+            name: "Vicki Weaver",
+            text: "We have had all four of our children receive orthodontic treatment from Dr. Frey. Dr. Frey is willing to go above and beyond for his patients before, during, and after the treatment is finished. It shows in their beautiful smiles!! We highly recommend FreySmiles to all of our friends and family!",
+
+            image: "/images/_mesh_gradients/blueyellowgradient.png",
+          },
+          {
+            name: "Sara Moyer",
+            text: "We are so happy that we picked Freysmiles in Lehighton for both of our girls Invisalign treatment. Dr. Frey and all of his staff are always so friendly and great to deal with. My girls enjoy going to their appointments and love being able to see the progress their teeth have made with each tray change. We are 100% confident that we made the right choice when choosing them as our orthodontist!",
+            image: "/images/_mesh_gradients/turquoisegradient.png",
+          },
+          {
+            name: "Mandee Kaur",
+            image: "/images/_mesh_gradients/pinkparty.png",
+            text: "I would highly recommend FreySmiles! Excellent orthodontic care, whether it's braces or Invisalign, Dr. Frey and his team pay attention to detail in making sure your smile is flawless! I would not trust anyone else for my daughter's care other than FreySmiles.",
+          },
+        ],
+      );
+    }
+
+    return repeatedReviews.slice(0, 27);
+  }, []);
+
+  const initScrollEffect = useCallback(() => {
+    if (!contentRef.current || !wrapRef.current) return;
+
+    const validCards = cardsRef.current.filter((card) => card !== null);
+    if (validCards.length === 0) return;
+
+    gsap.set(contentRef.current, {
+      transform:
+        "rotate3d(1, 0, 0, -25deg) rotate3d(0, 1, 0, 50deg) rotate3d(0, 0, 1, 25deg)",
+      opacity: 0,
+    });
+
+    if (tlRef.current) {
+      tlRef.current.kill();
+      tlRef.current = null;
+    }
+
+    tlRef.current = gsap
+      .timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: wrapRef.current,
+          start: "top bottom-=20%",
+          end: "+=150%",
+          scrub: 0.4,
+          onEnter: () => gsap.set(contentRef.current, { opacity: 1 }),
+          onEnterBack: () => gsap.set(contentRef.current, { opacity: 1 }),
+          onLeave: () => gsap.set(contentRef.current, { opacity: 0 }),
+          onLeaveBack: () => gsap.set(contentRef.current, { opacity: 0 }),
+        },
+      })
+      .fromTo(
+        validCards,
+        {
+          z: (pos) =>
+            -2.65 * winsizeRef.current.width -
+            pos * 0.03 * winsizeRef.current.width,
+        },
+        {
+          z: (pos) =>
+            1.4 * winsizeRef.current.width +
+            (validCards.length - pos - 1) * 0.03 * winsizeRef.current.width,
+        },
+        0,
+      )
+      .fromTo(
+        validCards,
+        {
+          rotationZ: -220,
+        },
+        {
+          rotationY: -30,
+          rotationZ: 120,
+          stagger: 0.005,
+        },
+        0,
+      );
+  }, []);
+
+  const setCardRef = useCallback((el, index) => {
+    cardsRef.current[index] = el;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = throttle(() => {
+      winsizeRef.current = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
+      initScrollEffect();
+    }, 100);
+
+    window.addEventListener("resize", handleResize);
+
+    setTimeout(initScrollEffect, 100);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (tlRef.current) {
+        tlRef.current.kill();
+        tlRef.current = null;
+      }
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+    };
+  }, [initScrollEffect]);
+
+  return (
+    <>
+      <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
+        <defs>
+          <clipPath id="clip-a" clipPathUnits="objectBoundingBox">
+            <path d="M0.9979787,0.04976303l0,0.9004739c0,0.02617536,-0.02121801,0.04739336,-0.04739336,0.04739336l-0.3909621,0c-0.01231754,0,-0.02415166,-0.004796209,-0.03299289,-0.01336967l-0.0577346,-0.05598341c-0.008841232,-0.008575829,-0.02067536,-0.01336967,-0.03299052,-0.01336967l-0.2123436,0c-0.01231754,0,-0.02415166,0.004793839,-0.03299289,0.01336967l-0.0577346,0.05598341c-0.008841232,0.00857346,-0.02067536,0.01336967,-0.03299289,0.01336967l-0.04972986,0c-0.02617536,0,-0.04739336,-0.02121801,-0.04739336,-0.04739336l0,-0.9004739c0,-0.02617536,0.02121801,-0.04739336,0.04739336,-0.04739336l0.9004739,0c0.02617536,0,0.04739336,0.02121801,0.04739336,0.04739336z" />
+          </clipPath>
+
+          <clipPath id="clip-b" clipPathUnits="objectBoundingBox">
+            <path d="M0.002,0.95V0.05C0.002,0.025,0.025,0.002,0.05,0.002h0.39c0.012,0,0.024,0.0048,0.033,0.0134l0.058,0.056c0.009,0.009,0.021,0.013,0.033,0.013h0.212c0.012,0,0.024,-0.0048,0.033,-0.013l0.058,-0.056c0.009,-0.0086,0.021,-0.0134,0.033,-0.0134h0.05c0.025,0,0.047,0.021,0.047,0.047V0.95c0,0.025,-0.021,0.047,-0.047,0.047H0.05C0.025,0.997,0.002,0.975,0.002,0.95z" />
+          </clipPath>
+        </defs>
+      </svg>
+      <div className="sme-wrap">
+        <div ref={wrapRef} className="sme-wrap__inner">
+          <div ref={contentRef} className="sme-content sme-content--1">
+            {reviews.map((review, index) => (
+              <div
+                key={`sme-review-${index}`}
+                ref={(el) => setCardRef(el, index)}
+                className="sme-card"
+              >
+                <div
+                  className={`sme-card__img relative ${index % 2 === 0 ? "clip-a" : "clip-b"}`}
+                  style={{
+                    backgroundImage: `url(${review.image})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <div className="absolute inset-0 z-10 pointer-events-none tile-overlay" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const TextSwirl = () => {
+  const containerRef = useRef(null);
+  const elementsRef = useRef([]);
+
+  const textItems = [
+    "James Pica",
+    "Thomas StPierre",
+    "Fei Zhao",
+    "Shelby Loucks",
+    "Diana Gomez",
+    "Tracee Benton",
+    "Brandi Moyer",
+    "Andrew Cornell",
+    "Vicki Weaver",
+    "Sara Moyer",
+    "Mandee Kaur",
+    "Anita Sutton",
+    "Mary Ost",
+    "Crystal Burke",
+    "Ashley S",
+    "Angie Lub",
+    "Lauren Muniz",
+    "Arthur Wines",
+    "Ethan Ball",
+  ];
+
+  useEffect(() => {
+    initAnimations();
+    const handleResize = () => {
+      ScrollTrigger.refresh(true);
+      setTimeout(initAnimations, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      ScrollTrigger.getAll().forEach((st) => st.kill());
+    };
+  }, []);
+  const initAnimations = () => {
+    gsap.set(elementsRef.current, {
+      clearProps: "transform,opacity,margin,marginLeft,marginTop",
+    });
+
+    elementsRef.current.forEach((el) => {
+      if (!el) return;
+
+      const originalClass = "pos-3";
+      const targetClass = el.dataset.altPos || "pos-8";
+      const flipEase = "expo.inOut";
+
+      el.classList.add(targetClass);
+      el.classList.remove(originalClass);
+
+      const flipState = Flip.getState(el, {
+        props: "opacity,margin,margin-left,margin-top,transform",
+        simple: true,
+      });
+
+      el.classList.add(originalClass);
+      el.classList.remove(targetClass);
+
+      Flip.to(flipState, {
+        ease: flipEase,
+        scrollTrigger: {
+          trigger: el,
+          start: "clamp(bottom bottom-=10%)",
+          end: "clamp(center center)",
+          scrub: true,
+        },
+      });
+
+      Flip.from(flipState, {
+        ease: flipEase,
+        scrollTrigger: {
+          trigger: el,
+          start: "clamp(center center)",
+          end: "clamp(top top)",
+          scrub: true,
+        },
+      });
+    });
+  };
+
+  return (
+    <div className="apptext text-black">
+      <div
+        className="flex-col"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "NeueHaasGroteskDisplayPro45Light",
+        }}
+      >
+        <h1 className="text-[18px] mb-2">Scroll to see some of our patients</h1>
+        <div className="text-[16px]">Meet the smiles behind the hype</div>
+      </div>
+
+      <div className="grouptwo" ref={containerRef}>
+        {textItems.map((text, index) => (
+          <div
+            key={index}
+            className="el pos-3"
+            data-alt-pos="pos-8"
+            ref={(el) => (elementsRef.current[index] = el)}
+          >
+            {text}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ height: "50vh" }}></div>
+    </div>
+  );
+};
+
+const map = (num, toMin, toMax, fromMin, fromMax) => {
+  if (num <= fromMin) return toMin;
+  if (num >= fromMax) return toMax;
+  const p = (toMax - toMin) / (fromMax - fromMin);
+  return (num - fromMin) * p + toMin;
+};
+const Contents = () => {
+  const line = 10;
+  const [blocks, setBlocks] = useState([]);
+  const photoRef = useRef(null);
+  const blocksRef = useRef(null);
+  const animationRef = useRef();
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const windowSize = useWindowSize();
+
+  const useGPU = (el) => {
+    gsap.set(el, { willChange: "transform, opacity" });
+  };
+
+  useEffect(() => {
+    if (!photoRef.current || !blocksRef.current) return;
+
+    const img = photoRef.current.querySelector("img");
+    const block = blocksRef.current;
+    const num = line * line;
+    const newBlocks = [];
+
+    for (let i = 0; i < num; i++) {
+      const b = document.createElement("div");
+      block.append(b);
+      b.append(img.cloneNode(false));
+
+      gsap.set(b, {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        overflow: "hidden",
+      });
+
+      const imgEl = b.querySelector("img");
+      useGPU(imgEl);
+      useGPU(b);
+
+      newBlocks.push({ con: b, img: imgEl });
+    }
+
+    setBlocks(newBlocks);
+
+    return () => {
+      gsap.killTweensOf("*");
+      block.innerHTML = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = photoRef.current;
+    if (!el) return;
+
+    const handleMouseMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      setMousePos({
+        x: Math.max(0, Math.min(1, x)),
+        y: Math.max(0, Math.min(1, y)),
+      });
+    };
+
+    el.addEventListener("mousemove", handleMouseMove);
+    return () => el.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const update = () => {
+    if (!photoRef.current) return;
+
+    const minDimension = Math.min(windowSize.width, windowSize.height);
+    gsap.set(photoRef.current, { width: minDimension * 0.75 });
+
+    const mx = mousePos.x;
+    const my = mousePos.y;
+
+    const imgSize = photoRef.current.offsetWidth || 0;
+    const size = imgSize / line;
+    const scale = 50;
+
+    blocks.forEach((val, i) => {
+      const ix = Math.floor(i / line);
+      const iy = i % line;
+
+      const blockX = (ix + 0.5) / line;
+      const blockY = (iy + 0.5) / line;
+
+      const dx = blockX - mx;
+      const dy = blockY - my;
+      const d = Math.sqrt(dx * dx + dy * dy);
+
+      const radius = 0.3;
+      const opacity = Math.max(0, 1 - d / radius);
+
+      gsap.to(val.con, {
+        width: size + 2,
+        height: size + 2,
+        left: ix * size,
+        top: iy * size,
+        opacity,
+        duration: 0.12,
+        ease: "power2.out",
+      });
+
+      const size2 = scale * size;
+      gsap.to(val.img, {
+        scale,
+        x: blockX * -size2,
+        y: blockY * -size2,
+        duration: 0.12,
+        ease: "power2.out",
+      });
+    });
+
+    animationRef.current = requestAnimationFrame(update);
+  };
+
+  useEffect(() => {
+    animationRef.current = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [blocks, windowSize, mousePos]);
+
+  return (
+    <div className="js-photo" ref={photoRef}>
+      <img src="../images/flower.jpeg" alt="" />
+      <div className="js-photo-blocks" ref={blocksRef} />
+    </div>
+  );
+};
+const throttle = (func, limit) => {
+  let inThrottle;
+  return function () {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+};
+
+
+const useWindowSize = () => {
+  const [size, setSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return size;
+};

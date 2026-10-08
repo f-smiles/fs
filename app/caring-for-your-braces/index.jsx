@@ -81,7 +81,7 @@ export default function Page() {
       gsap.set(innerItems, { clearProps: 'all' })
       gsap.set(mediaContainers, { clearProps: 'all' })
       gsap.set(mediaContainersInner, { clearProps: 'all' })
-      
+    gsap.set(navProgressBar, { clearProps: 'all' })
       const desktop = gsap.context(() => {
         let tl = gsap.timeline({
           scrollTrigger: {
