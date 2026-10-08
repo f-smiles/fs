@@ -727,13 +727,13 @@ const testimonials = [
   },
   {
     name: "James",
-    image: "../images/testimonials/Jamescontrast.png",
+    image: "../images/testimonials/jamescontrast.png",
     type: "Severe deep bite and upper spacing corrected in 2 years with Invisalign and orthodontic elastics.",
     project: "James",
   },
   {
     name: "Ron L.",
-    image: "../images/testimonials/Ronlandscape.png",
+    image: "../images/testimonials/ronlandscape.png",
     type: "Anterior crossbite and crowding corrected in 12 months with Invisalign.",
     project: "Ron",
   },
@@ -764,7 +764,7 @@ const testimonials = [
   },
   {
     name: "Leanne",
-    image: "../images/testimonials/Leannelandscape.png",
+    image: "../images/testimonials/leannelandscape.png",
     type: "Crowding and constricted arches corrected in 12 months with Invisalign",
     project: "Leanne",
   },
@@ -776,7 +776,7 @@ const testimonials = [
   },
   {
     name: "Abigail",
-    image: "../images/testimonials/Abigaillandscape.png",
+    image: "../images/testimonials/abigaillandscape.png",
     type: "Spacing, crowding, flairing corrected with Invisalign in two years.",
     project: "Abigail",
   },
@@ -801,7 +801,7 @@ const testimonials = [
 
   {
     name: "Sophia",
-    image: "../images/testimonials/Sophialandscape.png",
+    image: "../images/testimonials/sophialandscape.png",
     type: "Class 2 overbite and tapered arches corrected with self-ligating braces in 18 months.",
     project: "Sophia",
   },
@@ -815,13 +815,13 @@ const testimonials = [
 
   {
     name: "Jackson",
-    image: "../images/testimonials/Jacksonlandscape.png",
+    image: "../images/testimonials/jacksonlandscape.png",
     type: "Moderate deep bite & mild crowding corrected with Invisalign",
     project: "Jackson",
   },
   {
     name: "Nilaya",
-    image: "../images/testimonials/Nilayalandscape.png",
+    image: "../images/testimonials/nilayalandscape.png",
     type: "Deep bite and crowding corrected with self-ligating braces in 2 years",
     project: "Nilaya",
   },
