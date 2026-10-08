@@ -1,37 +1,83 @@
 'use client'
-import React, { useId, useMemo, useRef } from 'react'
+import React, { useEffect, useId, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { AmbientLight, Color, DirectionalLight, Group, HemisphereLight, MathUtils, PointLight } from "three";
 import { Clouds, Cloud, CameraControls, Sky as SkyImpl, StatsGl, CloudsProps, CloudProps } from "@react-three/drei";
 import { motion } from "motion/react"
+import gsap from 'gsap';
 
 export default function HomePageLogo() {
   const clipId = useId()
 
+  const homePageLogoRef = useRef(null)
+
+  useEffect(() => {
+    if (!homePageLogoRef.current) return
+
+    gsap.set(homePageLogoRef.current, {
+      clipPath: "polygon(-50% 0%, 0% 0%, -50% 100%, -100% 100%)",
+    })
+
+    let mm = gsap.matchMedia()
+    const tl = gsap.timeline()
+      
+    mm.add("(max-width: 1279px)", () => {
+      tl.to(homePageLogoRef.current, {
+        clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+        // clipPath: "polygon(100% 0%, 200% 0%, 150% 100%, 100% 100%)",
+        duration: 2,
+        delay: 2.0,
+        ease: "power2.inOut",
+      })
+      // .to(homePageLogoRef.current, {
+      //   clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      // })
+      
+      return () => tl.kill()
+    })
+
+    mm.add("(min-width: 1280px)", () => {
+      tl.to(homePageLogoRef.current, {
+        clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+        // clipPath: "polygon(100% 0%, 200% 0%, 150% 100%, 100% 100%)",
+        duration: 2,
+        delay: 1.0,
+        ease: "power2.inOut",
+      })
+      return () => tl.kill()
+    })
+
+    return () => mm.revert()
+  }, [])
+
   return (
     <div
+      ref={homePageLogoRef}
       style={{
         position: "relative",
         width: "150px",
         height: "80px",
         overflow: "hidden",
+        // willChange: "clip-path",
       }}
     >
       <svg
+        className="home-page-logo"
         viewBox="0 0 149.835 79"
         style={{
           position: "absolute",
           inset: 0,
           width: "100%",
           height: "100%",
+          willChange: "clip-path",
         }}
       >
         <clipPath id={clipId}>
           <motion.path
             // top left of letter S
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 2.5, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 1.75, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -42,9 +88,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // top right of letter S
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 2.75, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 2.0, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -55,9 +101,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // bottom left of letter S
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 2.0, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 1.25, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -68,9 +114,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // bottom right of letter S
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 2.5, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 1.5, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -81,9 +127,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // top left of letter F
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 0.75, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 0, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -94,9 +140,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // top right of letter F
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 1.0, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 0.25, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -107,9 +153,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // middle left of letter F
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 1.25, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 0.5, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -120,9 +166,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // middle right of letter F
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 1.5, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 0.75, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
@@ -133,9 +179,9 @@ export default function HomePageLogo() {
           />
           <motion.path
             // bottom left of letter F
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ ease: "easeIn", duration: 1, delay: 1.75, }}
+            // initial={{ scale: 0 }}
+            // animate={{ scale: 1 }}
+            // transition={{ ease: "easeIn", duration: 1, delay: 1.0, }}
             style={{
               transformOrigin: "center",
               transformBox: "fill-box",
