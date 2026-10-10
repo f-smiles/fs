@@ -155,6 +155,7 @@ export default function BookNow() {
         <HomePageLogo />
       </div>
 
+      {/* MOBILE NAVBAR */}
       <div className="absolute top-6 left-0 right-0 flex justify-center items-center xl:hidden z-50">
         <div
           className="
@@ -207,6 +208,14 @@ export default function BookNow() {
           />
 
           {/* MOBILE NAV LINKS */}
+          <a
+            href="/locations"
+            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
+          >
+            <div>
+              <span className="MenuItem-Text">Locations</span>
+            </div>
+          </a>
           <a
             href="/shop/products"
             className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
@@ -282,7 +291,127 @@ export default function BookNow() {
         </div>
       </motion.div>
       
-      <div className="flex items-center justify-between px-12 pt-6 text-xs tracking-wide relative">
+      {/* DESKTOP NAVBAR */}
+      <div
+        ref={navbarRef}
+        className="
+          mt-10 mx-auto w-max h-10
+          flex items-center gap-6
+          px-5 py-3
+          rounded-full
+          text-[11px] font-neuehaas35 tracking-wider uppercase
+          backdrop-blur-xl
+        "
+        style={{
+          background: `
+            linear-gradient(
+              180deg,
+              rgba(255,255,255,0.35) 0%,
+              rgba(255,255,255,0.08) 40%,
+              rgba(255,255,255,0.03) 100%
+            )
+          `,
+          backdropFilter: "blur(20px) saturate(140%)",
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{
+            background: `
+              linear-gradient(
+                180deg,
+                rgba(255,255,255,0.45) 0%,
+                rgba(255,255,255,0.12) 25%,
+                rgba(255,255,255,0.04) 50%,
+                rgba(255,255,255,0.0) 70%,
+                rgba(255,255,255,0.04) 85%,
+                rgba(255,255,255,0.12) 95%,
+                rgba(255,255,255,0.45) 100%
+              ),
+              radial-gradient(
+                circle at 0% 50%,
+                rgba(255,255,255,0.18),
+                transparent 40%
+              ),
+              radial-gradient(
+                circle at 100% 50%,
+                rgba(255,255,255,0.12),
+                transparent 40%
+              )
+            `,
+          }}
+        />
+            
+        {/* DESKTOP NAV LINKS */}
+        <motion.a
+          href="/locations"
+          className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        >
+          <div>
+            <span className="MenuItem-Text">Locations</span>
+          </div>
+        </motion.a>
+
+        <motion.a
+          href="/shop/products"
+          className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        >
+          <div>
+            <span className="MenuItem-Text">Shop</span>
+          </div>
+        </motion.a>
+        
+        <motion.a
+          href="/early-orthodontics"
+          className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        >
+          <div>
+            <span className="MenuItem-Text">Early Orthodontics</span>
+          </div>
+        </motion.a>
+
+        <motion.a
+          href="/adult-orthodontics"
+          className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        >
+          <div>
+            <span className="MenuItem-Text">Adult Orthodontics</span>
+          </div>
+        </motion.a>
+
+        <motion.a
+          href="/testimonials"
+          className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        >
+          <div>
+            <span className="MenuItem-Text">Testimonials</span>              
+          </div>
+        </motion.a>
+
+        {cart.length > 0 && 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+          >
+            <CartComponent />
+          </motion.div>
+        }
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 items-center px-4 xl:px-12 gap-8 xl:gap-0 relative">
@@ -294,7 +423,7 @@ export default function BookNow() {
             className="text-[24px] font-neuehaas35 tracking-[.02em] xl:text-[24px] text-center xl:text-left"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 3.0 }}
+            transition={{ delay: 3.5 }}
           >
             please explore our new site
           </motion.h1>
@@ -302,7 +431,7 @@ export default function BookNow() {
             className="py-2 text-[13px] font-neuehaas35 tracking-[0.07em]"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 3.5 }}
+            transition={{ delay: 3.75 }}
           >
             ...more upgrades in the works
           </motion.p>
@@ -344,142 +473,32 @@ export default function BookNow() {
           </motion.button>
         </div>
 
-        <div className="hidden xl:flex justify-end order-3">
-          <div
-            ref={navbarRef}
-            className="
-              relative
-              flex items-center gap-6
-              px-5 py-3
-              rounded-full
-              text-[11px] font-neuehaas35 tracking-wider uppercase
-              backdrop-blur-xl
-            "
-            style={{
-              background: `
-                linear-gradient(
-                  180deg,
-                  rgba(255,255,255,0.35) 0%,
-                  rgba(255,255,255,0.08) 40%,
-                  rgba(255,255,255,0.03) 100%
-                )
-              `,
-              backdropFilter: "blur(20px) saturate(140%)",
-            }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 rounded-full"
-              style={{
-                background: `
-                  linear-gradient(
-                    180deg,
-                    rgba(255,255,255,0.45) 0%,
-                    rgba(255,255,255,0.12) 25%,
-                    rgba(255,255,255,0.04) 50%,
-                    rgba(255,255,255,0.0) 70%,
-                    rgba(255,255,255,0.04) 85%,
-                    rgba(255,255,255,0.12) 95%,
-                    rgba(255,255,255,0.45) 100%
-                  ),
-                  radial-gradient(
-                    circle at 0% 50%,
-                    rgba(255,255,255,0.18),
-                    transparent 40%
-                  ),
-                  radial-gradient(
-                    circle at 100% 50%,
-                    rgba(255,255,255,0.12),
-                    transparent 40%
-                  )
-                `,
-              }}
-            />
-            
-            {/* DESKTOP NAV LINKS */}
-            <motion.a
-              href="/shop/products"
-              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
+        <div className="justify-center order-3">
+          <a href="/careers" className="group flex flex-col items-center justify-center z-10 pb-20 xl:pb-14">
+            <motion.div
+              className="flex flex-row justify-center items-center gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.0 }}  
             >
-              <div>
-                <span className="MenuItem-Text">Shop</span>
-              </div>
-            </motion.a>
-            
-            <motion.a
-              href="/early-orthodontics"
-              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
-            >
-              <div>
-                <span className="MenuItem-Text">Early Orthodontics</span>
-              </div>
-            </motion.a>
-
-            <motion.a
-              href="/adult-orthodontics"
-              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
-            >
-              <div>
-                <span className="MenuItem-Text">Adult Orthodontics</span>
-              </div>
-            </motion.a>
-
-            <motion.a
-              href="/testimonials"
-              className="MenuItem w-max text-[11px] tracking-wider uppercase leading-none block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
-            >
-              <div>
-                <span className="MenuItem-Text">Testimonials</span>              
-              </div>
-            </motion.a>
-
-            {cart.length > 0 && 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2.7, type: "tween", damping: 10, stiffness: 100 }}
-              >
-                <CartComponent />
-              </motion.div>
-            }
-          </div>
+              <span className="font-neuehaas45 tracking-wide">Join Our Team</span>
+              <span className="font-canela italic tracking-wide flex items-center gap-3">
+                <MoveRightIcon className="size-4 transition-all duration-150 group-hover:animate-left-right" />
+                We're Hiring
+              </span>
+            </motion.div>
+          </a>
         </div>
       </div>
 
-      <a href="/careers" className="group flex flex-col items-center justify-center z-10 pb-20 xl:pb-14">
-        <motion.div
-          className="flex flex-row items-center gap-3"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.8 }}  
-        >
-          <span className="font-neuehaas45 tracking-wide">Join Our Team</span>
-          <span className="font-canela italic tracking-wide flex items-center gap-3">
-            <MoveRightIcon className="size-4 transition-all duration-150 group-hover:animate-left-right" />
-            We're Hiring
-          </span>
-        </motion.div>
-      </a>
-
       <div
-        className="flex flex-col xl:flex-row justify-center gap-4 xl:gap-8 pb-16 text-xs font-neuehaas35 tracking-widest items-center relative"
+        className="relative flex flex-col items-center justify-center xl:flex-row gap-4 xl:gap-8 pb-16 text-xs font-neuehaas35 tracking-widest"
         style={{ fontVariantNumeric: "tabular-nums" }}
       >
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 4.0 }}
+          transition={{ delay: 3.25 }}
         >
           40° 36' N 75° 29' W
         </motion.div>
@@ -487,14 +506,14 @@ export default function BookNow() {
           className="hidden xl:block"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 4.1 }}  
+          transition={{ delay: 3.25 }}  
         >•</motion.div>
 
         <motion.div
           className="w-[90px] text-center"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 4.2 }}
+          transition={{ delay: 3.25 }}
         >
           {time}
         </motion.div>
