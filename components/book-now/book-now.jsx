@@ -500,7 +500,7 @@ export default function BookNow() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 3.25 }}
         >
-          40° 36' N 75° 29' W
+          40° 33' 57″ N 75° 31' 01″ W
         </motion.div>
         <motion.div
           className="hidden xl:block"
