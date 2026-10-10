@@ -3,7 +3,6 @@ import LocationGallery from "./LocationGallery";
 import Link from "next/link";
 import LocationTextReveal from "./LocationTextReveal";
 import LocationCharacterReveal from "./LocationCharReveal";
-// import UnicornInput from "./UnicornInput.jsx";
 
 const LOCATIONS = {
   allentown: {
@@ -201,7 +200,19 @@ const nextSlug =
   ];
   return (
    <main className=" location-detail-page">
+<Link href="/book-now" className="unicorn-search">
+  <span className="unicorn-cloud-background" aria-hidden="true">
+    <video autoPlay muted loop playsInline preload="metadata">
+      <source src="/videos/clouds.mp4" type="video/mp4" />
+    </video>
+  </span>
 
+  <span className="unicorn-button-label">Book Now</span>
+
+  <span className="input-ball-arrow" aria-hidden="true">
+    ↗
+  </span>
+</Link>
 <header className="location-detail-heading">
   <h1 className="location-detail-title">
     <LocationCharacterReveal
