@@ -1,32 +1,35 @@
 import { notFound } from "next/navigation";
 import LocationGallery from "./LocationGallery";
 import Link from "next/link";
-
-
+import LocationTextReveal from "./LocationTextReveal";
 
 const LOCATIONS = {
   allentown: {
     name: "Allentown",
     eyebrow: "Our Original Location",
+    phone: "(610) 437-4748",
+    directionsUrl:
+  "https://www.google.com/maps/dir/?api=1&destination=1251+S+Cedar+Crest+Blvd+Suite+210+Allentown+PA&travelmode=driving",
 
     heroTitle: "1251 S Cedar Crest Blvd #210",
     heroCopy:
       "Our original location, Located across from Lehigh Valley Hospital. Equipped with iCat 3D imaging technology and multiple itero scanners for precise and convenient treatment. Private consultation rooms and an open bay clinic offer both breathy and discreet appointment experience. Beverages always available upon request. ",
 
 media: [
-  {
-    type: "image",
-    src: "/images/allentowntemp.png",
-    alt: "FreySmiles Allentown office",
-  },
-  {
+    {
     type: "video",
     src: "/videos/cbctscan.mp4",
 
   },
   {
     type: "image",
-    src: "/images/allentown-2.jpg",
+    src: "/images/all1.png",
+    alt: "FreySmiles Allentown office",
+  },
+
+  {
+    type: "image",
+    src: "/images/all2.png",
     alt: "FreySmiles Allentown treatment area",
   },
   {
@@ -51,13 +54,15 @@ media: [
     featureTwoImage: "/images/allentown-office.jpg",
 
     address: "ALLENTOWN ADDRESS",
-    phone: "ALLENTOWN PHONE",
+    phone: "Call US",
   },
 
   bethlehem: {
     name: "Bethlehem",
     eyebrow: "FreySmiles Bethlehem",
-
+    phone: "(610) 437-4748",
+    directionsUrl:
+  "https://www.google.com/maps/dir/?api=1&destination=2901+Emrick+Blvd+Suite+104+Bethlehem+PA&travelmode=driving",
     heroTitle: "2901 Emrick Blvd #104",
     heroCopy:
       "Our most maze-like location. With Dr. Daniel Frey as your guide, you will appreciate the lushness of a quality Orthodontic experience.",
@@ -65,17 +70,17 @@ media: [
 media: [
   {
     type: "image",
-    src: "/images/beth1.jpeg",
+    src: "/images/beth3.png",
     alt: "FreySmiles Bethlehem office",
   },
   {
-    type: "video",
-    src: "/videos/allentown-office.mp4",
-    poster: "/images/allentown-video-poster.jpg",
+    type: "image",
+    src: "/images/beth2.png",
+    alt: "FreySmiles Bethlehem office",
   },
   {
     type: "image",
-    src: "/images/allentown-2.jpg",
+    src: "/images/beth4.png",
     alt: "FreySmiles Bethlehem treatment area",
   },
   {
@@ -97,13 +102,16 @@ media: [
     featureTwoImage: "/images/bethlehem-office.jpg",
 
     address: "BETHLEHEM ADDRESS",
-    phone: "BETHLEHEM PHONE",
+    phone: "CALL US",
   },
 
 
   lehighton: {
     name: "Lehighton",
     eyebrow: "FreySmiles Lehighton",
+    phone: "(610) 437-4748",
+     directionsUrl:
+    "https://www.google.com/maps/dir/?api=1&destination=1080+Blakeslee+Blvd+Dr+E+Lehighton+PA+18235&travelmode=driving",
 
     heroTitle: "1080 Blakeslee Blvd Dr E",
     heroCopy: "Our newest location, located adjacent to Rita’s Italian Ice. Equipped with 3D imaging capabilities and multiple itero scanners for the same standard of excellence. Expect modern finishings in an industry standard clinic size. Plenty of room to squash your smile goals.",
@@ -113,20 +121,10 @@ media: [
     src: "/images/lehighton.png",
     alt: "FreySmiles lehighton office",
   },
-  {
-    type: "video",
-    src: "/videos/allentown-office.mp4",
-    poster: "/images/allentown-video-poster.jpg",
-  },
-  {
+   {
     type: "image",
-    src: "/images/allentown-2.jpg",
-    alt: "FreySmiles lehighton treatment area",
-  },
-  {
-    type: "video",
-    src: "/videos/allentown-treatment.mp4",
-    poster: "/images/allentown-treatment-poster.jpg",
+    src: "/images/lehighton2.png",
+    alt: "FreySmiles lehighton office",
   },
 ],
     introTitle: "Our Lehighton Office",
@@ -141,11 +139,14 @@ media: [
     featureTwoImage: "/images/lehighton-office.jpg",
 
     address: "LEHIGHTON ADDRESS",
-    phone: "LEHIGHTON PHONE",
+    phone: "CALL US",
   },
     schnecksville: {
     name: "Schnecksville",
     eyebrow: "FreySmiles Schnecksville",
+    phone: "(610) 437-4748",
+directionsUrl:
+    "https://www.google.com/maps/dir/?api=1&destination=4155+Independence+Drive+Schnecksville+PA&travelmode=driving",
 
     heroTitle: "4155 Independence Drive",
     heroCopy: "CONVENIENTLY TUCKED IN THE HIGHLANDS OF PARKLAND SCHOOL DISTRICT SINCE 2005. A stones throw from route 309, this location FEATURES an expansive light-filled CLINIC with MULTIPLE PRIVATE CONSULTATION ROOMS, AND A VIDEO GAME NOOK. Both on-deck and main reception lounge options await. Elevate your smile with us in Schnecksville today!",
@@ -153,7 +154,7 @@ media: [
 media: [
   {
     type: "image",
-    src: "/images/sch1.png",
+    src: "/images/sch.png",
     alt: "FreySmiles Schnecksville office",
   },
  {
@@ -161,16 +162,7 @@ media: [
     src: "/images/sch2.png",
     alt: "FreySmiles Schnecksville office",
   },
-  {
-    type: "image",
-    src: "/images/allentown-2.jpg",
-    alt: "FreySmiles Schnecksville office",
-  },
-  {
-    type: "video",
-    src: "/videos/allentown-treatment.mp4",
-    poster: "/images/allentown-treatment-poster.jpg",
-  },
+
 ],
 
     introTitle: "Our Schnecksville Office",
@@ -185,7 +177,7 @@ media: [
     featureTwoImage: "/images/schnecksville-office.jpg",
 
     address: "SCHNECKSVILLE ADDRESS",
-    phone: "SCHNECKSVILLE PHONE",
+    phone: "CALL US",
   }
 
 };
@@ -214,13 +206,15 @@ const nextSlug =
     (currentIndex + 1) % LOCATION_ORDER.length
   ];
   return (
-   <main className="fixed location-detail-page">
+   <main className=" location-detail-page">
 
       <header className="location-detail-heading">
        
-        <h1 className="location-detail-title">
-          {location.name}
-        </h1>
+     <h1 className="location-detail-title">
+  <LocationTextReveal key={params.locationSlug}>
+    {location.name}
+  </LocationTextReveal>
+</h1>
       </header>
 
       <section className="location-detail-layout">
@@ -229,16 +223,17 @@ const nextSlug =
         <div className="location-detail-content">
 
 <div className="location-detail-nav">
-  {/* Blurred glow layer */}
+
   <div className="location-nav-blur" aria-hidden="true">
     <span className="location-nav-glow" />
   </div>
 
-  {/* Sharp glow layer */}
+
   <div className="location-nav-glow" aria-hidden="true" />
 
 <Link
   href={`/locations/${previousSlug}`}
+  replace
   className="location-detail-nav-arrow"
   aria-label={`Previous location: ${LOCATIONS[previousSlug].name}`}
 >
@@ -256,6 +251,7 @@ const nextSlug =
 
 <Link
   href={`/locations/${nextSlug}`}
+  replace
   className="location-detail-nav-arrow"
   aria-label={`Next location: ${LOCATIONS[nextSlug].name}`}
 >
@@ -271,9 +267,24 @@ const nextSlug =
 </div>
 
           <div className="location-detail-copy">
-            <h2>{location.heroTitle}</h2>
+        <h2>
+    <LocationTextReveal
+      key={`${params.locationSlug}-address`}
+      delay={0.1}
+    >
+      {location.heroTitle}
+    </LocationTextReveal>
+  </h2>
 
-            <p>{location.heroCopy}</p>
+
+            <p>
+    <LocationTextReveal
+      key={`${params.locationSlug}-description`}
+      delay={0.2}
+    >
+      {location.heroCopy}
+    </LocationTextReveal>
+  </p>
 
 <div className="location-detail-actions">
   <a
@@ -283,16 +294,30 @@ const nextSlug =
     rel="noreferrer"
   >
     <span>Get Directions</span>
-    <span>↗</span>
+    <span><svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 33 32"
+  className="h-full text-current fill-current w-[0.85em] ml-[0.2em] mb-[0.2em]"
+  style={{ enableBackground: "new 0 0 33 32" }}
+>
+  <path d="m3.3 4.7 21.1.1L0 28.6 3.5 32 28.1 8l.1 20.8 4.9-4.7L33 0H8.2L3.3 4.7z" />
+</svg></span>
   </a>
 
-  <a
-    className="location-detail-button"
-    href={`tel:${location.phone}`}
-  >
-    <span>Call Us</span>
-    <span>↗</span>
-  </a>
+<a
+  className="location-detail-button"
+  href="tel:+16104374748"
+>
+  <span>{location.phone}</span>
+  <span><svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 33 32"
+  className="h-full text-current fill-current w-[0.85em] ml-[0.2em] mb-[0.2em]"
+  style={{ enableBackground: "new 0 0 33 32" }}
+>
+  <path d="m3.3 4.7 21.1.1L0 28.6 3.5 32 28.1 8l.1 20.8 4.9-4.7L33 0H8.2L3.3 4.7z" />
+</svg></span>
+</a>
 </div>
           </div>
 

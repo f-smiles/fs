@@ -1,1209 +1,18 @@
 "use client";
 import "./style.css";
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import * as THREE from "three";
-import  React, { useCallback, useEffect,useImperativeHandle, useRef,forwardRef, useState } from "react";
+import  React, { useLayoutEffect, useCallback, useEffect,useImperativeHandle, useRef,forwardRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import LocationTextReveal from "./[locationSlug]/LocationTextReveal";
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
-const DEFAULTS = {
-  mode: "ordered",
-  pixelSize: 2,
 
-  gridSize: 3,
-  threshold: 0.5,
-  brightness: 0,
-  contrast: 1,
-  darkColor: "#1757e8",
-  lightColor: "#e8e6e0",
-
-  matrixSize: 4,
-  lumPixelSize: 1,
-  pixelSizeMultiplier: 5,
-  scaleResolution: 1,
-  ditherAmount: 1,
-  bias: 0,
-  biasNoiseScale: 10,
-  biasNoiseSpeed: 0.75,
-  biasPulseSpeed: 0.5,
-  biasNoiseWeight: 0.5,
-  biasPulseWeight: 0.05,
-  biasAnimationStrength: 1.25,
-  trailDecay: 0.85,
-  trailRadius: 0.15,
-  trailIntensityMultiplier: 5,
-};
-
-let sharedRenderer = null;
-const pointerEffects = new Set();
-let pointerBound = false;
-
-function handleSharedPointerMove(e) {
-  pointerEffects.forEach((effect) => {
-    if (!effect.visible) return;
-    effect.onPointerMove(e);
-  });
-}
-
-function watchPointer(effect) {
-  pointerEffects.add(effect);
-  if (pointerBound) return;
-  pointerBound = true;
-  window.addEventListener("pointermove", handleSharedPointerMove, {
-    passive: true,
-  });
-}
-
-function unwatchPointer(effect) {
-  pointerEffects.delete(effect);
-  if (pointerEffects.size || !pointerBound) return;
-  pointerBound = false;
-  window.removeEventListener("pointermove", handleSharedPointerMove);
-}
-
-function getRenderer() {
-  if (!sharedRenderer) {
-    sharedRenderer = new THREE.WebGLRenderer({
-      antialias: false,
-      alpha: true,
-      premultipliedAlpha: false,
-    });
-    sharedRenderer.setPixelRatio(1);
-  }
-  return sharedRenderer;
-}
-
-const VERTEX = `
-void main() {
-  gl_Position = vec4(position, 1.0);
-}
-`;
-
-function diffusionFragment(grid) {
-  return `
-precision highp float;
-
-#define GRID_X ${grid}.0
-#define GRID_Y ${grid}.0
-
-uniform sampler2D uTexture;
-uniform vec2 uResolution;
-uniform vec2 uCoverScale;
-uniform float uThreshold;
-uniform float uBrightness;
-uniform float uContrast;
-uniform vec3 uDarkColor;
-uniform vec3 uLightColor;
-uniform vec2 uMouse;
-uniform float uMouseStrength;
-uniform float uMouseRadius;
-uniform float uTime;
-
-out vec4 fragColor;
-
-const vec2 gridSize = vec2(GRID_X, GRID_Y);
-const int arrSize = int(GRID_X * GRID_Y);
-float errAcc[arrSize];
-
-int getIndex(vec2 p) {
-  int x = int(p.x);
-  int y = int(p.y);
-  if (x < 0 || y < 0 || x >= int(GRID_X) || y >= int(GRID_Y)) return -1;
-  return x + y * int(GRID_X);
-}
-
-vec4 sampleTex(vec2 pix) {
-  vec2 uv = (pix + 0.5) / uResolution;
-  uv = (uv - 0.5) * uCoverScale + 0.5;
-  return texture(uTexture, uv);
-}
-
-float sampleLuma(vec2 pix) {
-  vec3 c = sampleTex(pix).rgb;
-  float g = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  g += uBrightness;
-  g = (g - 0.5) * uContrast + 0.5;
-  return g;
-}
-
-vec2 dispersion(vec2 p) {
-  vec2 toP = p - uMouse;
-  float d = length(toP);
-  vec2 dir = d > 1e-4 ? toP / d : vec2(0.0);
-  float falloff = exp(-(d * d) / (uMouseRadius * uMouseRadius));
-  float ripple = 0.85 + 0.15 * sin(d * 0.18 - uTime * 5.0);
-
-  return -dir * falloff * uMouseStrength * uMouseRadius * 0.3 * ripple;
-}
-
-void main() {
-
-  vec2 pix = floor(vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y));
-  vec2 topLeft = floor(pix / gridSize) * gridSize;
-  vec2 myPos = pix - topLeft;
-
-  for (int i = 0; i < arrSize; i++) errAcc[i] = 0.0;
-
-  vec2 disp = dispersion(topLeft + gridSize * 0.5);
-
-  float outColor = 0.0;
-  for (float y = 0.0; y < GRID_Y; y += 1.0) {
-    for (float x = 0.0; x < GRID_X; x += 1.0) {
-      vec2 cell = vec2(x, y);
-      vec2 srcPix = topLeft + cell + disp;
-
-      if (sampleTex(srcPix).a < 0.01) continue;
-      float ideal = sampleLuma(srcPix) + errAcc[int(x) + int(y) * int(GRID_X)];
-      float value = step(uThreshold, ideal);
-      float err = ideal - value;
-
-      int r = getIndex(cell + vec2(1.0, 0.0));  if (r >= 0) errAcc[r] += err * (7.0 / 16.0);
-      int bl = getIndex(cell + vec2(-1.0, 1.0)); if (bl >= 0) errAcc[bl] += err * (3.0 / 16.0);
-      int b = getIndex(cell + vec2(0.0, 1.0));  if (b >= 0) errAcc[b] += err * (5.0 / 16.0);
-      int br = getIndex(cell + vec2(1.0, 1.0));  if (br >= 0) errAcc[br] += err * (1.0 / 16.0);
-      if (cell == myPos) outColor = value;
-    }
-  }
-
-  fragColor = vec4(mix(uDarkColor, uLightColor, outColor), sampleTex(pix + disp).a);
-}
-`;
-}
-
-const TRAIL_FRAGMENT = `
-precision highp float;
-
-uniform sampler2D uPrev;
-uniform vec2 uResolution;
-uniform vec2 uMouse;
-uniform vec2 uPrevMouse;
-uniform float uTrailDecay;
-uniform float uTrailRadius;
-uniform float uBrushStrength;
-
-out vec4 fragColor;
-
-float distToSegment(vec2 p, vec2 a, vec2 b) {
-  vec2 ab = b - a;
-  float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-4), 0.0, 1.0);
-  return length(p - (a + ab * t));
-}
-
-void main() {
-  vec2 p = gl_FragCoord.xy;
-
-  float prev = texture(uPrev, p / uResolution).r * uTrailDecay;
-
-  float d = distToSegment(p, uPrevMouse, uMouse);
-  float brush = smoothstep(uTrailRadius, 0.0, d) * uBrushStrength;
-  fragColor = vec4(clamp(prev + brush, 0.0, 1.0), 0.0, 0.0, 1.0);
-}
-`;
-
-const CNOISE = `
-vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
-vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-vec3 fade(vec3 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
-
-float cnoise(vec3 P) {
-  vec3 Pi0 = floor(P);
-  vec3 Pi1 = Pi0 + vec3(1.0);
-  Pi0 = mod289(Pi0);
-  Pi1 = mod289(Pi1);
-  vec3 Pf0 = fract(P);
-  vec3 Pf1 = Pf0 - vec3(1.0);
-  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
-  vec4 iy = vec4(Pi0.yy, Pi1.yy);
-  vec4 iz0 = Pi0.zzzz;
-  vec4 iz1 = Pi1.zzzz;
-
-  vec4 ixy = permute(permute(ix) + iy);
-  vec4 ixy0 = permute(ixy + iz0);
-  vec4 ixy1 = permute(ixy + iz1);
-
-  vec4 gx0 = ixy0 * (1.0 / 7.0);
-  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
-  gx0 = fract(gx0);
-  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
-  vec4 sz0 = step(gz0, vec4(0.0));
-  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
-  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
-
-  vec4 gx1 = ixy1 * (1.0 / 7.0);
-  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
-  gx1 = fract(gx1);
-  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
-  vec4 sz1 = step(gz1, vec4(0.0));
-  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
-  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
-
-  vec3 g000 = vec3(gx0.x, gy0.x, gz0.x);
-  vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
-  vec3 g010 = vec3(gx0.z, gy0.z, gz0.z);
-  vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
-  vec3 g001 = vec3(gx1.x, gy1.x, gz1.x);
-  vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
-  vec3 g011 = vec3(gx1.z, gy1.z, gz1.z);
-  vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
-
-  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
-  g000 *= norm0.x; g010 *= norm0.y; g100 *= norm0.z; g110 *= norm0.w;
-  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
-  g001 *= norm1.x; g011 *= norm1.y; g101 *= norm1.z; g111 *= norm1.w;
-
-  float n000 = dot(g000, Pf0);
-  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
-  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
-  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
-  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
-  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
-  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
-  float n111 = dot(g111, Pf1);
-
-  vec3 fade_xyz = fade(Pf0);
-  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
-  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
-  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
-  return 2.2 * n_xyz;
-}
-`;
-
-function orderedFragment(matrix) {
-  return `
-precision highp float;
-
-#define MATRIX_SIZE ${matrix}
-
-uniform sampler2D uTexture;
-uniform vec2 uResolution;
-uniform vec2 uCoverScale;
-uniform float uBrightness;
-uniform float uContrast;
-uniform float uThreshold;
-uniform vec3 uDarkColor;
-uniform vec3 uLightColor;
-uniform float uTime;
-uniform sampler2D uTrail;
-uniform float uTrailIntensityMultiplier;
-uniform float uPixelSize;
-uniform float uPixelSizeMultiplier;
-uniform float uScaleResolution;
-uniform float uDitherAmount;
-uniform float uBias;
-uniform float uBiasNoiseScale;
-uniform float uBiasNoiseSpeed;
-uniform float uBiasPulseSpeed;
-uniform float uBiasNoiseWeight;
-uniform float uBiasPulseWeight;
-uniform float uBiasAnimationStrength;
-
-out vec4 fragColor;
-
-${CNOISE}
-
-const float bayer2[4] = float[4](0.0, 2.0, 3.0, 1.0);
-const float bayer4[16] = float[16](
-  0.0, 8.0, 2.0, 10.0,
-  12.0, 4.0, 14.0, 6.0,
-  3.0, 11.0, 1.0, 9.0,
-  15.0, 7.0, 13.0, 5.0
-);
-const float bayer8[64] = float[64](
-  0.0, 32.0, 8.0, 40.0, 2.0, 34.0, 10.0, 42.0,
-  48.0, 16.0, 56.0, 24.0, 50.0, 18.0, 58.0, 26.0,
-  12.0, 44.0, 4.0, 36.0, 14.0, 46.0, 6.0, 38.0,
-  60.0, 28.0, 52.0, 20.0, 62.0, 30.0, 54.0, 22.0,
-  3.0, 35.0, 11.0, 43.0, 1.0, 33.0, 9.0, 41.0,
-  51.0, 19.0, 59.0, 27.0, 49.0, 17.0, 57.0, 25.0,
-  15.0, 47.0, 7.0, 39.0, 13.0, 45.0, 5.0, 37.0,
-  63.0, 31.0, 55.0, 23.0, 61.0, 29.0, 53.0, 21.0
-);
-
-float bayerThreshold(vec2 p, int size) {
-  int x = int(mod(p.x, float(size)));
-  int y = int(mod(p.y, float(size)));
-  int idx = y * size + x;
-  if (size == 2) return (bayer2[idx] + 0.5) / 4.0;
-  if (size == 4) return (bayer4[idx] + 0.5) / 16.0;
-  return (bayer8[idx] + 0.5) / 64.0;
-}
-
-vec4 sampleTex(vec2 centerPix) {
-  vec2 uv = centerPix / uResolution;
-  uv = (uv - 0.5) * uCoverScale + 0.5;
-  return texture(uTexture, uv);
-}
-
-vec3 adjust(vec3 c) {
-  c += uBrightness;
-  return (c - 0.5) * uContrast + 0.5;
-}
-
-void main() {
-  vec2 frag = gl_FragCoord.xy;
-
-  float trail = clamp(texture(uTrail, frag / uResolution).r * uTrailIntensityMultiplier, 0.0, 1.0);
-
-  vec2 up = vec2(frag.x, uResolution.y - frag.y);
-
-  vec2 colorCenter = (floor(up / uPixelSize) + 0.5) * uPixelSize;
-  vec4 src = sampleTex(colorCenter);
-  vec3 sourceColor = adjust(src.rgb);
-
-  float dynPx = mix(uPixelSize, uPixelSize * uPixelSizeMultiplier, trail);
-  vec2 lumCenter = (floor(up / dynPx) + 0.5) * dynPx;
-  vec4 ls = sampleTex(lumCenter);
-  float lum = dot(ls.rgb, vec3(0.2126, 0.7152, 0.0722));
-  lum += uBrightness;
-  lum = (lum - 0.5) * uContrast + 0.5;
-
-  vec2 uvN = up / uResolution;
-  float n = cnoise(vec3(uvN * uBiasNoiseScale, uTime * uBiasNoiseSpeed));
-  float pulse = sin(uTime * uBiasPulseSpeed) * 0.5 + 0.5;
-  float bias = uBias + (n * uBiasNoiseWeight + pulse * uBiasPulseWeight) * uBiasAnimationStrength;
-
-  int size = trail >= 0.5 ? 8 : MATRIX_SIZE;
-  float threshold = bayerThreshold(floor(frag / uScaleResolution), size);
-
-  float value = threshold + bias * (1.0 + 2.0 * trail) + (uThreshold - 0.5);
-  vec3 dithered = mix(uDarkColor, uLightColor, step(value, lum));
-
-  fragColor = vec4(mix(sourceColor, dithered, uDitherAmount), src.a);
-}
-`;
-}
-
-class DitherEffect {
-  constructor(canvas, img) {
-    this.canvas = canvas;
-    this.img = img;
-    this.ctx = canvas.getContext("2d");
-    this.settings = { ...DEFAULTS };
-    this.width = 0;
-    this.height = 0;
-    this.texture = null;
-    this.mode = null;
-    this.grid = null;
-    this.matrix = null;
-
-    this.time = 0;
-    this.raf = 0;
-    this.visible = true;
-
-    this.mouse = new THREE.Vector2();
-    this.strength = 0;
-
-    this.prevMouse = new THREE.Vector2();
-    this.hasMouse = false;
-    this.trailFrames = 0;
-    this.trailA = null;
-    this.trailB = null;
-    this.trailMaterial = null;
-    this.trailMesh = null;
-    this.scene = new THREE.Scene();
-    this.trailScene = new THREE.Scene();
-    this.camera = new THREE.Camera();
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
-    this.mesh.frustumCulled = false;
-    this.scene.add(this.mesh);
-    this.createMaterial();
-  }
-
-  createMaterial() {
-    if (this.mode !== this.settings.mode) {
-
-      cancelAnimationFrame(this.raf);
-      this.raf = 0;
-    }
-    this.material?.dispose();
-    this.mode = this.settings.mode;
-    const common = {
-      uTexture: { value: this.texture },
-      uResolution: { value: new THREE.Vector2(this.width, this.height) },
-      uCoverScale: { value: new THREE.Vector2(1, 1) },
-      uBrightness: { value: this.settings.brightness },
-      uContrast: { value: this.settings.contrast },
-      uThreshold: { value: this.settings.threshold },
-
-      uDarkColor: {
-        value: new THREE.Color().setStyle(
-          this.settings.darkColor,
-          THREE.NoColorSpace,
-        ),
-      },
-      uLightColor: {
-        value: new THREE.Color().setStyle(
-          this.settings.lightColor,
-          THREE.NoColorSpace,
-        ),
-      },
-      uTime: { value: this.time },
-    };
-
-    if (this.mode === "ordered") {
-      this.matrix = this.settings.matrixSize;
-      this.material = new THREE.ShaderMaterial({
-        glslVersion: THREE.GLSL3,
-        uniforms: {
-          ...common,
-          uTrail: { value: null },
-          uTrailIntensityMultiplier: { value: 1 },
-          uPixelSize: { value: 1 },
-          uPixelSizeMultiplier: { value: 3 },
-          uScaleResolution: { value: 1 },
-          uDitherAmount: { value: 1 },
-          uBias: { value: 0 },
-          uBiasNoiseScale: { value: 3 },
-          uBiasNoiseSpeed: { value: 0.3 },
-          uBiasPulseSpeed: { value: 1 },
-          uBiasNoiseWeight: { value: 0.15 },
-          uBiasPulseWeight: { value: 0.05 },
-          uBiasAnimationStrength: { value: 1 },
-        },
-        vertexShader: VERTEX,
-        fragmentShader: orderedFragment(this.matrix),
-      });
-      this.ensureTrailMaterial();
-    } else {
-      this.grid = this.settings.gridSize;
-      this.material = new THREE.ShaderMaterial({
-        glslVersion: THREE.GLSL3,
-        uniforms: {
-          ...common,
-          uMouse: { value: new THREE.Vector2() },
-          uMouseStrength: { value: 0 },
-          uMouseRadius: { value: 1 },
-        },
-        vertexShader: VERTEX,
-        fragmentShader: diffusionFragment(this.grid),
-      });
-    }
-    this.mesh.material = this.material;
-  }
-
-  ensureTrailMaterial() {
-    if (this.trailMaterial) return;
-    this.trailMaterial = new THREE.ShaderMaterial({
-      glslVersion: THREE.GLSL3,
-      uniforms: {
-        uPrev: { value: null },
-        uResolution: { value: new THREE.Vector2() },
-        uMouse: { value: new THREE.Vector2() },
-        uPrevMouse: { value: new THREE.Vector2() },
-        uTrailDecay: { value: 0.94 },
-        uTrailRadius: { value: 1 },
-        uBrushStrength: { value: 0 },
-      },
-      vertexShader: VERTEX,
-      fragmentShader: TRAIL_FRAGMENT,
-    });
-    this.trailMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 2),
-      this.trailMaterial,
-    );
-    this.trailMesh.frustumCulled = false;
-    this.trailScene.add(this.trailMesh);
-  }
-
-  load(onReady) {
-    const setup = () => {
-      this.texture?.dispose();
-      const tex = new THREE.Texture(this.img);
-      tex.flipY = false;
-      tex.premultiplyAlpha = false;
-      tex.minFilter = THREE.LinearMipmapLinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.generateMipmaps = true;
-      tex.needsUpdate = true;
-      this.texture = tex;
-      this.material.uniforms.uTexture.value = tex;
-      onReady();
-    };
-    if (this.img.complete && this.img.naturalWidth > 0) setup();
-    else this.img.addEventListener("load", setup, { once: true });
-  }
-
-  resize() {
-    const px = this.settings.pixelSize;
-    const w = Math.max(1, Math.round(this.canvas.clientWidth / px));
-    const h = Math.max(1, Math.round(this.canvas.clientHeight / px));
-    if (w === this.width && h === this.height && this.canvas.width === w)
-      return false;
-    this.width = w;
-    this.height = h;
-    this.canvas.width = w;
-    this.canvas.height = h;
-    if (this.mode === "ordered") this.ensureTargets();
-    return true;
-  }
-
-  coverScale() {
-    const imgAspect =
-      (this.img.naturalWidth || 1) / (this.img.naturalHeight || 1);
-    const canvasAspect = this.width / this.height;
-    return imgAspect > canvasAspect
-      ? new THREE.Vector2(canvasAspect / imgAspect, 1)
-      : new THREE.Vector2(1, imgAspect / canvasAspect);
-  }
-
-  makeTarget() {
-    const r = getRenderer();
-    const type = r.capabilities.isWebGL2
-      ? THREE.HalfFloatType
-      : THREE.UnsignedByteType;
-    return new THREE.WebGLRenderTarget(this.width, this.height, {
-      type,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      wrapS: THREE.ClampToEdgeWrapping,
-      wrapT: THREE.ClampToEdgeWrapping,
-      depthBuffer: false,
-      stencilBuffer: false,
-    });
-  }
-
-  ensureTargets() {
-    if (
-      this.trailA &&
-      this.trailA.width === this.width &&
-      this.trailA.height === this.height
-    )
-      return;
-    this.disposeTargets();
-    this.trailA = this.makeTarget();
-    this.trailB = this.makeTarget();
-    const r = getRenderer();
-    r.setRenderTarget(this.trailA);
-    r.setClearColor(0x000000, 1);
-    r.clear();
-    r.setRenderTarget(this.trailB);
-    r.clear();
-    r.setRenderTarget(null);
-  }
-
-  disposeTargets() {
-    this.trailA?.dispose();
-    this.trailB?.dispose();
-    this.trailA = null;
-    this.trailB = null;
-  }
-
-  renderTrail(r) {
-    const tu = this.trailMaterial.uniforms;
-    tu.uResolution.value.set(this.width, this.height);
-    tu.uPrev.value = this.trailA.texture;
-
-    tu.uMouse.value.set(this.mouse.x, this.height - this.mouse.y);
-    tu.uPrevMouse.value.set(this.prevMouse.x, this.height - this.prevMouse.y);
-    tu.uTrailDecay.value = this.settings.trailDecay;
-    tu.uTrailRadius.value =
-      Math.min(this.width, this.height) * this.settings.trailRadius;
-
-    const dist = this.mouse.distanceTo(this.prevMouse);
-    const speed = Math.min(
-      1,
-      dist / (Math.min(this.width, this.height) * 0.05),
-    );
-    tu.uBrushStrength.value = speed;
-
-    r.setRenderTarget(this.trailB);
-    r.render(this.trailScene, this.camera);
-    const t = this.trailA;
-    this.trailA = this.trailB;
-    this.trailB = t;
-    this.prevMouse.copy(this.mouse);
-  }
-
-  needsRebuild() {
-    if (this.mode !== this.settings.mode) return true;
-    if (this.settings.mode === "diffusion")
-      return this.grid !== this.settings.gridSize;
-    return this.matrix !== this.settings.matrixSize;
-  }
-
-  render() {
-    if (!this.texture) return;
-    if (this.needsRebuild()) this.createMaterial();
-
-    const r = getRenderer();
-    r.setSize(this.width, this.height, false);
-    const u = this.material.uniforms;
-
-    u.uResolution.value.set(this.width, this.height);
-    u.uCoverScale.value.copy(this.coverScale());
-    u.uBrightness.value = this.settings.brightness;
-    u.uContrast.value = this.settings.contrast;
-    u.uThreshold.value = this.settings.threshold;
-    u.uDarkColor.value.setStyle(this.settings.darkColor, THREE.NoColorSpace);
-    u.uLightColor.value.setStyle(this.settings.lightColor, THREE.NoColorSpace);
-    u.uTime.value = this.time;
-
-    if (this.mode === "ordered") {
-      this.ensureTargets();
-      this.renderTrail(r);
-      u.uTrail.value = this.trailA.texture;
-      u.uTrailIntensityMultiplier.value =
-        this.settings.trailIntensityMultiplier;
-      u.uPixelSize.value = this.settings.lumPixelSize;
-      u.uPixelSizeMultiplier.value = this.settings.pixelSizeMultiplier;
-      u.uScaleResolution.value = this.settings.scaleResolution;
-      u.uDitherAmount.value = this.settings.ditherAmount;
-      u.uBias.value = this.settings.bias;
-      u.uBiasNoiseScale.value = this.settings.biasNoiseScale;
-      u.uBiasNoiseSpeed.value = this.settings.biasNoiseSpeed;
-      u.uBiasPulseSpeed.value = this.settings.biasPulseSpeed;
-      u.uBiasNoiseWeight.value = this.settings.biasNoiseWeight;
-      u.uBiasPulseWeight.value = this.settings.biasPulseWeight;
-      u.uBiasAnimationStrength.value = this.settings.biasAnimationStrength;
-    } else {
-      u.uMouse.value.copy(this.mouse);
-      u.uMouseStrength.value = this.strength;
-      u.uMouseRadius.value = Math.min(this.width, this.height) * 0.35;
-    }
-
-    r.setClearColor(0x000000, 0);
-    r.setRenderTarget(null);
-    r.render(this.scene, this.camera);
-
-    this.ctx.clearRect(0, 0, this.width, this.height);
-    this.ctx.drawImage(r.domElement, 0, 0);
-  }
-
-  visibleHoverRect() {
-    const canvasRect = this.canvas.getBoundingClientRect();
-    let left = canvasRect.left;
-    let top = canvasRect.top;
-    let right = canvasRect.right;
-    let bottom = canvasRect.bottom;
-    if (right <= left || bottom <= top) return null;
-
-    let el = this.canvas.parentElement;
-    while (el && el !== document.body && el !== document.documentElement) {
-      const { overflow, overflowX, overflowY } = getComputedStyle(el);
-      if (
-        overflow !== "visible" ||
-        overflowX !== "visible" ||
-        overflowY !== "visible"
-      ) {
-        const cr = el.getBoundingClientRect();
-        if (cr.width > 0 && cr.height > 0) {
-          left = Math.max(left, cr.left);
-          top = Math.max(top, cr.top);
-          right = Math.min(right, cr.right);
-          bottom = Math.min(bottom, cr.bottom);
-          if (right <= left || bottom <= top) return null;
-        }
-      }
-      el = el.parentElement;
-    }
-    return { left, top, right, bottom };
-  }
-
-  onPointerMove(e) {
-    if (!this.visible) return;
-    const vis = this.visibleHoverRect();
-    if (!vis) return;
-    if (
-      e.clientX < vis.left ||
-      e.clientX > vis.right ||
-      e.clientY < vis.top ||
-      e.clientY > vis.bottom
-    )
-      return;
-    const rect = this.canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    this.mouse.set(
-      (x / rect.width) * this.width,
-      (y / rect.height) * this.height,
-    );
-    if (!this.hasMouse) {
-      this.prevMouse.copy(this.mouse);
-      this.hasMouse = true;
-    }
-    this.visible = true;
-    this.strength = 1;
-    this.trailFrames = 120;
-    this.animate();
-  }
-
-  animate() {
-    if (this.raf) return;
-    const orderedAnim =
-      this.mode === "ordered" && this.settings.biasAnimationStrength !== 0;
-    const needLoop =
-      (this.mode === "diffusion" && this.strength > 0) ||
-      (this.mode === "ordered" && (orderedAnim || this.trailFrames > 0));
-    if (!needLoop) {
-      this.render();
-      return;
-    }
-    let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      if (!this.visible) {
-        this.raf = 0;
-        return;
-      }
-      if (this.mode === "diffusion") {
-
-        this.time += dt;
-        this.strength *= Math.exp(-dt * 2.5);
-        this.render();
-        if (this.strength > 0.02) {
-          this.raf = requestAnimationFrame(tick);
-        } else {
-          this.strength = 0;
-          this.raf = 0;
-          this.render();
-        }
-      } else {
-
-        this.time += dt;
-        if (this.trailFrames > 0) this.trailFrames -= 1;
-        this.render();
-        const running =
-          this.settings.biasAnimationStrength !== 0 ||
-          this.trailFrames > 0;
-        if (running) {
-          this.raf = requestAnimationFrame(tick);
-        } else {
-          this.raf = 0;
-          this.render();
-        }
-      }
-    };
-    this.raf = requestAnimationFrame(tick);
-  }
-
-  dispose() {
-    cancelAnimationFrame(this.raf);
-    this.raf = 0;
-    this.visible = false;
-    this.texture?.dispose();
-    this.material?.dispose();
-    this.trailMaterial?.dispose();
-    this.trailMesh?.geometry.dispose();
-    this.disposeTargets();
-    this.mesh.geometry.dispose();
-  }
-}
-
-const instances = new Set();
-let gui = null;
-let debugSettings = null;
-const STORAGE_KEY = "ditherImageDebug";
-
-function isDebug() {
-  return (
-    new URLSearchParams(window.location.search).get("debugDitherImage") ===
-    "true"
-  );
-}
-
-function formatDefaults(s) {
-  return `const DEFAULTS = {
-  mode: "${s.mode}",
-  pixelSize: ${s.pixelSize},
-  gridSize: ${s.gridSize},
-  threshold: ${s.threshold},
-  brightness: ${s.brightness},
-  contrast: ${s.contrast},
-  darkColor: "${s.darkColor}",
-  lightColor: "${s.lightColor}",
-  matrixSize: ${s.matrixSize},
-  lumPixelSize: ${s.lumPixelSize},
-  pixelSizeMultiplier: ${s.pixelSizeMultiplier},
-  scaleResolution: ${s.scaleResolution},
-  ditherAmount: ${s.ditherAmount},
-  bias: ${s.bias},
-  biasNoiseScale: ${s.biasNoiseScale},
-  biasNoiseSpeed: ${s.biasNoiseSpeed},
-  biasPulseSpeed: ${s.biasPulseSpeed},
-  biasNoiseWeight: ${s.biasNoiseWeight},
-  biasPulseWeight: ${s.biasPulseWeight},
-  biasAnimationStrength: ${s.biasAnimationStrength},
-  trailDecay: ${s.trailDecay},
-  trailRadius: ${s.trailRadius},
-  trailIntensityMultiplier: ${s.trailIntensityMultiplier},
-};`;
-}
-
-async function ensureGui() {
-  if (gui) return;
-  gui = {};
-  const saved = localStorage.getItem(STORAGE_KEY);
-  debugSettings = { ...DEFAULTS, ...(saved ? JSON.parse(saved) : {}) };
-
-  const { GUI } = await import("lil-gui");
-  gui = new GUI({ title: "DitherImage" });
-
-  const onChange = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(debugSettings));
-    instances.forEach((i) => i.redraw());
-  };
-
-  const general = gui.addFolder("General");
-  general.add(debugSettings, "mode", ["diffusion", "ordered"]).onChange(() => {
-    updateFolders();
-    onChange();
-  });
-  general.add(debugSettings, "pixelSize", 1, 16, 1).onChange(onChange);
-  general.add(debugSettings, "brightness", -1, 1).onChange(onChange);
-  general.add(debugSettings, "contrast", 0, 3).onChange(onChange);
-  general.addColor(debugSettings, "darkColor").onChange(onChange);
-  general.addColor(debugSettings, "lightColor").onChange(onChange);
-
-  const dither = gui.addFolder("Dither");
-  const cThresh = dither
-    .add(debugSettings, "threshold", 0, 1)
-    .onChange(onChange);
-  const cGrid = dither
-    .add(debugSettings, "gridSize", 2, 8, 1)
-    .onChange(onChange);
-  const cMatrix = dither
-    .add(debugSettings, "matrixSize", { "2x2": 2, "4x4": 4 })
-    .onChange(onChange);
-  const cLumPx = dither
-    .add(debugSettings, "lumPixelSize", 1, 8, 1)
-    .onChange(onChange);
-  const cPxMul = dither
-    .add(debugSettings, "pixelSizeMultiplier", 1, 8, 0.1)
-    .onChange(onChange);
-  const cScale = dither
-    .add(debugSettings, "scaleResolution", 1, 8, 1)
-    .onChange(onChange);
-  const cAmt = dither
-    .add(debugSettings, "ditherAmount", 0, 1, 0.01)
-    .onChange(onChange);
-  const cBias = dither
-    .add(debugSettings, "bias", -1, 1, 0.01)
-    .onChange(onChange);
-
-  const biasF = gui.addFolder("Bias animation");
-  biasF.add(debugSettings, "biasNoiseScale", 0, 10, 0.1).onChange(onChange);
-  biasF.add(debugSettings, "biasNoiseSpeed", 0, 2, 0.01).onChange(onChange);
-  biasF.add(debugSettings, "biasPulseSpeed", 0, 5, 0.01).onChange(onChange);
-  biasF.add(debugSettings, "biasNoiseWeight", 0, 1, 0.01).onChange(onChange);
-  biasF.add(debugSettings, "biasPulseWeight", 0, 1, 0.01).onChange(onChange);
-  biasF
-    .add(debugSettings, "biasAnimationStrength", 0, 2, 0.01)
-    .onChange(onChange);
-
-  const trailF = gui.addFolder("Trail");
-  trailF.add(debugSettings, "trailDecay", 0.8, 0.995, 0.001).onChange(onChange);
-  trailF.add(debugSettings, "trailRadius", 0.01, 0.3, 0.005).onChange(onChange);
-  trailF
-    .add(debugSettings, "trailIntensityMultiplier", 0, 3, 0.05)
-    .onChange(onChange);
-
-  function updateFolders() {
-    const ordered = debugSettings.mode === "ordered";
-    cGrid.show(!ordered);
-    cMatrix.show(ordered);
-    cLumPx.show(ordered);
-    cPxMul.show(ordered);
-    cScale.show(ordered);
-    cAmt.show(ordered);
-    cBias.show(ordered);
-    cThresh.show(true);
-    ordered ? biasF.show() : biasF.hide();
-    ordered ? trailF.show() : trailF.hide();
-  }
-  updateFolders();
-
-  const actions = {
-    showOriginal: false,
-    copyDefaults: () =>
-      navigator.clipboard.writeText(formatDefaults(debugSettings)),
-    reset: () => {
-      Object.assign(debugSettings, DEFAULTS);
-      gui.controllersRecursive().forEach((c) => c.updateDisplay());
-      updateFolders();
-      onChange();
-    },
-  };
-  gui
-    .add(actions, "showOriginal")
-    .name("show original")
-    .onChange((v) => instances.forEach((i) => i.showOriginal(v)));
-  gui.add(actions, "copyDefaults").name("copy defaults");
-  gui.add(actions, "reset");
-
-  instances.forEach((i) => i.redraw());
-}
-
-const DitherImage = forwardRef(function DitherImage(
-  { src, alt = "", className, style, onReady, ...props },
-  ref,
-) {
-  const imgRef = useRef(null);
-  const canvasRef = useRef(null);
-  const instanceRef = useRef(null);
-
-  const propsRef = useRef(props);
-  const onReadyRef = useRef(onReady);
-  const onReadyFired = useRef(false);
-  const srcReady = useRef(false);
-  propsRef.current = props;
-  onReadyRef.current = onReady;
-
-  useImperativeHandle(ref, () => ({
-    setSrc(next) {
-      const img = imgRef.current;
-      if (!img || img.getAttribute("src") === next) return;
-      img.src = next;
-      instanceRef.current?.reload();
-    },
-    redraw: () => instanceRef.current?.redraw(),
-  }));
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    const effect = new DitherEffect(canvas, img);
-
-    const showOriginal = (show) => {
-      canvas.style.visibility = show ? "hidden" : "";
-      img.style.opacity = show ? "1" : "0";
-    };
-    let ready = false;
-
-    function applySettings() {
-      effect.settings = { ...DEFAULTS, ...propsRef.current };
-      if (debugSettings)
-        effect.settings = { ...effect.settings, ...debugSettings };
-    }
-
- function draw() {
-  if (!ready) return;
-
-  applySettings();
-  effect.resize();
-  effect.render();
-  effect.animate();
-
-  canvas.classList.replace("opacity-0", "opacity-100");
-  img.style.opacity = "0";
-
-  if (!onReadyFired.current) {
-    onReadyFired.current = true;
-    onReadyRef.current?.();
-  }
-}
-    function reload() {
-      effect.load(() => {
-        ready = true;
-        draw();
-      });
-    }
-
-    instanceRef.current = { redraw: draw, showOriginal, reload };
-    reload();
-
-    const observer = new ResizeObserver(() => {
-      if (!ready) return;
-      applySettings();
-      if (effect.resize()) {
-        effect.render();
-        effect.animate();
-      }
-    });
-    observer.observe(canvas);
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        effect.visible = entries[0].isIntersecting;
-        if (effect.visible && ready) draw();
-      },
-      { threshold: 0 },
-    );
-    io.observe(canvas);
-
-    watchPointer(effect);
-
-    instances.add(instanceRef.current);
-    if (isDebug()) ensureGui();
-
-    return () => {
-      observer.disconnect();
-      io.disconnect();
-      unwatchPointer(effect);
-      instances.delete(instanceRef.current);
-      effect.dispose();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!srcReady.current) {
-      srcReady.current = true;
-      return;
-    }
-    instanceRef.current?.reload?.();
-  }, [src]);
-
-  useEffect(() => {
-    instanceRef.current?.redraw();
-  }, [JSON.stringify(props)]);
-
-return (
-  <div
-    className={`relative w-full h-full overflow-hidden ${className || ""}`}
-    style={style}
-  >
-    <img
-      ref={imgRef}
-      src={src}
-      alt={alt}
-      className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300"
-    />
-
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="absolute inset-0 w-full h-full opacity-0 transition-opacity duration-300 [image-rendering:pixelated]"
-    />
-  </div>
-);
-});
-
-// const BLUR_START = "blur(0.18em)";
-// const BLUR_END = "blur(0em)";
-// function wrapLineForBlur(line) {
-//   const inner = document.createElement("span");
-//   inner.className = "gooey-copy-line-inner";
-
-//   while (line.firstChild) {
-//     inner.appendChild(line.firstChild);
-//   }
-
-//   line.appendChild(inner);
-//   return inner;
-// }
-
-// function AnimatedCopy({ children, mode = "default", delay = 0 }) {
-//   const containerRef = useRef(null);
-
-//   useGSAP(
-//     () => {
-//       if (!containerRef.current) return;
-
-//       let targets = [];
-//       if (containerRef.current.hasAttribute("data-copy-wrapper")) {
-//         targets = Array.from(containerRef.current.children);
-//       } else {
-//         targets = [containerRef.current];
-//       }
-
-//       const splits = [];
-//       const blurLayers = [];
-
-//       targets.forEach((target) => {
-//      const split = SplitText.create(target, {
-//   type: "lines",
-//   linesClass: "gooey-copy-line",
-// });
-
-//       split.lines.forEach((line) => {
-//   // Gooey/threshold filter stays on the outer SplitText line
-//   line.style.filter = 'url("#blur-matrix")';
-
-//   // Animated blur goes on the inner wrapper
-//   const inner = wrapLineForBlur(line);
-//   blurLayers.push(inner);
-// });
-//         splits.push(split);
-//       });
-
-//       gsap.set(blurLayers, { filter: BLUR_START });
-
-//       if (mode === "scrub") {
-//         gsap.to(blurLayers, {
-//           filter: BLUR_END,
-//           ease: "power3.out",
-//           stagger: 0.1,
-//           scrollTrigger: {
-//             trigger: containerRef.current,
-//             start: "top 75%",
-//             end: "bottom 75%",
-//             scrub: true,
-//           },
-//         });
-//       } else if (mode === "scroll") {
-//         gsap.to(blurLayers, {
-//           filter: BLUR_END,
-//           duration: 1.5,
-//           ease: "power3.out",
-//           stagger: 0.1,
-//           delay: delay,
-//           scrollTrigger: {
-//             trigger: containerRef.current,
-//             start: "top 80%",
-//             once: true,
-//           },
-//         });
-//       } else {
-//         gsap.to(blurLayers, {
-//           filter: BLUR_END,
-//           duration: 1.5,
-//           ease: "power3.out",
-//           stagger: 0.1,
-//           delay: delay,
-//         });
-//       }
-
-//       return () => {
-//         splits.forEach((split) => split.revert());
-//       };
-//     },
-//     { scope: containerRef, dependencies: [mode, delay] },
-//   );
-
-//   if (React.Children.count(children) === 1) {
-//     return React.cloneElement(children, { ref: containerRef });
-//   }
-
-//   return (
-//     <div ref={containerRef} data-copy-wrapper="true">
-//       {children}
-//     </div>
-//   );
-// }
-// function GooeyFilter() {
-//   return (
-//     <svg
-//       aria-hidden="true"
-//       style={{
-//         position: "absolute",
-//         width: 0,
-//         height: 0,
-//         pointerEvents: "none",
-//       }}
-//     >
-//       <defs>
-//         <filter id="blur-matrix" x="-50%" y="-50%" width="200%" height="200%">
-//        <feColorMatrix
-//   in="SourceGraphic"
-//   type="matrix"
-//   values="
-//     1 0 0 0 0
-//     0 1 0 0 0
-//     0 0 1 0 0
-//     0 0 0 12 -4
-//   "
-// />
-//         </filter>
-//       </defs>
-//     </svg>
-//   );
-// }
 
 const DEFAULT_PIXEL_SIZE = 8;
 const DEFAULT_COLOR = [23, 87, 232];
@@ -1241,9 +50,6 @@ function getSize() {
   return [window.innerWidth, window.innerHeight];
 }
 
-/* -------------------------------------------------------
-   SHADERS
-------------------------------------------------------- */
 
 const VERTEX_SHADER = `#version 300 es
 
@@ -1541,9 +347,6 @@ void main() {
 }
 `;
 
-/* -------------------------------------------------------
-   WEBGL HELPERS
-------------------------------------------------------- */
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -2376,13 +1179,13 @@ const LOCATION_CARDS = [
   {
     name: "Bethlehem",
     description: "FreySmiles Bethlehem",
-    image: "/images/beth.png",
+    image: "/images/beththumbnail.png",
     href: "/locations/bethlehem",
   },
   {
     name: "Lehighton",
     description: "FreySmiles Lehighton",
-    image: "/images/lehightonphoto.jpg",
+    image: "/images/aligner.jpg",
     href: "/locations/lehighton",
   },
     {
@@ -2560,7 +1363,180 @@ function LocationsCards() {
     </section>
   );
 }
+
+
+
+ function MapboxGLJS() {
+  const mapContainerRef = useRef(null)
+  const mapRef = useRef(null)
+
+  const innerCursor = useRef(null)
+  const outerCursor = useRef(null)
+  const horizontalLine = useRef(null)
+  const verticalLine = useRef(null)
+  const showCursor = useRef(false)
+  const showCrosshair = useRef(false)
+  const outerCursorSpeed = useRef(0)
+  const mouseX = useRef(-100)
+  const mouseY = useRef(-100)
+
+  // INIT CURSOR
+  useEffect(() => {
+    if (!outerCursor.current || !innerCursor.current) return
+
+    gsap.set([innerCursor.current, outerCursor.current, horizontalLine.current, verticalLine.current], {
+      x: -1000,
+      y: -1000,
+    })
+
+    const revealCursor = () => {
+      gsap.set(innerCursor.current, {
+        x: mouseX.current,
+        y: mouseY.current,
+      })
+      gsap.set(outerCursor.current, {
+        x: mouseX.current - outerCursor.current.getBoundingClientRect().width / 2,
+        y: mouseY.current - outerCursor.current.getBoundingClientRect().height / 2,
+      })
+      setTimeout(() => {
+        outerCursorSpeed.current = 0.2
+      }, 100)
+      showCursor.current = true
+    }
+    const updateCursor = (e) => {
+      mouseX.current = e.clientX
+      mouseY.current = e.clientY
+    }
+    document.addEventListener('mousemove', revealCursor)
+    document.addEventListener('mousemove', updateCursor)
+
+    return () => {
+      document.removeEventListener('mousemove', revealCursor)
+      document.removeEventListener('mousemove', updateCursor)
+    }
+  }, [])
+
+  // MAPBOX
+  useEffect(() => {
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+    const map = (mapRef.current = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: process.env.NEXT_PUBLIC_MAPBOX_MAP_STYLE,
+      center: [-75.5, 40.7],
+      zoom: 10,
+      minZoom: 8,
+      maxZoom: 14,
+    }))
+   
+    const createMarker = (name) => {
+      const el = document.createElement('div')
+      const innerEl = document.createElement('div')
+      innerEl.className = 'marker marker-pop'
+      el.appendChild(innerEl)
+
+      el.addEventListener('mousemove', (e) => {
+        showCrosshair.current = true
+        showCursor.current = false
+        gsap.set(horizontalLine.current, {
+          x: e.clientX,
+          y: e.clientY,
+          opacity: 1,
+        })
+        gsap.set(verticalLine.current, {
+          x: e.clientX,
+          y: e.clientY,
+          opacity: 1,
+        })
+      })
+
+      el.addEventListener('mouseleave', (e) => {
+        showCrosshair.current = false
+        showCursor.current = true
+        gsap.set(horizontalLine.current, {
+          opacity: 0,
+        })
+        gsap.set(verticalLine.current, {
+          opacity: 0,
+        })
+      })
+
+      return el
+    }
+
+    new mapboxgl
+      .Marker({ element: createMarker('lehighton') })
+      .setLngLat([-75.73039, 40.817605])
+      .addTo(map) 
+    
+    new mapboxgl
+      .Marker({ element: createMarker('schnecksville') })
+      .setLngLat([-75.59864, 40.661055])
+      .addTo(map) 
+    
+    new mapboxgl
+      .Marker({ element: createMarker('allentown') })
+      .setLngLat([-75.51711, 40.565945])
+      .addTo(map)
+    
+    new mapboxgl
+      .Marker({ element: createMarker('bethlehem') })
+      .setLngLat([-75.295623, 40.66286])
+      .addTo(map)
+  }, [])
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* circle cursor */}
+      <div ref={innerCursor} className='circle-cursor circle-cursor--inner' />
+      <div ref={outerCursor} className='circle-cursor circle-cursor--outer' />
+
+      {/* crosshair cursor */}
+      <div ref={horizontalLine} className='cursor-line cursor-line--horizontal' />
+      <div ref={verticalLine} className='cursor-line cursor-line--vertical' />
+    </div>
+  )
+}
+
+
 export default function LocationsPage() {
+   const routeRef = useRef(null);
+  const svgRef = useRef(null);
+
+
+useLayoutEffect(() => {
+  const route = routeRef.current;
+  const svg = svgRef.current;
+
+  if (!route || !svg) return;
+
+  const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+
+ 
+mm.add("(max-width: 768px)", () => {
+  gsap.fromTo(
+    route,
+    { "--strokeDashoffset": "0px" },
+    {
+      "--strokeDashoffset": "-2400px",
+      ease: "none",
+      scrollTrigger: {
+        trigger: route,
+        start: "top bottom",
+        end: "bottom top",
+        scrub: true,
+      },
+    }
+  );
+});
+
+  }, route);
+
+  return () => ctx.revert();
+}, []);
+
   return (
     <>
 <DitherCursorTrail
@@ -2600,18 +1576,163 @@ export default function LocationsPage() {
             </div>
           </nav>
 
-          <div className="absolute tracking-tight font-neuehaas35 right-12 bottom-8 text-left font-serif text-[20px] leading-tight text-black/70">
-            <div>Backed By Over 60 Years of </div>
-            <div>
-              Combined Orthodontic{" "}
-              <em className="font-canelathin">Experience.</em>
-            </div>
-          </div>
+
+<div
+  className="
+    absolute tracking-tight font-neuehaas35
+    right-12 bottom-8 text-left font-serif
+    text-[20px] leading-tight text-black/70
+
+    max-md:left-0
+    max-md:right-0
+    max-md:bottom-8
+    max-md:px-6
+    max-md:text-center
+  "
+>
+  <LocationTextReveal>
+    <div>Backed By Over 60 Years of</div>
+    <div>
+      Combined Orthodontic{" "}
+      <em className="font-canelathin">Experience.</em>
+    </div>
+  </LocationTextReveal>
+</div>
+
         </header>
       </div>
 
-            <LocationsCards />
-            <PartnerList />
+<div className="locations-route-section" ref={routeRef}>
+   <div className="locations-route-svg-layer">
+    <svg
+  ref={svgRef}
+  className="locations-route-svg"
+  viewBox="0 0 740 2000"
+preserveAspectRatio="xMidYMin meet"
+  aria-hidden="true"
+>
+  <defs>
+<linearGradient
+  id="locations-route-gradient"
+  x1="0%"
+  y1="0%"
+  x2="100%"
+  y2="100%"
+>
+
+<stop offset="0%" stopColor="#EEE8FF" />
+<stop offset="25%" stopColor="#C9B4F4" />
+<stop offset="55%" stopColor="#9875DB" />
+<stop offset="80%" stopColor="#D6C5FA" />
+<stop offset="100%" stopColor="#7653B8" />
+
+</linearGradient>
+<filter
+  // id="locations-route-lighting"
+  // x="-20%"
+  // y="-20%"
+  // width="140%"
+  // height="140%"
+  // colorInterpolationFilters="sRGB"
+>
+  <feGaussianBlur
+    in="SourceAlpha"
+    stdDeviation="2"
+    result="blur"
+  />
+
+  <feSpecularLighting
+    in="blur"
+    surfaceScale="3"
+    specularConstant="0.45"
+    specularExponent="22"
+    lightingColor="#FFFFFF"
+    result="highlight"
+  >
+    <fePointLight x="180" y="-100" z="220" />
+  </feSpecularLighting>
+
+  <feComposite
+    in="highlight"
+    in2="SourceAlpha"
+    operator="in"
+    result="clippedHighlight"
+  />
+
+  <feMerge>
+    <feMergeNode in="SourceGraphic" />
+    <feMergeNode in="clippedHighlight" />
+  </feMerge>
+</filter>
+    <path
+      id="linePath01"
+      d="m 106,45h 375c 114,0 226,128 226,235v 236c 0,136 -122,222 -224,221l -182,-2c -89,1 -141,42 -142,158l -2,204c -1,117 37,173 134,173h 186c 110,-3 230,111 230,220v 242c 0,113 -125,225 -248,225H 105"
+    />
+
+    <path
+      id="linePath02"
+      d="m 33,85h 444c 96,0 190,107 190,201v 224c 0,116 -98,188 -190,187l -192,-2c -92,0 -166,75 -166,168v 278c 0,94 74,169 166,169h 194c 92,0 188,94 188,188v 228c 0,94 -104,191 -214,191H 105"
+    />
+
+    <path
+      id="linePath03"
+      d="m 155,127h 308c 94,0 162,86 162,177v 178c 0,109 -50,174 -166,173L 277,653C 158,653 77,762 77,849v 302c 0,118 107,196 180,197l 204,4c 92,0 164,67 164,160v 200c 0,91 -89,163 -188,163H 105"
+    />
+
+    <path
+      id="linePath04"
+      d="m 283,173c 2,0 165,0 165,0C 544,175 577,238 577,330v 156c 0,94 -48,126 -140,125L 269,609C 167,602 29,702 29,851v 312c 0,111 101,235 242,235h 162c 109,1 144,49 144,136v 162c 0,73 -53,130 -118,130l -353,1"
+    />
+  </defs>
+
+<g
+  fill="none"
+  stroke="url(#locations-route-gradient)"
+  strokeLinecap="round"
+  filter="url(#locations-route-lighting)"
+>
+
+
+<use
+  href="#linePath01"
+  fill="none"
+  strokeWidth="20"
+  strokeDasharray="20 50 120 50 20 50 300 50 20 50 150 50 20 50 110 45 30 50 90 45 25 55 145 50 65 20000"
+/>
+
+<use
+  href="#linePath02"
+  fill="none"
+  strokeWidth="34"
+  strokeDasharray="34 60 120 60 34 60 300 60 34 60 150 60 34 60 110 50 35 55 100 50 45 65 160 55 30 20000"
+/>
+
+<use
+  href="#linePath03"
+  fill="none"
+  strokeWidth="25"
+  strokeDasharray="25 40 120 40 25 40 250 40 25 40 150 40 25 45 110 50 35 45 85 50 25 45 140 55 40 50 75 20000"
+/>
+
+<use
+  href="#linePath04"
+  fill="none"
+  strokeWidth="40"
+  strokeDasharray="40 70 100 70 40 70 200 70 40 55 130 60 45 65 100 60 35 75 155 65 55 20000"
+/>
+
+
+</g>
+</svg>
+   </div>
+
+
+  <div className="locations-route-cards">
+    <LocationsCards />
+  </div>
+</div>
+
+{/* <SEOList /> */}
         <div className="mt-12 grid grid-cols-2 gap-16 px-12 pt-10">
           {/* <p className="text-lg leading-relaxed">
             <h1 className="font-neuehaas35 text-[11px] tracking-[0.1em] uppercase text-black/70 mb-4">
@@ -2733,7 +1854,7 @@ const ROWS = [
 
 const NAMES = ROWS.flat();
 
-function PartnerList() {
+function SEOList() {
   const containerRef = useRef(null);
   const highlightRef = useRef(null);
   const itemRefs = useRef([]);
@@ -2778,56 +1899,53 @@ const placeHighlight = useCallback((index) => {
 
   return (
 <div className="locations-partner-list">
-  <div
-    className="container locations-inner"
-    ref={containerRef}
-  >
+
+  <div className="locations-inner" ref={containerRef}>
     <div className="locations-grid">
       {ROWS.map((row, rowIndex) => (
-        <div
-          key={row.join("-")}
-          className="locations-row"
-        >
+        <div key={row.join("-")} className="locations-row">
           {row.map((name) => {
             const index = NAMES.indexOf(name);
 
             return (
-       <div
-  key={name}
-  ref={(node) => {
-    itemRefs.current[index] = node;
-  }}
-  className={`locations-item ${
-    !isMobile && active === index
-      ? "locations-item-active"
-      : ""
-  }`}
-  onMouseEnter={() => {
-    if (!isMobile) setActive(index);
-  }}
->
-  <p>{name}</p>
+              <div
+                key={name}
+                ref={(node) => {
+                  itemRefs.current[index] = node;
+                }}
+                className={`locations-item ${
+                  !isMobile && active === index
+                    ? "locations-item-active"
+                    : ""
+                }`}
+                onMouseEnter={() => {
+                  if (!isMobile) setActive(index);
+                }}
+              >
+                <p>{name}</p>
 
-  {!isMobile && active === index && (
-    <div
-      className="locations-highlight"
-      aria-hidden="true"
-    >
-      <span className="locations-corner locations-corner-tl" />
-      <span className="locations-corner locations-corner-tr" />
-      <span className="locations-corner locations-corner-bl" />
-      <span className="locations-corner locations-corner-br" />
-    </div>
-  )}
-</div>
+                {!isMobile && active === index && (
+                  <div className="locations-highlight" aria-hidden="true">
+                    <span className="locations-corner locations-corner-tl" />
+                    <span className="locations-corner locations-corner-tr" />
+                    <span className="locations-corner locations-corner-bl" />
+                    <span className="locations-corner locations-corner-br" />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
       ))}
     </div>
-
-
   </div>
+
+
+  {/* <div className="locations-map-background">
+    <MapboxGLJS />
+  </div> */}
 </div>
   );
 }
+
+

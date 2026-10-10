@@ -2,6 +2,80 @@
   --marker-size: 48px;
 }
 
+.locations-partner-list {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.locations-inner {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+.locations-grid {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: 100%;
+
+  background: rgba(245, 245, 245, 0.18);
+}
+
+.locations-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.locations-item {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+}
+
+.locations-map-background {
+  position: absolute;
+
+  width: 75%;
+  height: 75%;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  z-index: 2;
+
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.locations-item {
+  position: relative;
+  background: transparent;
+}
+
+.locations-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .mapboxgl-canvas-container.mapboxgl-interactive {
   cursor: none;
 }
@@ -61,20 +135,19 @@
   width: var(--marker-size, 16px);
   height: var(--marker-size, 16px);
   background-color: #000;
-  /* background-color: #365874; */
   border-radius: 50%;
-  /* cursor: pointer; */
   transition-property: width, height;
-  transition-duration: .1s;
+  transition-duration: 0.1s;
   transition-timing-function: linear;
-  /* Define Marker Animation */
-  animation: pop-in 0.3s ease-out forwards, wobble 1.5s ease-in-out 0.3s forwards;
+
+  animation:
+    pop-in 0.3s ease-out forwards,
+    wobble 1.5s ease-in-out 0.3s forwards;
   transform-origin: bottom center;
 }
 
-/* Create a css triangle and add to the bottom of the marker for the marker point */
 .marker::before {
-  content: '';
+  content: "";
   width: 0;
   height: 0;
   border-left: 7px solid transparent;
@@ -107,17 +180,17 @@
     width: 55px;
     height: 55px;
     opacity: 1;
-    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.4);  /* Add a subtle shadow */
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.4); /* Add a subtle shadow */
   }
   85% {
     width: 48px;
     height: 48px;
-    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.3);  /* Shrink shadow with wobble */
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.3); /* Shrink shadow with wobble */
   }
   100% {
     width: 50px;
     height: 50px;
-    box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.3);  /* Final shadow size */
+    box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.3); /* Final shadow size */
   }
 }
 
@@ -140,19 +213,19 @@
   }
 }
 
-
 .locations-spotlight {
   position: relative;
   width: 100%;
   min-height: 100svh;
-  background: #e9eae9;
+
+  background: transparent;
 
   display: flex;
   gap: 3rem;
   align-items: center;
   justify-content: center;
 
-  overflow: hidden;
+  overflow: visible;
 }
 
 .locations-spotlight > * {
@@ -191,10 +264,7 @@
 
   cursor: pointer;
 
-  transform:
-    translateZ(
-      calc(var(--location-card-depth) / -2)
-    );
+  transform: translateZ(calc(var(--location-card-depth) / -2));
 }
 
 /* ---------- Faces ---------- */
@@ -213,8 +283,19 @@
 
   display: flex;
   flex-direction: column;
-
   padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .location-card-face-front,
+  .location-card-face-back {
+    background: rgba(255, 255, 255, 0.22);
+
+    -webkit-backdrop-filter: blur(28px) saturate(115%);
+    backdrop-filter: blur(28px) saturate(115%);
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
 }
 
 .location-card-face-right,
@@ -222,13 +303,7 @@
   width: var(--location-card-depth);
   height: var(--location-card-height);
 
-  left:
-    calc(
-      (
-        var(--location-card-width) -
-        var(--location-card-depth)
-      ) / 2
-    );
+  left: calc((var(--location-card-width) - var(--location-card-depth)) / 2);
 }
 
 .location-card-face-top,
@@ -236,73 +311,42 @@
   width: var(--location-card-width);
   height: var(--location-card-depth);
 
-  top:
-    calc(
-      (
-        var(--location-card-height) -
-        var(--location-card-depth)
-      ) / 2
-    );
+  top: calc((var(--location-card-height) - var(--location-card-depth)) / 2);
 }
-
 
 /* ---------- Face positions ---------- */
 
 .location-card-face-front {
-  transform:
-    translateZ(
-      calc(var(--location-card-depth) / 2)
-    );
+  transform: translateZ(calc(var(--location-card-depth) / 2));
 }
 
 .location-card-face-back {
-  transform:
-    rotateX(180deg)
-    translateZ(
-      calc(var(--location-card-depth) / 2)
-    );
+  transform: rotateX(180deg) translateZ(calc(var(--location-card-depth) / 2));
 }
 
 .location-card-face-right {
   background: #d7eff2;
 
-  transform:
-    rotateY(90deg)
-    translateZ(
-      calc(var(--location-card-width) / 2)
-    );
+  transform: rotateY(90deg) translateZ(calc(var(--location-card-width) / 2));
 }
 
 .location-card-face-left {
   background: #d7eff2;
 
-  transform:
-    rotateY(-90deg)
-    translateZ(
-      calc(var(--location-card-width) / 2)
-    );
+  transform: rotateY(-90deg) translateZ(calc(var(--location-card-width) / 2));
 }
 
 .location-card-face-top {
   background: #d7eff2;
 
-  transform:
-    rotateX(90deg)
-    translateZ(
-      calc(var(--location-card-height) / 2)
-    );
+  transform: rotateX(90deg) translateZ(calc(var(--location-card-height) / 2));
 }
 
 .location-card-face-bottom {
   background: #d7eff2;
 
-  transform:
-    rotateX(-90deg)
-    translateZ(
-      calc(var(--location-card-height) / 2)
-    );
+  transform: rotateX(-90deg) translateZ(calc(var(--location-card-height) / 2));
 }
-
 
 .location-card-thumb {
   align-self: flex-end;
@@ -363,8 +407,6 @@
 }
 
 
-/* Initial cross */
-
 .location-card-direction-horizontal {
   width: 2rem;
   height: 0.18rem;
@@ -379,7 +421,6 @@
   transform: translate(-50%, -50%);
 }
 
-/* Hidden until hover */
 
 .location-card-direction-extra {
   width: 0.18rem;
@@ -387,47 +428,30 @@
 
   opacity: 0;
 
-  transform:
-    translate(-50%, -50%)
-    translate(0.55rem, 0.25rem)
-    rotate(45deg);
+  transform: translate(-50%, -50%) translate(0.55rem, 0.25rem) rotate(45deg);
 }
 
-
-/* Hover: shaft */
 
 .location-card:hover .location-card-direction-horizontal {
   width: 1.8rem;
 
-  transform:
-    translate(-50%, -50%)
-    translateX(-0.1rem);
+  transform: translate(-50%, -50%) translateX(-0.1rem);
 }
 
-
-/* Hover: upper arrowhead */
 
 .location-card:hover .location-card-direction-vertical {
   height: 0.8rem;
 
-  transform:
-    translate(-50%, -50%)
-    translate(0.55rem, -0.25rem)
-    rotate(-45deg);
+  transform: translate(-50%, -50%) translate(0.55rem, -0.25rem) rotate(-45deg);
 }
-
 
 /* Hover: lower arrowhead */
 
 .location-card:hover .location-card-direction-extra {
   opacity: 1;
 
-  transform:
-    translate(-50%, -50%)
-    translate(0.55rem, 0.25rem)
-    rotate(45deg);
+  transform: translate(-50%, -50%) translate(0.55rem, 0.25rem) rotate(45deg);
 }
-
 
 /* ---------- Responsive ---------- */
 
@@ -458,16 +482,13 @@
   text-align: center;
 }
 
-
 .location-detail-title {
   margin: 0;
   font-family: "Canela-LightItalic";
-  font-size: clamp(42px, 4vw, 68px);
-  font-weight: 400;
-  line-height: 0.9;
-  letter-spacing: -0.045em;
+  font-size: clamp(36px, 3.4vw, 58px);
+  font-weight: 200;
+  line-height: 1.1;
 }
-
 
 /* main two-column composition */
 
@@ -478,7 +499,6 @@
   min-height: calc(100vh - 185px);
 }
 
-
 /* LEFT */
 
 .location-detail-content {
@@ -488,10 +508,10 @@
 
 .location-detail-nav > span {
   text-align: center;
-text-transform: uppercase;
+  text-transform: uppercase;
 
   color: white;
-    font-family: "NeueHaasDisplay35";
+  font-family: "NeueHaasDisplay35";
   font-size: 11px;
   letter-spacing: 0.12em;
 }
@@ -500,10 +520,10 @@ text-transform: uppercase;
   position: relative;
   isolation: isolate;
 
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
 
   height: 4rem;
   padding: 0.35rem;
@@ -520,13 +540,11 @@ gap: 2rem;
   transition: background 0.4s ease;
 }
 
-
 .location-detail-nav-arrow,
 .location-detail-nav > span {
   position: relative;
   z-index: 2;
 }
-
 
 .location-nav-glow {
   position: absolute;
@@ -558,8 +576,6 @@ gap: 2rem;
   transition: opacity 0.4s ease;
 }
 
-/* Moving purple light */
-
 .location-nav-glow::after {
   content: "";
 
@@ -583,7 +599,6 @@ gap: 2rem;
   animation: location-nav-orbit 5s linear infinite;
 }
 
-
 .location-nav-blur {
   position: absolute;
   inset: -2px;
@@ -599,17 +614,9 @@ gap: 2rem;
   padding: 2px;
 }
 
-/* =========================================
-   HOVER
-========================================= */
-
 .location-detail-nav:hover .location-nav-glow {
   opacity: 1;
 }
-
-/* =========================================
-   ANIMATION
-========================================= */
 
 @keyframes location-nav-orbit {
   to {
@@ -622,9 +629,6 @@ gap: 2rem;
     animation: none;
   }
 }
-/* =========================================
-   LOCATION DOT ARROWS
-========================================= */
 
 .location-dot-arrow {
   position: relative;
@@ -654,10 +658,6 @@ gap: 2rem;
   animation: location-dot-pulse 2s linear infinite;
   animation-play-state: paused;
 }
-
-/* =========================================
-   DOT POSITIONS
-========================================= */
 
 /* Arrowhead */
 
@@ -723,10 +723,6 @@ gap: 2rem;
   animation-delay: 0.1s;
 }
 
-/* =========================================
-   DOT ANIMATION
-========================================= */
-
 @keyframes location-dot-pulse {
   0%,
   100% {
@@ -745,19 +741,9 @@ gap: 2rem;
   animation-play-state: running;
 }
 
-/* =========================================
-   NAV HOVER & LABEL
-========================================= */
-
 .location-detail-nav-arrow:hover {
   background: rgba(0, 0, 0, 0.06);
 }
-
-
-
-/* =========================================
-   ACCESSIBILITY
-========================================= */
 
 @media (prefers-reduced-motion: reduce) {
   .location-dot {
@@ -769,31 +755,28 @@ gap: 2rem;
   margin-top: auto;
   margin-bottom: 20%;
 
- 
   text-transform: uppercase;
-
 }
 
 .location-detail-copy h2 {
   max-width: 520px;
   margin: 0 0 1.4rem;
-    font-family: "NeueHaasGroteskDisplayPro45Light";
-    color:white;
   font-family: "NeueHaasGroteskDisplayPro45Light";
-font-size: clamp(22px, 1.84vw, 34px);
+  color: white;
+
+  font-size: clamp(22px, 1.84vw, 34px);
   line-height: 0.98;
 }
 
 .location-detail-copy p {
   max-width: 490px;
-   letter-spacing: .05em;
-    font-family: "NeueHaasGroteskDisplayPro45Light";
-    color:white;
-    font-size: 12px;
+  letter-spacing: 0.05em;
+  font-family: "NeueHaasGroteskDisplayPro45Light";
+  color: white;
+  font-size: 12px;
   margin: 0 0 2.5rem;
   line-height: 1.25;
 }
-
 
 /* BUTTON */
 
@@ -804,7 +787,10 @@ font-size: clamp(22px, 1.84vw, 34px);
 }
 
 .location-detail-button {
- flex: 1;
+  position: relative;
+  isolation: isolate;
+
+  flex: 1;
   min-width: 0;
   min-height: 50px;
   padding: 0 1rem;
@@ -814,17 +800,83 @@ font-size: clamp(22px, 1.84vw, 34px);
   justify-content: space-between;
   gap: 8px;
 
-  background: #222;
+  background: rgba(12, 9, 23, 0.85);
   color: #fff;
 
+  border: 1px solid rgba(130, 90, 175, 0.2);
+  border-radius: 4px;
+
   margin: 0 0 0.25rem;
+
   font-family: "NeueHaasDisplay35";
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  border-radius: 4px;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition: background 0.4s ease;
 }
 
+/* Animated gradient border */
+.location-detail-button::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    rgba(176, 0, 232, 0.05) 80deg,
+    rgba(0, 0, 232, 0.85) 150deg,
+    rgba(0, 0, 232, 0.85) 150deg,
+    rgba(176, 0, 232, 0.05) 260deg,
+    transparent 360deg
+  );
+
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+
+  pointer-events: none;
+
+  animation: locationBorderRotate 6s linear infinite;
+}
+
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes locationBorderRotate {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+.location-detail-button:first-child::before {
+  animation-direction: normal;
+}
+
+
+.location-detail-button:last-child::before {
+  animation-direction: reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .location-detail-button::before {
+    animation: none;
+  }
+}
 
 /* RIGHT GALLERY */
 
@@ -1031,8 +1083,7 @@ font-size: clamp(22px, 1.84vw, 34px);
 
   opacity: 0;
 
-  animation: locations-corner-in 0.4s
-    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: locations-corner-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .locations-corner-tl {
@@ -1096,4 +1147,177 @@ font-size: clamp(22px, 1.84vw, 34px);
 
 .locations-item-active p {
   color: #1757e8;
+}
+
+@media (max-width: 768px) {
+  .location-detail-page {
+    position: relative;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .location-detail-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .location-detail-content {
+    display: contents;
+  }
+
+  .location-detail-nav {
+    order: 1;
+    width: 100%;
+    margin: 0;
+  }
+
+  .location-detail-gallery {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+  }
+
+  .location-detail-main-image {
+    order: 1;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+  }
+
+  .location-detail-main-image img,
+  .location-detail-main-image video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    .location-detail-thumbnails {
+      order: 2;
+      display: flex;
+      flex-direction: row;
+      gap: 0.5rem;
+
+      width: 100%;
+      height: auto;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .location-detail-thumbnails::-webkit-scrollbar {
+      display: none;
+    }
+
+    .location-detail-thumbnail {
+      flex: 0 0 80px;
+      width: 80px;
+      height: 60px;
+      aspect-ratio: auto;
+      overflow: hidden;
+    }
+
+    .location-detail-thumbnail img,
+    .location-detail-thumbnail video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .location-detail-copy {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .location-detail-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .location-detail-button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+.location-line-reveal {
+  display: block;
+  width: 100%;
+}
+
+.locations-route-svg {
+  display: none;
+}
+
+.locations-route-cards {
+  position: relative;
+  z-index: 2;
+}
+
+.locations-route-section {
+  position: relative;
+  background: #e9eae9;
+  isolation: isolate;
+}
+
+@media (max-width: 768px) {
+  .locations-route-section {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    isolation: isolate;
+    --strokeDashoffset: 0px;
+  }
+
+  .locations-route-svg-layer {
+    grid-area: 1 / 1;
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    align-self: start;
+
+    z-index: 0;
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .locations-route-svg {
+    display: block;
+    transform: translateY(3%);
+    width: 100%;
+    height: auto;
+    max-height: none;
+
+    flex-shrink: 0;
+
+    overflow: visible;
+    pointer-events: none;
+  }
+  .locations-route-svg use {
+    fill: none;
+    stroke-dashoffset: var(--strokeDashoffset);
+  }
+
+  .locations-route-cards {
+    grid-area: 1 / 1;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    background: transparent;
+  }
 }
