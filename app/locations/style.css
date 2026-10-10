@@ -455,17 +455,7 @@
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 1000px) {
-  .locations-spotlight {
-    min-height: 0;
 
-    flex-direction: column;
-
-    padding: 20svh 0;
-
-    overflow: visible;
-  }
-}
 .location-detail-page {
   min-height: 100vh;
   padding: 0 2rem 2rem;
@@ -956,42 +946,6 @@
   margin: 0 auto;
 }
 
-/* MOBILE */
-
-@media (max-width: 900px) {
-  .location-detail-page {
-    padding: 0 1rem 2rem;
-  }
-
-  .location-detail-heading {
-    min-height: 140px;
-  }
-
-  .location-detail-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .location-detail-gallery {
-    order: -1;
-    grid-template-columns: 1fr;
-  }
-
-  .location-detail-thumbnails {
-    order: 2;
-    flex-direction: row;
-  }
-
-  .location-detail-main-image {
-    height: 60vh;
-  }
-
-  .location-detail-copy {
-    margin: 4rem 0 2rem;
-  }
-}
-
 .locations-partner-list {
   position: relative;
   display: flex;
@@ -1149,6 +1103,69 @@
   color: #1757e8;
 }
 
+
+.location-line-reveal {
+  display: block;
+  width: 100%;
+}
+
+.locations-route-svg {
+  display: none;
+}
+
+.locations-route-cards {
+  position: relative;
+  z-index: 2;
+}
+
+.locations-route-section {
+  position: relative;
+  background: #e9eae9;
+  isolation: isolate;
+}
+@media (max-width: 1000px) {
+  .locations-spotlight {
+    min-height: 0;
+    flex-direction: column;
+    padding: 20svh 0 5svh;
+    overflow: visible;
+  }
+
+}
+@media (max-width: 900px) {
+  .location-detail-page {
+    padding: 0 1rem 2rem;
+  }
+
+  .location-detail-heading {
+    min-height: 140px;
+  }
+
+  .location-detail-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .location-detail-gallery {
+    order: -1;
+    grid-template-columns: 1fr;
+  }
+
+  .location-detail-thumbnails {
+    order: 2;
+    flex-direction: row;
+  }
+
+  .location-detail-main-image {
+    height: 60vh;
+  }
+
+  .location-detail-copy {
+    margin: 4rem 0 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .location-detail-page {
     position: relative;
@@ -1251,24 +1268,18 @@
     min-width: 0;
   }
 }
-.location-line-reveal {
-  display: block;
-  width: 100%;
-}
-
-.locations-route-svg {
-  display: none;
-}
-
-.locations-route-cards {
-  position: relative;
-  z-index: 2;
-}
-
-.locations-route-section {
-  position: relative;
-  background: #e9eae9;
-  isolation: isolate;
+@media (max-width: 768px) {
+  .locations-route-svg {
+    display: block;
+    width: 300px;
+    min-width: 300px;
+    height: auto;
+    max-width: none;
+    flex-shrink: 0;
+    overflow: visible;
+    pointer-events: none;
+    transform: translateY(7svh);
+  }
 }
 
 @media (max-width: 768px) {
@@ -1277,7 +1288,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     isolation: isolate;
-    --strokeDashoffset: 0px;
+
   }
 
   .locations-route-svg-layer {
@@ -1293,21 +1304,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
     overflow: visible;
   }
 
   .locations-route-svg {
     display: block;
-    transform: translateY(3%);
-    width: 100%;
+
+    width: max(100%, 420px);
+    max-width: none;
     height: auto;
     max-height: none;
 
     flex-shrink: 0;
-
     overflow: visible;
     pointer-events: none;
+
+    transform: translateY(7svh);
   }
+
   .locations-route-svg use {
     fill: none;
     stroke-dashoffset: var(--strokeDashoffset);
@@ -1320,4 +1335,54 @@
     min-width: 0;
     background: transparent;
   }
+}
+
+
+.location-detail-media-fade {
+  animation: locationMediaFade 0.4s ease-out both;
+}
+
+@keyframes locationMediaFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .location-detail-media-fade {
+    animation: none;
+  }
+}
+
+.location-character-reveal {
+  display: inline;
+}
+
+.location-reveal-char-wrap {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.location-reveal-char {
+  display: inline-block;
+  will-change: transform;
+}
+
+
+.location-detail-main-image {
+  touch-action: pan-y;
+}
+
+.locations-route-svg {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.locations-route-svg use {
+  will-change: stroke-dashoffset;
 }

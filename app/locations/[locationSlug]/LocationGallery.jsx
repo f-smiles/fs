@@ -7,6 +7,39 @@ export default function LocationGallery({ media, locationName }) {
 
   const activeMedia = media[activeIndex];
 
+const touchStartX = useRef(null);
+const touchStartY = useRef(null);
+
+const handleTouchStart = (event) => {
+  touchStartX.current = event.touches[0].clientX;
+  touchStartY.current = event.touches[0].clientY;
+};
+
+const handleTouchEnd = (event) => {
+  if (touchStartX.current === null || touchStartY.current === null) {
+    return;
+  }
+
+  const deltaX = event.changedTouches[0].clientX - touchStartX.current;
+  const deltaY = event.changedTouches[0].clientY - touchStartY.current;
+
+  touchStartX.current = null;
+  touchStartY.current = null;
+
+  // Ignore vertical scrolling and small accidental gestures.
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+    return;
+  }
+
+  if (deltaX < 0) {
+    // Swipe left: next image
+    setActiveIndex((current) => (current + 1) % media.length);
+  } else {
+    // Swipe right: previous image
+    setActiveIndex((current) => (current - 1 + media.length) % media.length);
+  }
+};
+
   return (
     <>
 
@@ -44,25 +77,31 @@ export default function LocationGallery({ media, locationName }) {
         ))}
       </div>
 
-      <div className="location-detail-main-image" data-mask="post">
-        {activeMedia.type === "video" ? (
-          <video
-            key={activeMedia.src}
-            src={activeMedia.src}
-            poster={activeMedia.poster}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        ) : (
-          <img
-            key={activeMedia.src}
-            src={activeMedia.src}
-            alt={activeMedia.alt || ""}
-          />
-        )}
-      </div>
+   
+<div className="location-detail-main-image" data-mask="post"
+ onTouchStart={handleTouchStart}
+  onTouchEnd={handleTouchEnd}>
+  {activeMedia.type === "video" ? (
+    <video
+      key={activeMedia.src}
+      className="location-detail-media-fade"
+      src={activeMedia.src}
+      poster={activeMedia.poster}
+      autoPlay
+      muted
+      loop
+      playsInline
+    />
+  ) : (
+    <img
+      key={activeMedia.src}
+      className="location-detail-media-fade"
+      src={activeMedia.src}
+      alt={activeMedia.alt || ""}
+    />
+  )}
+</div>
+
 
     </div>
     </>

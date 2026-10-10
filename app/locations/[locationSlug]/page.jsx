@@ -2,18 +2,20 @@ import { notFound } from "next/navigation";
 import LocationGallery from "./LocationGallery";
 import Link from "next/link";
 import LocationTextReveal from "./LocationTextReveal";
+import LocationCharacterReveal from "./LocationCharReveal";
+// import UnicornInput from "./UnicornInput.jsx";
 
 const LOCATIONS = {
   allentown: {
     name: "Allentown",
-    eyebrow: "Our Original Location",
+    eyebrow: "FreySmiles Allentown",
     phone: "(610) 437-4748",
     directionsUrl:
   "https://www.google.com/maps/dir/?api=1&destination=1251+S+Cedar+Crest+Blvd+Suite+210+Allentown+PA&travelmode=driving",
 
     heroTitle: "1251 S Cedar Crest Blvd #210",
     heroCopy:
-      "Our original location, Located across from Lehigh Valley Hospital. Equipped with iCat 3D imaging technology and multiple itero scanners for precise and convenient treatment. Private consultation rooms and an open bay clinic offer both breathy and discreet appointment experience. Beverages always available upon request. ",
+      "Our oldest location, Located across from Lehigh Valley Hospital. Equipped with iCat 3D imaging technology and multiple itero scanners for precise and convenient treatment. Private consultation rooms and an open bay clinic offer both breathy and discreet appointment experiences. Beverages always available upon request. ",
 
 media: [
     {
@@ -32,11 +34,7 @@ media: [
     src: "/images/all2.png",
     alt: "FreySmiles Allentown treatment area",
   },
-  {
-    type: "video",
-    src: "/videos/allentown-treatment.mp4",
 
-  },
 ],
 
     introTitle: "Designed Around Better Treatment",
@@ -65,7 +63,7 @@ media: [
   "https://www.google.com/maps/dir/?api=1&destination=2901+Emrick+Blvd+Suite+104+Bethlehem+PA&travelmode=driving",
     heroTitle: "2901 Emrick Blvd #104",
     heroCopy:
-      "Our most maze-like location. With Dr. Daniel Frey as your guide, you will appreciate the lushness of a quality Orthodontic experience.",
+      "Moments away from St Luke's Anderson, Our largest and most maze-like office. With Dr. Daniel Frey as your guide, partake in the lushness of a quality Orthodontic experience. Fresh ground coffee all day and a fridge stocked for the whole family. Crush your fit bit and smile goals in our lofty club house. Stretch out in our game room but don't forget non compliance will always be met with push-up and pull-up requirements. Free wi-fi for all guests.",
 
 media: [
   {
@@ -83,11 +81,7 @@ media: [
     src: "/images/beth4.png",
     alt: "FreySmiles Bethlehem treatment area",
   },
-  {
-    type: "video",
-    src: "/videos/allentown-treatment.mp4",
-    poster: "/images/allentown-treatment-poster.jpg",
-  },
+
 ],
 
     introTitle: "Our Bethlehem Office",
@@ -114,7 +108,7 @@ media: [
     "https://www.google.com/maps/dir/?api=1&destination=1080+Blakeslee+Blvd+Dr+E+Lehighton+PA+18235&travelmode=driving",
 
     heroTitle: "1080 Blakeslee Blvd Dr E",
-    heroCopy: "Our newest location, located adjacent to Rita’s Italian Ice. Equipped with 3D imaging capabilities and multiple itero scanners for the same standard of excellence. Expect modern finishings in an industry standard clinic size. Plenty of room to squash your smile goals.",
+    heroCopy: "Our newest location, located adjacent to Rita’s Italian Ice. Equipped with 3D imaging capabilities and multiple itero scanners for the same standard of excellence. Expect modern finishings in an industry standard clinic size. Plenty of room to squash your smile goals. A brushing station that's never crowded, extra good brushing earns free italian ice during open season",
 media: [
   {
     type: "image",
@@ -149,7 +143,7 @@ directionsUrl:
     "https://www.google.com/maps/dir/?api=1&destination=4155+Independence+Drive+Schnecksville+PA&travelmode=driving",
 
     heroTitle: "4155 Independence Drive",
-    heroCopy: "CONVENIENTLY TUCKED IN THE HIGHLANDS OF PARKLAND SCHOOL DISTRICT SINCE 2005. A stones throw from route 309, this location FEATURES an expansive light-filled CLINIC with MULTIPLE PRIVATE CONSULTATION ROOMS, AND A VIDEO GAME NOOK. Both on-deck and main reception lounge options await. Elevate your smile with us in Schnecksville today!",
+    heroCopy: "CONVENIENTLY TUCKED IN THE HIGHLANDS OF PARKLAND SCHOOL DISTRICT SINCE 2005. A stones throw from route 309, this location FEATURES an expansive light-filled CLINIC with MULTIPLE PRIVATE CONSULTATION ROOMS, AND A VIDEO GAME NOOK. Both on-deck and main reception lounge options await. Come Help feed our salt-water fish and Elevate your smile with us in Schnecksville today!",
 
 media: [
   {
@@ -184,8 +178,8 @@ media: [
 const LOCATION_ORDER = [
   "allentown",
   "bethlehem",
-  "schnecksville",
   "lehighton",
+    "schnecksville",
 ];
 
 export default function LocationPage({ params }) {
@@ -208,15 +202,18 @@ const nextSlug =
   return (
    <main className=" location-detail-page">
 
-      <header className="location-detail-heading">
-       
-     <h1 className="location-detail-title">
-  <LocationTextReveal key={params.locationSlug}>
-    {location.name}
-  </LocationTextReveal>
-</h1>
-      </header>
-
+<header className="location-detail-heading">
+  <h1 className="location-detail-title">
+    <LocationCharacterReveal
+      key={params.locationSlug}
+      delay={0.15}
+      stagger={0.055}
+      duration={0.6}
+    >
+      {location.name}
+    </LocationCharacterReveal>
+  </h1>
+</header>
       <section className="location-detail-layout">
 
         {/* LEFT */}

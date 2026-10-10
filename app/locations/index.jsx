@@ -1514,24 +1514,23 @@ useLayoutEffect(() => {
   const ctx = gsap.context(() => {
     const mm = gsap.matchMedia();
 
- 
-mm.add("(max-width: 768px)", () => {
-  gsap.fromTo(
-    route,
-    { "--strokeDashoffset": "0px" },
-    {
-      "--strokeDashoffset": "-2400px",
-      ease: "none",
-      scrollTrigger: {
-        trigger: route,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-      },
-    }
-  );
-});
-
+    mm.add("(max-width: 768px)", () => {
+      gsap.fromTo(
+        route,
+        { "--strokeDashoffset": "0px" },
+        {
+          "--strokeDashoffset": "-2400px",
+          ease: "none",
+          scrollTrigger: {
+            trigger: route,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 0.25,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+    });
   }, route);
 
   return () => ctx.revert();
@@ -1552,25 +1551,22 @@ mm.add("(max-width: 768px)", () => {
 
 
         <header className="relative h-[260px] px-12 py-10">
-          <nav className="absolute left-0 right-0 top-[90px] overflow-hidden pointer-events-none">
+          <nav className="absolute left-0 right-0 top-[70px] overflow-hidden pointer-events-none">
             <div className="marquee">
               <div className="marquee-content">
                 <span className="marquee-track font-neuehaas35 text-[11px] tracking-[0.25em] uppercase text-black/70">
                   Over 5,000 Invisalign Cases &nbsp;•&nbsp; Diamond Plus
-                  Invisalign Provider &nbsp;•&nbsp; Top 1% Nationwide
+                  Invisalign Provider &nbsp;•&nbsp; Top 1% Of Invisalign Providers
                   &nbsp;•&nbsp; Board-Driven Diagnostic Standards &nbsp;•&nbsp;
                   Decades of Clinical Experience &nbsp;•&nbsp; Thousands of
                   Successful Outcomes &nbsp;•&nbsp;
                 </span>
-                <span
-                  className="marquee-track font-neuehaas35 text-[11px] tracking-[0.25em] uppercase text-black/70"
-                  aria-hidden="true"
-                >
+           <span className="marquee-track font-neuehaas35 text-[11px] tracking-[0.25em] uppercase text-black/70">
                   Over 5,000 Invisalign Cases &nbsp;•&nbsp; Diamond Plus
-                  Invisalign Provider &nbsp;•&nbsp; Top 1% Nationwide
+                  Invisalign Provider &nbsp;•&nbsp; Top 1% Of Invisalign Providers
                   &nbsp;•&nbsp; Board-Driven Diagnostic Standards &nbsp;•&nbsp;
                   Decades of Clinical Experience &nbsp;•&nbsp; Thousands of
-                  Successful Outcomes
+                  Successful Outcomes &nbsp;•&nbsp;
                 </span>
               </div>
             </div>
@@ -1628,12 +1624,6 @@ preserveAspectRatio="xMidYMin meet"
 
 </linearGradient>
 <filter
-  // id="locations-route-lighting"
-  // x="-20%"
-  // y="-20%"
-  // width="140%"
-  // height="140%"
-  // colorInterpolationFilters="sRGB"
 >
   <feGaussianBlur
     in="SourceAlpha"
@@ -1689,7 +1679,7 @@ preserveAspectRatio="xMidYMin meet"
   fill="none"
   stroke="url(#locations-route-gradient)"
   strokeLinecap="round"
-  filter="url(#locations-route-lighting)"
+
 >
 
 
@@ -1733,20 +1723,7 @@ preserveAspectRatio="xMidYMin meet"
 </div>
 
 {/* <SEOList /> */}
-        <div className="mt-12 grid grid-cols-2 gap-16 px-12 pt-10">
-          {/* <p className="text-lg leading-relaxed">
-            <h1 className="font-neuehaas35 text-[11px] tracking-[0.1em] uppercase text-black/70 mb-4">
-              Board-Driven Diagnostic Standards
-            </h1>
 
-            <h2 className="max-w-[550px] font-neuehaas45 text-black/70 text-[17px] leading-tight">
-              Our doctors are fully invested in treatment planning your case
-              correctly. Guided by board-certified standards and decades of
-              clinical practice, we approach every case with the same rigor
-              demanded in academic orthodontics.
-            </h2>
-          </p> */}
-        </div>
 
 
 
