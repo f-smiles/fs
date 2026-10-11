@@ -201,7 +201,7 @@ const nextSlug =
   ];
   return (
    <main className=" location-detail-page">
-<Link href="/book-now" className="unicorn-search">
+<Link href="https://freysmilesappointments.as.me/schedule/a7d093a1" target="_blank" className="unicorn-search">
   <span className="unicorn-cloud-background" aria-hidden="true">
     <video autoPlay muted loop playsInline preload="metadata">
       <source src="/videos/locations/clouds.mp4" type="video/mp4" />
