@@ -474,10 +474,10 @@
 
 .location-detail-title {
   margin: 0;
-  font-family: "Canela-LightItalic";
+  font-family: "Canela-ThinItalic";
   font-size: clamp(36px, 3.4vw, 58px);
   font-weight: 200;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 /* main two-column composition */
@@ -1160,10 +1160,9 @@
   .location-detail-main-image {
     height: 60vh;
   }
-
-  .location-detail-copy {
-    margin: 4rem 0 2rem;
-  }
+.location-detail-copy {
+  margin: 2rem 0 2rem;
+}
 }
 
 @media (max-width: 768px) {
@@ -1366,6 +1365,11 @@
   display: inline-block;
   overflow: hidden;
   vertical-align: bottom;
+
+  padding-left: 0.08em;
+  padding-right: 0.08em;
+  margin-left: -0.08em;
+  margin-right: -0.08em;
 }
 
 .location-reveal-char {
@@ -1408,7 +1412,11 @@
   cursor: pointer;
   isolation: isolate;
 }
-
+@media (max-width: 768px) {
+  .unicorn-search {
+    height: 50px;
+  }
+}
 .unicorn-cloud-background {
   position: absolute;
   inset: 0;
@@ -1432,8 +1440,8 @@
 
   text-align: center;
   text-transform: uppercase;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 800;
   font-family: "IBMPlexMono-Light";
   white-space: nowrap;
   color: #111;
@@ -1477,3 +1485,71 @@
 .input-ball-arrow {
   pointer-events: none;
 }
+
+.location-services {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+
+  gap: 10px 28px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.location-services-item {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 10px;
+
+  width: auto;
+  max-width: 100%;
+color: white;
+ letter-spacing: 0.06em;
+  font-family: "NeueHaasGroteskDisplayPro45Light";
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.location-services-slash {
+  font-size: inherit;
+  font-weight: 400;
+  line-height: inherit;
+}
+
+@media (max-width: 768px) {
+  .location-services {
+    gap: 10px 18px;
+  }
+
+  .location-services-item {
+    font-size: 12px;
+    white-space: normal;
+  }
+}
+
+.location-items-reveal {
+  display: block;
+  width: 100%;
+}
+
+.location-services-mask {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: baseline;
+}
+
+.location-services-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  will-change: transform, opacity;
+}
+

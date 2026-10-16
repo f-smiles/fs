@@ -15,7 +15,13 @@ const LOCATIONS = {
     heroTitle: "1251 S Cedar Crest Blvd #210",
     heroCopy:
       "Our oldest location, Located across from Lehigh Valley Hospital. Equipped with iCat 3D imaging technology and multiple itero scanners for precise and convenient treatment. Private consultation rooms and an open bay clinic offer both breathy and discreet appointment experiences. Beverages always available upon request. ",
-
+bulletPoints: [
+  "Invisalign® Clear Aligners",
+  "Self-Ligating Braces",
+  "Orthodontics for Adults",
+  "Teen Orthodontics",
+  "Diamond Plus Provider",
+],
 media: [
     {
     type: "video",
@@ -62,8 +68,14 @@ media: [
   "https://www.google.com/maps/dir/?api=1&destination=2901+Emrick+Blvd+Suite+104+Bethlehem+PA&travelmode=driving",
     heroTitle: "2901 Emrick Blvd #104",
     heroCopy:
-      "Moments away from St Luke's Anderson, Our largest and most maze-like office. With Dr. Daniel Frey as your guide, partake in the lushness of a quality Orthodontic experience. Fresh ground coffee all day and a fridge stocked for the whole family. Crush your fit bit and smile goals in our lofty club house. Stretch out in our game room but don't forget non compliance will always be met with push-up and pull-up requirements. Free wi-fi for all guests.",
-
+      "Moments away from St Luke's Anderson, Our largest and most maze-like office. With our team as your guide, partake in the lushness of a comprehensive orthodontic experience. Fresh ground coffee all day and a fridge stocked for the whole family. Crush your fitness and smile goals in our lofty and labyrinthine club house. Stretch out in our game room but don't forget- non compliance will always be met with push-up and pull-up requirements. Free wi-fi for all guests.",
+bulletPoints: [
+  "Invisalign® Clear Aligners",
+  "Self-Ligating Braces",
+  "Orthodontics for Adults",
+  "Teen Orthodontics",
+  "Diamond Plus Provider",
+],
 media: [
   {
     type: "image",
@@ -107,7 +119,14 @@ media: [
     "https://www.google.com/maps/dir/?api=1&destination=1080+Blakeslee+Blvd+Dr+E+Lehighton+PA+18235&travelmode=driving",
 
     heroTitle: "1080 Blakeslee Blvd Dr E",
-    heroCopy: "Our newest location, located adjacent to Rita’s Italian Ice. Equipped with 3D imaging capabilities and multiple itero scanners for the same standard of excellence. Expect modern finishings in an industry standard clinic size. Plenty of room to squash your smile goals. A brushing station that's never crowded, extra good brushing earns free italian ice during open season",
+    heroCopy: "Opened in 2019, located adjacent to Rita’s Italian Ice. Equipped with 3D imaging capabilities and multiple itero scanners for the same standard of excellence. Expect modern finishings in an industry standard clinic size. Plenty of room to squash your smile goals. A brushing station that's never crowded, extra good brushing earns free italian ice during open season",
+bulletPoints: [
+  "Invisalign® Clear Aligners",
+  "Self-Ligating Braces",
+  "Orthodontics for Adults",
+  "Teen Orthodontics",
+  "Diamond Plus Provider",
+],
 media: [
   {
     type: "image",
@@ -143,7 +162,13 @@ directionsUrl:
 
     heroTitle: "4155 Independence Drive",
     heroCopy: "CONVENIENTLY TUCKED IN THE HIGHLANDS OF PARKLAND SCHOOL DISTRICT SINCE 2005. A stones throw from route 309, this location FEATURES an expansive light-filled CLINIC with MULTIPLE PRIVATE CONSULTATION ROOMS, AND A VIDEO GAME NOOK. Both on-deck and main reception lounge options await. Come Help feed our salt-water fish and Elevate your smile with us in Schnecksville today!",
-
+bulletPoints: [
+  "Invisalign® Clear Aligners",
+  "Self-Ligating Braces",
+  "Orthodontics for Adults",
+  "Teen Orthodontics",
+  "Diamond Plus Provider",
+],
 media: [
   {
     type: "image",
@@ -274,7 +299,25 @@ const nextSlug =
 </Link>
 </div>
 
+
           <div className="location-detail-copy">
+<LocationTextReveal
+  key={`${params.locationSlug}-services`}
+  delay={0.1}
+  mode="items"
+>
+<div className="location-services">
+  {location.bulletPoints.map((point, index) => (
+    <span className="location-services-mask" key={index}>
+      <span className="location-services-item">
+        <span className="location-services-slash">/</span>
+        {point}
+      </span>
+    </span>
+  ))}
+</div>
+</LocationTextReveal>
+
         <h2>
     <LocationTextReveal
       key={`${params.locationSlug}-address`}

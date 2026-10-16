@@ -9,6 +9,7 @@ gsap.registerPlugin(SplitText);
 export default function LocationTextReveal({
   children,
   delay = 0,
+  mode = "lines",
 }) {
   const textRef = useRef(null);
 
@@ -23,6 +24,30 @@ export default function LocationTextReveal({
     }
 
     const ctx = gsap.context(() => {
+if (mode === "items") {
+  const items = gsap.utils.toArray(
+    ".location-services-item",
+    element
+  );
+
+  gsap.fromTo(
+    items,
+    {
+      yPercent: 120,
+    },
+    {
+      yPercent: 0,
+      duration: 0.85,
+      delay,
+      stagger: 0.1,
+      ease: "power3.out",
+      clearProps: "transform",
+    }
+  );
+
+  return;
+}
+
       SplitText.create(element, {
         type: "lines",
         mask: "lines",
@@ -41,10 +66,15 @@ export default function LocationTextReveal({
     }, element);
 
     return () => ctx.revert();
-  }, [children, delay]);
+  }, [children, delay, mode]);
 
   return (
-    <span ref={textRef} className="location-line-reveal">
+    <span
+      ref={textRef}
+      className={`location-line-reveal ${
+        mode === "items" ? "location-items-reveal" : ""
+      }`}
+    >
       {children}
     </span>
   );

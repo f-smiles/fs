@@ -1172,7 +1172,7 @@ function DitherCursorTrail({
 const LOCATION_CARDS = [
   {
     name: "Allentown",
-    description: "Our original location",
+    description: "FreySmiles Allentown",
     image: "/images/allentown.png",
     href: "/locations/allentown",
   },
@@ -1198,7 +1198,8 @@ const LOCATION_CARDS = [
 
 const LOCATION_CARD_PARALLAX = 40;
 
-function LocationCard({ location }) {
+
+function LocationCard({ location, index = 0 }) {
   const wrapperRef = useRef(null);
   const cubeRef = useRef(null);
 
@@ -1216,7 +1217,7 @@ function LocationCard({ location }) {
       );
 
       const rotation = {
-        flip: 0,
+        flip: -180,
         tiltX: 0,
         tiltY: 0,
       };
@@ -1233,14 +1234,24 @@ function LocationCard({ location }) {
 
       render();
 
+      const entranceTween = gsap.to(rotation, {
+        flip: 0,
+        duration: 1.2,
+      delay: 0.3 + index * .25,
+        ease: "power2.inOut",
+        onUpdate: render,
+      });
+
       const handleMouseEnter = () => {
+        entranceTween.kill();
+        gsap.killTweensOf(rotation);
+
         isFlipped = false;
 
         gsap.to(rotation, {
           flip: 180,
           duration: 0.5,
           ease: "power2.inOut",
-          overwrite: "flip",
           onUpdate: render,
           onComplete: () => {
             isFlipped = true;
@@ -1249,6 +1260,9 @@ function LocationCard({ location }) {
       };
 
       const handleMouseLeave = () => {
+        entranceTween.kill();
+        gsap.killTweensOf(rotation);
+
         isFlipped = false;
 
         gsap.to(rotation, {
@@ -1257,7 +1271,6 @@ function LocationCard({ location }) {
           tiltY: 0,
           duration: 0.6,
           ease: "power3.out",
-          overwrite: true,
           onUpdate: render,
         });
       };
@@ -1281,7 +1294,7 @@ function LocationCard({ location }) {
           tiltX: -offsetY * LOCATION_CARD_PARALLAX,
           duration: 0.6,
           ease: "power2.out",
-          overwrite: "tilt",
+          overwrite: "auto",
           onUpdate: render,
         });
       };
@@ -1295,6 +1308,7 @@ function LocationCard({ location }) {
         cube.removeEventListener("mouseleave", handleMouseLeave);
         cube.removeEventListener("mousemove", handleMouseMove);
 
+        entranceTween.kill();
         gsap.killTweensOf(rotation);
       };
     },
@@ -1317,11 +1331,15 @@ function LocationCard({ location }) {
         <p className="location-card-description">
           {location.description}
         </p>
-<div className="location-card-direction" aria-hidden="true">
-  <span className="location-card-direction-horizontal" />
-  <span className="location-card-direction-vertical" />
-  <span className="location-card-direction-extra" />
-</div>
+
+        <div
+          className="location-card-direction"
+          aria-hidden="true"
+        >
+          <span className="location-card-direction-horizontal" />
+          <span className="location-card-direction-vertical" />
+          <span className="location-card-direction-extra" />
+        </div>
       </div>
     </>
   );
@@ -1351,19 +1369,20 @@ function LocationCard({ location }) {
   );
 }
 
+
 function LocationsCards() {
   return (
     <section className="locations-spotlight">
-      {LOCATION_CARDS.map((location) => (
+      {LOCATION_CARDS.map((location, index) => (
         <LocationCard
           key={location.name}
           location={location}
+          index={index}
         />
       ))}
     </section>
   );
 }
-
 
 
  function MapboxGLJS() {

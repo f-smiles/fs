@@ -79,6 +79,7 @@ module.exports = withUt({
 		  'neue-montreal-light': 'NeueMontrealLight',
   		nimbus: 'NimbusSanL-Reg',
   		'novela-regular': 'NovelaRegular',
+		glusp: 'OTF-Glusp',
   		saol: 'SaolDisplay-Regular',
   		saolitalic: 'SaolDisplay-LightItalic',
 		sinistre:"Sinistre-Regular",

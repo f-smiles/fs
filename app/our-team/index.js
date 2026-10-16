@@ -745,228 +745,243 @@ const buttonClasses = [
   "max-[1000px]:text-[0.65rem]",
 ].join(" ");
 
-function Hero() {
-  const rootRef = useRef(null)
+const images = [
+  "https://cdn.prod.website-files.com/6915bbf51d482439010ee790/6915bc3ac9fe346a924724bc_minimalist-architecture-2.avif",
+  "https://cdn.prod.website-files.com/6915bbf51d482439010ee790/6915bc3ac9fe346a924724cf_minimalist-architecture-4.avif",
+  "https://cdn.prod.website-files.com/6915bbf51d482439010ee790/6915bc3ac9fe346a924724c5_minimalist-architecture-3.avif",
+  "https://cdn.prod.website-files.com/6915bbf51d482439010ee790/6915bc3ac9fe346a924724b0_minimalist-architecture-1.avif",
+];
+
+function WillemLoader() {
+  const containerRef = useRef(null);
 
   useLayoutEffect(() => {
-    const root = rootRef.current
+    const container = containerRef.current;
+    if (!container) return;
 
-    if (!root) {
-      return undefined
-    }
+    const ctx = gsap.context(() => {
+      const loadingLetters = gsap.utils.toArray(
+        ".willem__letter"
+      );
 
-    let preloaderSplit
+      const box = container.querySelector(
+        ".willem-loader__box"
+      );
 
-    const context = gsap.context(
-      () => {
-        preloaderSplit =
-          SplitText.create(
-            ".preloader-copy p",
-            {
-              type: "chars",
-              charsClass: "char",
-            }
-          )
+      const growingImage = container.querySelector(
+        ".willem__growing-image"
+      );
 
-        const preloaderBlocks =
-          gsap.utils.toArray(
-            ".preloader-block"
-          )
+      const headingStart = container.querySelector(
+        ".willem__h1-start"
+      );
 
-        const nestedBlocks =
-          preloaderBlocks.slice(1)
+      const headingEnd = container.querySelector(
+        ".willem__h1-end"
+      );
 
-        gsap.set(
-          preloaderSplit.chars,
-          {
-            opacity: 0,
-          }
-        )
+      const extraImages = gsap.utils.toArray(
+        ".willem__cover-image-extra"
+      );
 
-        gsap.set(
-          ".preloader-copy p",
-          {
-            visibility: "visible",
-          }
-        )
+      const headerLetters = gsap.utils.toArray(
+        ".willem__letter-white"
+      );
 
-        const timeline =
-          gsap.timeline()
+      const navLinks = gsap.utils.toArray(
+        ".willen-nav a, .osmo-credits__p"
+      );
 
-        timeline.to(
-          preloaderSplit.chars,
-          {
-            opacity: 1,
-            duration: 0.15,
-            stagger: 0.1,
-          }
-        )
+      const tl = gsap.timeline({
+        defaults: {
+          ease: "expo.inOut",
+        },
+      });
 
-        timeline.to(
-          ".preloader",
-          {
-            scale: 1,
-            duration: 0.35,
-            ease: "back.out(1.8)",
-          },
-          "<"
-        )
+      // 1. Reveal initial letters
+      tl.from(loadingLetters, {
+        yPercent: 100,
+        stagger: 0.025,
+        duration: 1.25,
+      });
 
-        timeline.to(
-          nestedBlocks,
-          {
-            delay: 0.25,
-            rotation: 0,
-            duration: 0.65,
-            ease: "power3.inOut",
-            stagger: 0.75,
-          },
-          "<"
-        )
+      // 2. Open the space between the word
+      tl.fromTo(
+        box,
+        { width: "0em" },
+        { width: "1em", duration: 1.25 },
+        "<1.25"
+      );
 
-        timeline.to(
-          [
-            ".preloader-copy",
-            ".preloader-block",
-          ],
-          {
-            opacity: 0,
-            duration: 0.4,
-            ease: "power2.out",
-          }
-        )
+      // 3. Reveal the image inside the gap
+      tl.fromTo(
+        growingImage,
+        { width: "0%" },
+        { width: "100%", duration: 1.25 },
+        "<"
+      );
 
-/*
- * Black layer enters from the left.
- */
-timeline.fromTo(
-  ".preloader-wipe",
-  {
-    clipPath:
-      "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
+      // 4. Slightly separate both word halves
+      tl.fromTo(
+        headingStart,
+        { x: "0em" },
+        { x: "-0.05em", duration: 1.25 },
+        "<"
+      );
 
-    WebkitClipPath:
-      "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
-  },
-  {
-    clipPath:
-      "polygon(0% 0%, 130% 0%, 100% 100%, 0% 100%)",
+      tl.fromTo(
+        headingEnd,
+        { x: "0em" },
+        { x: "0.05em", duration: 1.25 },
+        "<"
+      );
 
-    WebkitClipPath:
-      "polygon(0% 0%, 130% 0%, 100% 100%, 0% 100%)",
+      // 5. Cycle through architectural images
+      tl.to(
+        extraImages,
+        {
+          opacity: 0,
+          duration: 0.05,
+          ease: "none",
+          stagger: 0.5,
+        },
+        "-=0.05"
+      );
 
-    duration: 0.8,
-    ease: "power3.inOut",
-  }
-)
+      // 6. Expand image to full viewport
+      tl.to(
+        growingImage,
+        {
+          width: "100vw",
+          height: "100dvh",
+          duration: 2,
+        },
+        "<1.25"
+      );
 
-timeline.set(
-  [
-    ".preloader-screen",
-    ".preloader-content",
-  ],
-  {
-    visibility: "hidden",
-  }
-)
+      tl.to(
+        box,
+        {
+          width: "110vw",
+          duration: 2,
+        },
+        "<"
+      );
 
-timeline.to(
-  ".preloader-wipe",
-  {
-    clipPath:
-      "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+      // 7. Reveal final hero typography
+      tl.from(
+        headerLetters,
+        {
+          yPercent: 100,
+          duration: 1.25,
+          ease: "expo.out",
+          stagger: 0.025,
+        },
+        "<1.2"
+      );
 
-    WebkitClipPath:
-      "polygon(130% 0%, 130% 0%, 100% 100%, 100% 100%)",
+      // 8. Reveal navigation
+      tl.from(
+        navLinks,
+        {
+          yPercent: 100,
+          duration: 1.25,
+          ease: "expo.out",
+          stagger: 0.1,
+        },
+        "<"
+      );
+    }, container);
 
-    duration: 1.1,
-    ease: "power3.inOut",
-  }
-)
-
-timeline.set(root, {
-  display: "none",
-})
-
-        timeline.set(root, {
-          display: "none",
-        })
-      },
-      root
-    )
-
-    return () => {
-      context.revert()
-      preloaderSplit?.revert()
-    }
-  }, [])
+    return () => ctx.revert();
+  }, []);
 
   return (
-<div
-  ref={rootRef}
-  className="
-    preloader-overlay
-    fixed inset-0 z-[100]
-    overflow-hidden
-  "
->
+    <section className="willem-header" ref={containerRef}>
+      {/* Initial loading composition */}
+      <div className="willem-loader">
+        <div className="willem__h1">
+          <div className="willem__h1-start">
+            {"Our".split("").map((letter, i) => (
+              <span className="willem__letter" key={i}>
+                {letter}
+              </span>
+            ))}
+          </div>
 
-  <div
-    aria-hidden="true"
-    className="
-      preloader-screen
-      absolute inset-0 z-0
-      bg-white
-    "
-  />
+          <div className="willem-loader__box">
+            <div className="willem-loader__box-inner">
+              <div className="willem__growing-image">
+                <div className="willem__growing-image-wrap">
+                  {images.map((src, i) => (
+                    <img
+                      key={src}
+                      src={src}
+                      alt=""
+                      className={
+                        i < 3
+                          ? `willem__cover-image-extra is--${i + 1}`
+                          : "willem__cover-image"
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
-  {/* Black diagonal wipe layer */}
-  <div
-    aria-hidden="true"
-    className="
-      preloader-wipe
-      absolute inset-0 z-10
-      bg-black
-      will-change-[clip-path]
-    "
-    style={{
-      clipPath:
-        "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
-
-      WebkitClipPath:
-        "polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)",
-    }}
-  />
-
-  {/* Preloader content */}
-  <div
-    className="
-      preloader-content
-      relative z-20
-      flex h-full w-full
-      flex-col
-      items-center justify-center
-      gap-4
-    "
-  >
-    <div className="preloader relative h-4 w-[70px] scale-0 overflow-visible [transform-origin:25%_center]">
-      <div className="preloader-block absolute left-0 top-0 h-4 w-4 bg-[#171717]">
-        <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-          <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]">
-            <div className="preloader-block absolute left-[18px] top-0 h-4 w-4 origin-left -rotate-180 bg-[#171717]" />
+          <div className="willem__h1-end">
+            {"Team".split("").map((letter, i) => (
+              <span className="willem__letter" key={i}>
+                {letter}
+              </span>
+            ))}
           </div>
         </div>
       </div>
-    </div>
 
-    <div className="preloader-copy w-40 text-center">
-      <p className="invisible whitespace-nowrap font-neuehaas35 text-[1.05rem] leading-none text-[#171717]">
-        Meet the Team
-      </p>
-    </div>
-  </div>
-</div>
-  )
+      {/* Final hero composition */}
+      <div className="willem-header__content">
+        <div className="willem-header__top">
+          <nav className="willen-nav">
+            <div className="willem-nav__start">
+              <a href="/">Osmo ©</a>
+            </div>
+
+            <div className="willem-nav__end">
+              <div className="willem-nav__links">
+                <a href="#projects">Projects,</a>
+                <a href="#services">Services,</a>
+                <a href="#blog">Blog (13)</a>
+              </div>
+
+              <a href="#contact">Get in touch</a>
+            </div>
+          </nav>
+        </div>
+
+        <div className="willem-header__bottom">
+          <div className="willem__h1">
+         {"Our Team".split("").map((letter, i) => (
+  <span className="willem__letter-white" key={i}>
+    {letter === " " ? "\u00A0" : letter}
+  </span>
+))}
+            <span className="willem__letter-white is--space">
+              ©
+            </span>
+          </div>
+
+          <p className="osmo-credits__p">
+            Resource by{" "}
+            <a href="https://www.osmo.supply/">
+              Osmo
+            </a>
+          </p>
+        </div>
+      </div>
+    </section>
+  );
 }
 export default function OurTeam() {
   const [showContent, setShowContent] = useState(false);
@@ -1421,7 +1436,7 @@ tl.to(
   return (
     <>
       <div className="h-screen w-screen">
-<Hero />
+{/* <WillemLoader /> */}
       <div
         ref={pinRef}
         className="relative w-full h-screen overflow-hidden bg-[#17181C]"
