@@ -1,4 +1,5 @@
 "use client";
+import LocationsFlowingRoute from "./LocationsFlowingRoute";
 import "./style.css";
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -1524,36 +1525,47 @@ export default function LocationsPage() {
   const svgRef = useRef(null);
 
 
+
 useLayoutEffect(() => {
   const route = routeRef.current;
   const svg = svgRef.current;
 
   if (!route || !svg) return;
 
+  // Initialize the new route geometry.
+  const flowingRoute = createFlowingRoute(svg);
+
   const ctx = gsap.context(() => {
     const mm = gsap.matchMedia();
 
     mm.add("(max-width: 768px)", () => {
-      gsap.fromTo(
-        route,
-        { "--strokeDashoffset": "0px" },
-        {
-          "--strokeDashoffset": "-2400px",
-          ease: "none",
-          scrollTrigger: {
-            trigger: route,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 0.25,
-            invalidateOnRefresh: true,
-          },
-        }
-      );
+      const progress = { value: 0 };
+
+      const animation = gsap.to(progress, {
+        value: 1,
+        ease: "none",
+        onUpdate: () => {
+          flowingRoute.update(progress.value);
+        },
+        scrollTrigger: {
+          trigger: route,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 0.25,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      return () => animation.kill();
     });
   }, route);
 
-  return () => ctx.revert();
+  return () => {
+    ctx.revert();
+    flowingRoute.destroy();
+  };
 }, []);
+
 
   return (
     <>
@@ -1619,7 +1631,8 @@ useLayoutEffect(() => {
 
 <div className="locations-route-section" ref={routeRef}>
    <div className="locations-route-svg-layer">
-    <svg
+        <LocationsFlowingRoute routeRef={routeRef} />
+    {/* <svg
   ref={svgRef}
   className="locations-route-svg"
   viewBox="0 0 740 2000"
@@ -1732,7 +1745,7 @@ preserveAspectRatio="xMidYMin meet"
 
 
 </g>
-</svg>
+</svg> */}
    </div>
 
 

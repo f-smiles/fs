@@ -20,15 +20,16 @@ export default function ProductForm() {
 
   const router = useRouter()
 
-  const form = useForm({
-    resolver: zodResolver(ProductSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      price: 0,
-    },
-    mode: "onChange",
-  })
+const form = useForm<z.infer<typeof ProductSchema>>({
+  resolver: zodResolver(ProductSchema),
+  defaultValues: {
+    title: "",
+    description: "",
+    price: 0,
+    category: "",
+  },
+  mode: "onChange",
+});
 
   const { execute, status } = useAction(createProduct, {
     onSuccess({ data }) {

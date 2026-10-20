@@ -29,7 +29,7 @@ import * as THREE from "three";
 gsap.registerPlugin(SplitText, Physics2DPlugin, ScrollTrigger, CustomEase);
 
 const AnimatedBackground = () => {
-  const canvasRef = useRef(null);
+const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -166,7 +166,7 @@ vec3 col = mix(colorA, colorB, mixAmt);
 }
 `;
 
-    const createShader = (type, source) => {
+const createShader = (type: number, source: string) => {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);

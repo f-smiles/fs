@@ -33,18 +33,19 @@ console.log("SLUG:", params.slug)
     return null
   }
 
-  const variant = await db.query.productVariants.findFirst({
-    where: eq(productVariants.id, slugID),
-    with: {
-      product: {
-        with: {
-          productVariants: {
-            with: { variantImages: true, variantTags: true },
-          },
+const variant = await db.query.productVariants.findFirst({
+  where: eq(productVariants.id, slugID),
+  with: {
+    variantImages: true,
+    product: {
+      with: {
+        productVariants: {
+          with: { variantImages: true, variantTags: true },
         },
       },
     },
-  })
+  },
+})
 
   const matchingVariant = variant?.product.productVariants.find((i) => i.id === variant.id)
 const variantImage = matchingVariant?.variantImages?.[0]?.url ?? ""

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 
 export default function LocationCharacterReveal({
@@ -10,35 +10,36 @@ export default function LocationCharacterReveal({
   delay = 0.2,
   stagger = 0.035,
   duration = 0.5,
+  ready = true,
 }) {
   const containerRef = useRef(null);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
 
-    const chars = container.querySelectorAll(
-      ".location-reveal-char"
-    );
+useLayoutEffect(() => {
+  const container = containerRef.current;
+  if (!container) return;
 
-    const ctx = gsap.context(() => {
-    
-gsap.fromTo(
-  chars,
-  { yPercent: 100 },
-  {
-    yPercent: 0,
-    duration,
-    stagger,
-    delay,
-    ease: "power3.out",
-  }
-);
+  const chars = container.querySelectorAll(
+    ".location-reveal-char"
+  );
 
-    }, container);
+  const ctx = gsap.context(() => {
+    gsap.set(chars, { yPercent: 100 });
 
-    return () => ctx.revert();
-  }, [delay, stagger, duration]);
+    if (ready) {
+      gsap.to(chars, {
+        yPercent: 0,
+        duration,
+        stagger,
+        delay,
+        ease: "power3.out",
+      });
+    }
+  }, container);
+
+  return () => ctx.revert();
+}, [ready, delay, stagger, duration]);
+
 
   const text = String(children);
 
