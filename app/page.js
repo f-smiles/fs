@@ -1,4 +1,13 @@
 "use client";
+import {
+  vertexShader,
+  splatShader,
+  divergenceShader,
+  pressureShader,
+  gradientSubtractShader,
+  advectionShader,
+  displayShader,
+} from "./gooeyshader";
 import * as SunCalc from "suncalc";
 import AsciiEffect from "./asciieffect.jsx";
 import LocationCharacterReveal from "@/app/locations/[locationSlug]/LocationCharReveal";
@@ -632,13 +641,10 @@ function FloatingCube({ waterY = WATER_Y, position = [-5, 0, 2], size = 2.4 }) {
               color="#d9b4c7"
               envMap={cubeEnvironment}
               envMapIntensity={3.0}
-              // Still convincingly metallic, but permits
-              // a little more illuminated surface color.
               metalness={0.9}
               roughness={0.12}
               clearcoat={1}
               clearcoatRoughness={0.025}
-              // Stable purple floor during dark rotations.
               emissive="#684b65"
               emissiveIntensity={0.1}
               transparent={false}
@@ -930,268 +936,257 @@ const ScrollTracker = ({ onScrollChange }) => {
 
   return null;
 };
+// const containerRef = useRef(null);
 
-const Hero = ({ toothStepRef }) => {
-  // const containerRef = useRef(null);
+// useEffect(() => {
+//   if (!containerRef.current) return;
 
-  // useEffect(() => {
-  //   if (!containerRef.current) return;
+//   const imgSize = [1250, 833];
 
-  //   const imgSize = [1250, 833];
+//   const vertex = `
+//     attribute vec2 uv;
+//     attribute vec2 position;
+//     varying vec2 vUv;
+//     void main() {
+//       vUv = uv;
+//       gl_Position = vec4(position, 0, 1);
+//     }
+//   `;
 
-  //   const vertex = `
-  //     attribute vec2 uv;
-  //     attribute vec2 position;
-  //     varying vec2 vUv;
-  //     void main() {
-  //       vUv = uv;
-  //       gl_Position = vec4(position, 0, 1);
-  //     }
-  //   `;
+//   const fragment = `
+//     precision highp float;
+//     uniform sampler2D tWater;
+//     uniform sampler2D tFlow;
+//     uniform float uTime;
+//     varying vec2 vUv;
+//     uniform vec4 res;
+//     void main() {
+//       vec3 flow = texture2D(tFlow, vUv).rgb;
+//       vec2 uv = .5 * gl_FragCoord.xy / res.xy ;
+//       vec2 myUV = (uv - vec2(0.5)) * res.zw + vec2(0.5);
+//       myUV -= flow.xy * (0.15 * 0.7);
+//       vec3 tex = texture2D(tWater, myUV).rgb;
+//       gl_FragColor = vec4(tex, 1.0);
+//     }
+//   `;
 
-  //   const fragment = `
-  //     precision highp float;
-  //     uniform sampler2D tWater;
-  //     uniform sampler2D tFlow;
-  //     uniform float uTime;
-  //     varying vec2 vUv;
-  //     uniform vec4 res;
-  //     void main() {
-  //       vec3 flow = texture2D(tFlow, vUv).rgb;
-  //       vec2 uv = .5 * gl_FragCoord.xy / res.xy ;
-  //       vec2 myUV = (uv - vec2(0.5)) * res.zw + vec2(0.5);
-  //       myUV -= flow.xy * (0.15 * 0.7);
-  //       vec3 tex = texture2D(tWater, myUV).rgb;
-  //       gl_FragColor = vec4(tex, 1.0);
-  //     }
-  //   `;
+//   // const renderer = new OGL.Renderer({ dpr: 2 });
+//   // const gl = renderer.gl;
+//   // containerRef.current.appendChild(gl.canvas);
 
-  //   // const renderer = new OGL.Renderer({ dpr: 2 });
-  //   // const gl = renderer.gl;
-  //   // containerRef.current.appendChild(gl.canvas);
+//   const renderer = new OGL.Renderer({ dpr: 2 });
+//   const gl = renderer.gl;
+//   containerRef.current.appendChild(gl.canvas);
 
-  //   const renderer = new OGL.Renderer({ dpr: 2 });
-  //   const gl = renderer.gl;
-  //   containerRef.current.appendChild(gl.canvas);
+//   gl.canvas.style.borderRadius = "20px";
+//   gl.canvas.style.clipPath = "inset(0% round 20px)";
+//   // gl.canvas.style.clipPath = "none";
+//   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  //   gl.canvas.style.borderRadius = "20px";
-  //   gl.canvas.style.clipPath = "inset(0% round 20px)";
-  //   // gl.canvas.style.clipPath = "none";
-  //   renderer.setSize(window.innerWidth, window.innerHeight);
+//   let aspect = 1;
+//   const mouse = new OGL.Vec2(-1);
+//   const velocity = new OGL.Vec2();
 
-  //   let aspect = 1;
-  //   const mouse = new OGL.Vec2(-1);
-  //   const velocity = new OGL.Vec2();
+//   function resize() {
+//     if (!containerRef.current) return;
 
-  //   function resize() {
-  //     if (!containerRef.current) return;
+//     const containerWidth = containerRef.current.clientWidth;
+//     const containerHeight = containerRef.current.clientHeight;
 
-  //     const containerWidth = containerRef.current.clientWidth;
-  //     const containerHeight = containerRef.current.clientHeight;
+//     renderer.setSize(containerWidth, containerHeight);
 
-  //     renderer.setSize(containerWidth, containerHeight);
+//     let a1, a2;
+//     var imageAspect = imgSize[1] / imgSize[0];
+//     var containerAspect = containerHeight / containerWidth;
 
-  //     let a1, a2;
-  //     var imageAspect = imgSize[1] / imgSize[0];
-  //     var containerAspect = containerHeight / containerWidth;
+//     if (containerAspect < imageAspect) {
+//       a1 = 1;
+//       a2 = containerAspect / imageAspect;
+//     } else {
+//       a1 = imageAspect / containerAspect;
+//       a2 = 1;
+//     }
 
-  //     if (containerAspect < imageAspect) {
-  //       a1 = 1;
-  //       a2 = containerAspect / imageAspect;
-  //     } else {
-  //       a1 = imageAspect / containerAspect;
-  //       a2 = 1;
-  //     }
+//     program.uniforms.res.value = new OGL.Vec4(
+//       containerWidth,
+//       containerHeight,
+//       a1,
+//       a2
+//     );
 
-  //     program.uniforms.res.value = new OGL.Vec4(
-  //       containerWidth,
-  //       containerHeight,
-  //       a1,
-  //       a2
-  //     );
+//     aspect = containerWidth / containerHeight;
+//   }
 
-  //     aspect = containerWidth / containerHeight;
-  //   }
+//   const flowmap = new OGL.Flowmap(gl);
+//   const geometry = new OGL.Geometry(gl, {
+//     position: {
+//       size: 2,
+//       data: new Float32Array([-1, -1, 3, -1, -1, 3]), // Covers full screen
+//     },
+//     uv: { size: 2, data: new Float32Array([0, 0, 2, 0, 0, 2]) },
+//   });
 
-  //   const flowmap = new OGL.Flowmap(gl);
-  //   const geometry = new OGL.Geometry(gl, {
-  //     position: {
-  //       size: 2,
-  //       data: new Float32Array([-1, -1, 3, -1, -1, 3]), // Covers full screen
-  //     },
-  //     uv: { size: 2, data: new Float32Array([0, 0, 2, 0, 0, 2]) },
-  //   });
+//   const texture = new OGL.Texture(gl, {
+//     minFilter: gl.LINEAR,
+//     magFilter: gl.LINEAR,
+//   });
 
-  //   const texture = new OGL.Texture(gl, {
-  //     minFilter: gl.LINEAR,
-  //     magFilter: gl.LINEAR,
-  //   });
+//   const img = new Image();
+//   img.onload = () => (texture.image = img);
+//   img.crossOrigin = "Anonymous";
+//   // img.src = "../images/bubble.jpg";
+//   img.src = "../images/test.png";
 
-  //   const img = new Image();
-  //   img.onload = () => (texture.image = img);
-  //   img.crossOrigin = "Anonymous";
-  //   // img.src = "../images/bubble.jpg";
-  //   img.src = "../images/test.png";
+//   let a1, a2;
+//   var imageAspect = imgSize[1] / imgSize[0];
+//   if (window.innerHeight / window.innerWidth < imageAspect) {
+//     a1 = 1;
+//     a2 = window.innerHeight / window.innerWidth / imageAspect;
+//   } else {
+//     a1 = (window.innerWidth / window.innerHeight) * imageAspect;
+//     a2 = 1;
+//   }
 
-  //   let a1, a2;
-  //   var imageAspect = imgSize[1] / imgSize[0];
-  //   if (window.innerHeight / window.innerWidth < imageAspect) {
-  //     a1 = 1;
-  //     a2 = window.innerHeight / window.innerWidth / imageAspect;
-  //   } else {
-  //     a1 = (window.innerWidth / window.innerHeight) * imageAspect;
-  //     a2 = 1;
-  //   }
+//   const program = new OGL.Program(gl, {
+//     vertex,
+//     fragment,
+//     uniforms: {
+//       uTime: { value: 0 },
+//       tWater: { value: texture },
+//       res: {
+//         value: new OGL.Vec4(window.innerWidth, window.innerHeight, a1, a2),
+//       },
+//       tFlow: flowmap.uniform,
+//     },
+//   });
 
-  //   const program = new OGL.Program(gl, {
-  //     vertex,
-  //     fragment,
-  //     uniforms: {
-  //       uTime: { value: 0 },
-  //       tWater: { value: texture },
-  //       res: {
-  //         value: new OGL.Vec4(window.innerWidth, window.innerHeight, a1, a2),
-  //       },
-  //       tFlow: flowmap.uniform,
-  //     },
-  //   });
+//   const mesh = new OGL.Mesh(gl, { geometry, program });
 
-  //   const mesh = new OGL.Mesh(gl, { geometry, program });
+//   window.addEventListener("resize", resize, false);
+//   resize();
 
-  //   window.addEventListener("resize", resize, false);
-  //   resize();
+//   const isTouchCapable = "ontouchstart" in window;
+//   if (isTouchCapable) {
+//     window.addEventListener("touchstart", updateMouse, true);
+//     window.addEventListener("touchmove", updateMouse, { passive: true });
+//   } else {
+//     window.addEventListener("mousemove", updateMouse, true);
+//   }
 
-  //   const isTouchCapable = "ontouchstart" in window;
-  //   if (isTouchCapable) {
-  //     window.addEventListener("touchstart", updateMouse, true);
-  //     window.addEventListener("touchmove", updateMouse, { passive: true });
-  //   } else {
-  //     window.addEventListener("mousemove", updateMouse, true);
-  //   }
+//   let lastTime;
+//   const lastMouse = new OGL.Vec2();
 
-  //   let lastTime;
-  //   const lastMouse = new OGL.Vec2();
+//   function updateMouse(e) {
+//     e.preventDefault();
 
-  //   function updateMouse(e) {
-  //     e.preventDefault();
+//     const rect = gl.canvas.getBoundingClientRect();
+//     const x = e.clientX - rect.left;
+//     const y = e.clientY - rect.top;
 
-  //     const rect = gl.canvas.getBoundingClientRect();
-  //     const x = e.clientX - rect.left;
-  //     const y = e.clientY - rect.top;
+//     mouse.set(x / rect.width, 1 - y / rect.height);
 
-  //     mouse.set(x / rect.width, 1 - y / rect.height);
+//     const minDimension = Math.min(window.innerWidth, window.innerHeight);
+//     const baseFactor = 300;
+//     const scaleFactor = minDimension / baseFactor;
 
-  //     const minDimension = Math.min(window.innerWidth, window.innerHeight);
-  //     const baseFactor = 300;
-  //     const scaleFactor = minDimension / baseFactor;
+//     if (!lastTime) {
+//       lastTime = performance.now();
+//       lastMouse.set(x, y);
+//     }
 
-  //     if (!lastTime) {
-  //       lastTime = performance.now();
-  //       lastMouse.set(x, y);
-  //     }
+//     const deltaX = (x - lastMouse.x) * scaleFactor * 0.3;
+//     const deltaY = (y - lastMouse.y) * scaleFactor * 0.3;
+//     lastMouse.set(x, y);
 
-  //     const deltaX = (x - lastMouse.x) * scaleFactor * 0.3;
-  //     const deltaY = (y - lastMouse.y) * scaleFactor * 0.3;
-  //     lastMouse.set(x, y);
+//     const time = performance.now();
+//     const delta = Math.max(5, time - lastTime);
+//     lastTime = time;
 
-  //     const time = performance.now();
-  //     const delta = Math.max(5, time - lastTime);
-  //     lastTime = time;
+//     velocity.x = deltaX / delta;
+//     velocity.y = deltaY / delta;
+//     velocity.needsUpdate = true;
+//   }
 
-  //     velocity.x = deltaX / delta;
-  //     velocity.y = deltaY / delta;
-  //     velocity.needsUpdate = true;
-  //   }
+//   // function updateMouse(e) {
+//   //   e.preventDefault();
 
-  //   // function updateMouse(e) {
-  //   //   e.preventDefault();
+//   //   const rect = gl.canvas.getBoundingClientRect();
+//   //   const x = e.clientX - rect.left;
+//   //   const y = e.clientY - rect.top;
 
-  //   //   const rect = gl.canvas.getBoundingClientRect();
-  //   //   const x = e.clientX - rect.left;
-  //   //   const y = e.clientY - rect.top;
+//   //   mouse.set(x / rect.width, 1 - y / rect.height);
 
-  //   //   mouse.set(x / rect.width, 1 - y / rect.height);
+//   //   const sensitivity = (Math.min(rect.width, rect.height) / 300) * 3;
 
-  //   //   const sensitivity = (Math.min(rect.width, rect.height) / 300) * 3;
+//   //   if (!lastTime) {
+//   //     lastTime = performance.now();
+//   //     lastMouse.set(x, y);
+//   //   }
 
-  //   //   if (!lastTime) {
-  //   //     lastTime = performance.now();
-  //   //     lastMouse.set(x, y);
-  //   //   }
+//   //   const deltaX = (x - lastMouse.x) * sensitivity;
+//   //   const deltaY = (y - lastMouse.y) * sensitivity;
+//   //   lastMouse.set(x, y);
 
-  //   //   const deltaX = (x - lastMouse.x) * sensitivity;
-  //   //   const deltaY = (y - lastMouse.y) * sensitivity;
-  //   //   lastMouse.set(x, y);
+//   //   const time = performance.now();
+//   //   const delta = Math.max(5, time - lastTime);
+//   //   lastTime = time;
 
-  //   //   const time = performance.now();
-  //   //   const delta = Math.max(5, time - lastTime);
-  //   //   lastTime = time;
+//   //   velocity.x = deltaX / delta;
+//   //   velocity.y = deltaY / delta;
+//   //   velocity.needsUpdate = true;
+//   // }
+//   function update(t) {
+//     requestAnimationFrame(update);
 
-  //   //   velocity.x = deltaX / delta;
-  //   //   velocity.y = deltaY / delta;
-  //   //   velocity.needsUpdate = true;
-  //   // }
-  //   function update(t) {
-  //     requestAnimationFrame(update);
+//     if (!velocity.needsUpdate) {
+//       mouse.set(-1);
+//       velocity.set(0);
+//     }
+//     velocity.needsUpdate = false;
 
-  //     if (!velocity.needsUpdate) {
-  //       mouse.set(-1);
-  //       velocity.set(0);
-  //     }
-  //     velocity.needsUpdate = false;
+//     flowmap.aspect = aspect;
+//     flowmap.mouse.copy(mouse);
+//     flowmap.velocity.lerp(velocity, velocity.len ? 0.25 : 0.15);
+//     flowmap.update();
 
-  //     flowmap.aspect = aspect;
-  //     flowmap.mouse.copy(mouse);
-  //     flowmap.velocity.lerp(velocity, velocity.len ? 0.25 : 0.15);
-  //     flowmap.update();
+//     program.uniforms.uTime.value = t * 0.01;
+//     renderer.render({ scene: mesh });
+//   }
+//   requestAnimationFrame(update);
 
-  //     program.uniforms.uTime.value = t * 0.01;
-  //     renderer.render({ scene: mesh });
-  //   }
-  //   requestAnimationFrame(update);
+//   return () => {
+//     window.removeEventListener("resize", resize);
+//     window.removeEventListener("mousemove", updateMouse);
+//     window.removeEventListener("touchstart", updateMouse);
+//     window.removeEventListener("touchmove", updateMouse);
+//     if (containerRef.current && gl?.canvas) {
+//       containerRef.current.removeChild(gl.canvas);
+//     }
+//   };
+// }, []);
 
-  //   return () => {
-  //     window.removeEventListener("resize", resize);
-  //     window.removeEventListener("mousemove", updateMouse);
-  //     window.removeEventListener("touchstart", updateMouse);
-  //     window.removeEventListener("touchmove", updateMouse);
-  //     if (containerRef.current && gl?.canvas) {
-  //       containerRef.current.removeChild(gl.canvas);
-  //     }
-  //   };
-  // }, []);
+// const { scrollY } = useScroll();
+// const y = useTransform(scrollY, (latest) => -latest * 0.5);
 
-  // const { scrollY } = useScroll();
-  // const y = useTransform(scrollY, (latest) => -latest * 0.5);
+const Hero = () => {
+  const transitionRef = useRef(null);
+  const videoStepRef = useRef(null);
+  const videoRef = useRef(null);
+  const sectionRef = useRef(null);
+  const shapeTrackRef = useRef(null);
 
-  const strokeRef = useRef(null);
-  const mainRef = useRef(null);
-
-  useEffect(() => {
-    if (strokeRef.current && mainRef.current) {
-      const path = strokeRef.current;
-      const pathLength = path.getTotalLength();
-
-      gsap.set(path, {
-        strokeDasharray: pathLength,
-        strokeDashoffset: pathLength,
-      });
-
-      gsap.to(path, {
-        strokeDashoffset: 0,
-        ease: "none",
-        scrollTrigger: {
-          trigger: mainRef.current,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1,
-        },
-      });
-    }
-  }, []);
-
-
+  // Hero refs
   const marqueeRef = useRef(null);
+  const videoButtonRef = useRef(null);
+  const editorialRef = useRef(null);
+
+  // Statistics refs
+  const statRefs = useRef([]);
+  const statDigitRefs = useRef([]);
+  const statsTextCharsRef = useRef([]);
+  const shapeRef = useRef(null);
+
+  const [videoReady, setVideoReady] = useState(false);
 
   useLayoutEffect(() => {
     const container = marqueeRef.current;
@@ -1223,168 +1218,390 @@ const Hero = ({ toothStepRef }) => {
         0,
       );
 
-timeline.to(
-  movingGroup,
-  {
-    x: -2700,
-    duration: 75,
-    ease: "none",
-    repeat: -1,
-  },
-  0
-);
+      timeline.to(
+        movingGroup,
+        {
+          x: -2700,
+          duration: 75,
+          ease: "none",
+          repeat: -1,
+        },
+        0,
+      );
     }, container);
 
     return () => ctx.revert();
   }, []);
 
-const videoButtonRef = useRef(null);
+  useLayoutEffect(() => {
+    const button = videoButtonRef.current;
+    if (!button) return;
 
-const videoRef = useRef(null);
-const [videoReady, setVideoReady] = useState(false);
+    const label = button.querySelector(".frey-video-button-label");
+
+    const ctx = gsap.context(() => {
+      gsap.set(button, {
+        scaleX: 0,
+        transformOrigin: "left center",
+      });
+
+      gsap.set(label, {
+        opacity: 0,
+      });
+
+      if (!videoReady) return;
+
+      const timeline = gsap.timeline({
+        delay: 1.35,
+      });
+
+      timeline.to(button, {
+        scaleX: 1,
+        duration: 0.85,
+        ease: "power3.inOut",
+      });
+
+      timeline.to(
+        label,
+        {
+          opacity: 1,
+          duration: 0.35,
+          ease: "power2.out",
+        },
+        0.55,
+      );
+    }, button);
+
+    return () => ctx.revert();
+  }, [videoReady]);
+
+  useLayoutEffect(() => {
+    const container = editorialRef.current;
+    if (!container) return;
+
+    const columns = container.querySelectorAll(".frey-editorial-column");
+
+    const ctx = gsap.context(() => {
+      gsap.set(columns, {
+        opacity: 0,
+        filter: "blur(20px)",
+        y: 8,
+      });
+
+      if (!videoReady) return;
+
+      gsap.to(columns, {
+        opacity: 1,
+        filter: "blur(0px)",
+        y: 0,
+        duration: 1.6,
+        stagger: 0.25,
+        delay: 0.4,
+        ease: "power2.out",
+      });
+    }, container);
+
+    return () => ctx.revert();
+  }, [videoReady]);
+
+  useLayoutEffect(() => {
+    const originalContents = [];
+
+    statDigitRefs.current = [];
+
+    statRefs.current.forEach((ref) => {
+      if (!ref) return;
+
+      originalContents.push({
+        ref,
+        html: ref.innerHTML,
+      });
+
+      const targetValue = parseInt(ref.dataset.target, 10);
+
+      const digits = targetValue.toString().split("");
+
+      ref.innerHTML = "";
+
+      digits.forEach((digit) => {
+        const wrapper = document.createElement("div");
+
+        wrapper.style.overflow = "hidden";
+        wrapper.style.height = "1em";
+        wrapper.style.display = "inline-block";
+        wrapper.style.verticalAlign = "top";
+
+        const digitContainer = document.createElement("div");
+
+        digitContainer.style.position = "relative";
+
+        for (let i = 0; i <= 9; i++) {
+          const digitElement = document.createElement("div");
+
+          digitElement.innerText = i;
+          digitElement.style.height = "1em";
+          digitElement.style.lineHeight = "1em";
+          digitElement.style.textAlign = "center";
+
+          digitContainer.appendChild(digitElement);
+        }
+
+        wrapper.appendChild(digitContainer);
+        ref.appendChild(wrapper);
+
+        gsap.set(digitContainer, {
+          y: "0em",
+        });
+
+        statDigitRefs.current.push({
+          element: digitContainer,
+          value: Number(digit),
+        });
+      });
+    });
+
+    return () => {
+      originalContents.forEach(({ ref, html }) => {
+        ref.innerHTML = html;
+      });
+
+      statDigitRefs.current = [];
+    };
+  }, []);
+
+
 useLayoutEffect(() => {
-  const button = videoButtonRef.current;
-  if (!button) return;
+  const container = transitionRef.current;
+  const step = videoStepRef.current;
+  const section = sectionRef.current;
+  const shape = shapeRef.current;
 
-  const label = button.querySelector(
-    ".frey-video-button-label"
-  );
+  if (!container || !step || !section || !shape) return;
 
   const ctx = gsap.context(() => {
-    gsap.set(button, {
-      scaleX: 0,
-      transformOrigin: "left center",
-    });
-
-    gsap.set(label, {
-      opacity: 0,
-    });
-
-    if (!videoReady) return;
-
     const timeline = gsap.timeline({
-      delay: 1.35,
-    });
-
-    timeline.to(button, {
-      scaleX: 1,
-      duration: 0.85,
-      ease: "power3.inOut",
-    });
-
-    timeline.to(
-      label,
-      {
-        opacity: 1,
-        duration: 0.35,
-        ease: "power2.out",
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: container,
+        start: "top top",
+        end: "+=200%",
+        scrub: true,
+        pin: true,
+        pinSpacing: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
       },
-      0.55
+    });
+
+    // Video stepped clip-path
+    timeline.fromTo(
+      step,
+      {
+        clipPath:
+          "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)",
+      },
+      {
+        clipPath:
+          "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)",
+        duration: 1,
+      },
+      0
     );
-  }, button);
+
+    // Statistics panel enters
+    timeline.fromTo(
+      section,
+      { yPercent: 100 },
+      {
+        yPercent: 0,
+        duration: 0.8,
+        immediateRender: true,
+        force3D: true,
+      },
+      0.5
+    );
+
+    // Editorial copy
+    const chars = statsTextCharsRef.current;
+
+    let textEnd = 1.3;
+
+    if (chars.length) {
+      const stagger = 0.012;
+      const passDuration = 0.12;
+
+      timeline.to(
+        chars,
+        {
+          color: "#abff02",
+          duration: passDuration,
+          stagger: { each: stagger },
+        },
+        0.65
+      );
+
+      timeline.to(
+        chars,
+        {
+          color: "#000000",
+          duration: passDuration,
+          stagger: { each: stagger },
+        },
+        0.85
+      );
+
+      textEnd =
+        0.85 + (chars.length - 1) * stagger + passDuration;
+    }
+
+    // Rolling statistics
+    let countersEnd = 1.3;
+
+    statDigitRefs.current.forEach(({ element, value }, index) => {
+      const start = 0.75 + index * 0.06;
+
+      timeline.to(
+        element,
+        {
+          y: `${-value}em`,
+          duration: 0.7,
+          ease: "power3.out",
+        },
+        start
+      );
+
+      countersEnd = Math.max(countersEnd, start + 0.7);
+    });
+const animationEnd = Math.max(textEnd, countersEnd);
+
+timeline.to({}, {
+  duration: Math.max(0.01, animationEnd - timeline.duration()),
+});
+    // Nothing happens to the SVG until the copy and counters finish
+    const shapeStart = Math.max(textEnd, countersEnd) + 0.15;
+
+    timeline.addLabel("shapeExpansion", shapeStart);
+
+    // Expansion without rotation
+    timeline.fromTo(
+      shape,
+      {
+        scale: 1,
+        rotation: 0,
+        transformOrigin: "50% 50%",
+      },
+      {
+        scale: () => {
+          const width = shape.offsetWidth;
+
+          const diagonal = Math.hypot(
+            window.innerWidth,
+            window.innerHeight
+          );
+
+          return (diagonal / width) * 5;
+        },
+        rotation: 0,
+        duration: 1.6,
+        ease: "power2.in",
+        immediateRender: false,
+      },
+      "shapeExpansion"
+    );
+  }, container);
 
   return () => ctx.revert();
-}, [videoReady]);
+}, []);
 
 
   return (
     <>
-      <section className="frey-hero-section relative flex h-screen w-full flex-col justify-end overflow-hidden bg-black">
-        {/* Tooth scene */}
-        {/* <div ref={toothStepRef} className="frey-tooth-step">
-          <div className="frey-tooth-scene">
-            <ToothScene />
+
+    <div ref={transitionRef} className="relative h-screen w-full">
+      <section className="relative flex h-screen w-full flex-col justify-end overflow-hidden bg-[#0F0F0F]">
+        <div ref={videoStepRef} className="hero-main-video">
+          <div
+            className="hero-main-video-scene"
+            style={{
+              backgroundImage: "url('/images/boyholdingaligner-poster.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            <video
+              ref={videoRef}
+              src="/videos/boyholdingaligner.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              onLoadedData={() => setVideoReady(true)}
+              className={`h-full w-full object-cover transition-opacity duration-700 ease-out ${
+                videoReady ? "opacity-100" : "opacity-0"
+              }`}
+            />
           </div>
-        </div> */}
 
-<div ref={toothStepRef} className="frey-tooth-step">
-<div
-  className="frey-tooth-scene"
-  style={{
-    backgroundImage:
-      "url('/images/boyholdingaligner-poster.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  }}
->
-  <video
-    ref={videoRef}
-    src="/videos/boyholdingaligner.mp4"
-    autoPlay
-    muted
-    loop
-    playsInline
-    preload="auto"
-    onLoadedData={() => setVideoReady(true)}
-    className={`h-full w-full object-cover transition-opacity duration-700 ease-out ${
-      videoReady ? "opacity-100" : "opacity-0"
-    }`}
-  />
-</div>
+          <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
+            <h2 className="frey-video-headline m-0 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
+              <LocationCharacterReveal
+                ready={videoReady}
+                delay={0.35}
+                stagger={0.045}
+              >
+                Where smiles
+              </LocationCharacterReveal>
 
-  {/* Video overlay */}
-  <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-<h2 className="frey-video-headline m-0 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
-  <LocationCharacterReveal
-    ready={videoReady}
-    delay={0.35}
-    stagger={0.045}
-  >
-    Where smiles
-  </LocationCharacterReveal>
+              <br />
 
-  <br />
+              <LocationCharacterReveal
+                ready={videoReady}
+                delay={0.8}
+                stagger={0.045}
+              >
+                take shape
+              </LocationCharacterReveal>
+            </h2>
 
-  <LocationCharacterReveal
-    ready={videoReady}
-    delay={0.8}
-    stagger={0.045}
-  >
-    take shape
-  </LocationCharacterReveal>
-</h2>
+            <a
+              ref={videoButtonRef}
+              href="/book-now"
+              className="
+                frey-video-button
+                inline-flex min-h-[56px] items-center justify-center
+                rounded-full border border-white/25
+                bg-white/25 px-12
+                font-neuehaas45 text-[14px] text-white
+                backdrop-blur-[24px] backdrop-saturate-[140%]
+                shadow-[0_4px_24px_rgba(0,0,0,0.08)]
+                transition-colors duration-300
+                hover:bg-white/40 hover:border-white/40
+              "
+            >
+              <span className="frey-video-button-label whitespace-nowrap">
+                Book Now
+              </span>
+            </a>
+          </div>
+        </div>
 
-
-<a
-  ref={videoButtonRef}
-  href="/book-now"
-  className="
-    frey-video-button
-    inline-flex min-h-[56px] items-center justify-center
-    rounded-full
-    border border-white/25
-    bg-white/25
-    px-12
-    font-neuehaas45 text-[14px] text-white
-    backdrop-blur-[24px] backdrop-saturate-[140%]
-    shadow-[0_4px_24px_rgba(0,0,0,0.08)]
-    transition-colors duration-300
-    hover:bg-white/40
-    hover:border-white/40
-  "
->
-  <span className="frey-video-button-label whitespace-nowrap">
-    Book Now
-  </span>
-</a>
-
-  </div>
-</div>
-
-        {/* Editorial columns */}
-        <div className="absolute bottom-[66%] left-[56%] right-[6%] z-[5] grid grid-cols-2 gap-10 text-[#111820] max-md:bottom-[55%] max-md:left-[53%] max-md:gap-4">
-          <div className="flex flex-col gap-3 text-[#f5f5f5]">
+        <div
+          ref={editorialRef}
+          className="absolute bottom-[66%] left-[56%] right-[6%] z-[5] grid grid-cols-2 gap-10 text-[#111820] max-md:bottom-[55%] max-md:left-[53%] max-md:gap-4"
+        >
+          <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
             <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
               (01) — OUR PHILOSOPHY
             </span>
 
-            <p className="max-w-[320px] text-[#f5f5f5]  font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em]">
+            <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em] text-[#f5f5f5]">
               Every smile is a story. At our office, we guide you through every
               step of your orthodontic journey
             </p>
           </div>
 
-          <div className="text-white flex flex-col gap-3">
+          <div className="frey-editorial-column flex flex-col gap-3 text-white">
             <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
               (02) — OUR PRACTICE
             </span>
@@ -1396,32 +1613,33 @@ useLayoutEffect(() => {
           </div>
         </div>
 
-<div className="absolute bottom-[36%] left-[56%] right-[4%] z-[5] flex items-start gap-6 text-white max-md:bottom-[24%] max-md:left-[53%] max-md:gap-3">
-  <div className="mt-[5px] shrink-0">
-    <DotMatrix />
-  </div>
-<h1 className="m-0 font-neuehaas45 text-[clamp(1.25rem,2.1vw,2.75rem)] lowercase leading-[1.04] max-md:text-[clamp(0.7rem,2.5vw,1.25rem)]">
-  <div>
-    <LocationCharacterReveal
-      ready={videoReady}
-      delay={0.1}
-      stagger={0.045}
-    >
-      We understand the art
-    </LocationCharacterReveal>
-  </div>
+        <div className="absolute bottom-[36%] left-[56%] right-[4%] z-[5] flex items-start gap-6 text-white max-md:bottom-[24%] max-md:left-[53%] max-md:gap-3">
+          <div className="mt-[5px] shrink-0">
+            <DotMatrix />
+          </div>
 
-  <div>
-    <LocationCharacterReveal
-      ready={videoReady}
-      delay={1.45}
-      stagger={0.045}
-    >
-      behind the smile.
-    </LocationCharacterReveal>
-  </div>
-</h1>
-</div>
+          <h1 className="m-0 font-neuehaas45 text-[clamp(1.25rem,2.1vw,2.75rem)] lowercase leading-[1.04] max-md:text-[clamp(0.7rem,2.5vw,1.25rem)]">
+            <div>
+              <LocationCharacterReveal
+                ready={videoReady}
+                delay={0.1}
+                stagger={0.045}
+              >
+                We understand the art
+              </LocationCharacterReveal>
+            </div>
+
+            <div>
+              <LocationCharacterReveal
+                ready={videoReady}
+                delay={1.45}
+                stagger={0.045}
+              >
+                behind the smile.
+              </LocationCharacterReveal>
+            </div>
+          </h1>
+        </div>
 
         <div
           ref={marqueeRef}
@@ -1429,7 +1647,7 @@ useLayoutEffect(() => {
         >
           <div className="frey-sky-marquee">
             <div className="frey-sky-background">
-              <FreyCloudScene skyMode="" />
+              <FreyCloudScene />
             </div>
 
             <svg
@@ -1476,9 +1694,107 @@ useLayoutEffect(() => {
           </div>
         </div>
       </section>
-     
-    </>
-  );
+
+      <section
+        ref={sectionRef}
+className="absolute inset-x-0 top-0 z-30 h-screen w-full bg-[#F5F5F5]"
+      >
+        <ShrimpFlow />
+
+        <div className="pointer-events-none absolute inset-0 z-20 flex flex-col lg:flex-row">
+          {/* LEFT — EDITORIAL COPY */}
+          <div className="flex w-full items-center px-8 lg:w-1/2 lg:px-16">
+            <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
+              <h2 className="w-full max-w-[520px] font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em]">
+                Our doctors are fully invested in treatment planning your case
+                correctly. Guided by board-certified standards and decades of
+                clinical practice, we approach every case with the same rigor
+                demanded in academic orthodontics.
+              </h2>
+            </TransitionAnimatedCopy>
+          </div>
+
+          {/* RIGHT — STATISTICS */}
+          <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 lg:px-16">
+            <div className="w-[75%]">
+              {/* STAT 1 */}
+              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
+                <div className="flex items-end font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
+                  <span
+                    ref={(el) => (statRefs.current[0] = el)}
+                    data-target="60"
+                  >
+                    0
+                  </span>
+                  <span className="mb-[3px] ml-1 text-[0.45em]">+</span>
+                </div>
+
+                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
+                  Years of Experience
+                </p>
+              </div>
+
+              {/* STAT 2 */}
+              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
+                <div className="flex items-end font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
+                  <span
+                    ref={(el) => (statRefs.current[1] = el)}
+                    data-target="25"
+                  >
+                    0
+                  </span>
+                  <span className="mb-[3px] ml-1 text-[0.45em]">k</span>
+                </div>
+
+                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
+                  Satisfied Patients
+                </p>
+              </div>
+
+              {/* STAT 3 */}
+              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
+                <div className="font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
+                  <span
+                    ref={(el) => (statRefs.current[2] = el)}
+                    data-target="4"
+                  >
+                    0
+                  </span>
+                </div>
+
+                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
+                  Locations
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM HEADLINE + EXPANDING SHAPE */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 px-8 lg:px-16">
+          <h2 className="flex flex-wrap items-center gap-x-[0.25em] gap-y-2 font-neueroman text-[clamp(2rem,5.5vw,7rem)] leading-[0.9] tracking-[-0.005em] text-black">
+            <span>Clearly simple</span>
+
+        <span
+  ref={shapeRef}
+  className="inline-block h-[0.65em] w-[0.65em] shrink-0 bg-black"
+  aria-hidden="true"
+/>
+            <span>clearly yours</span>
+          </h2>
+        </div>
+      </section>
+    </div>
+
+    <div
+      ref={shapeTrackRef}
+      className="relative h-[150vh] w-full"
+      aria-hidden="true"
+    />
+  </>
+);
+
+
 };
 
 function DotMatrix() {
@@ -1503,7 +1819,7 @@ function DotMatrix() {
             yoyo: true,
           },
         },
-        0
+        0,
       );
 
       for (let i = 0; i < 10; i++) {
@@ -1522,9 +1838,9 @@ function DotMatrix() {
               ease: "sine.inOut",
               repeat: -1,
               yoyo: true,
-            }
+            },
           ),
-          i / 10
+          i / 10,
         );
       }
 
@@ -1555,10 +1871,7 @@ function DotMatrix() {
           transform={`translate(${col * 10}, 0)`}
         >
           {Array.from({ length: 10 }, (_, row) => (
-            <g
-              key={row}
-              transform={`translate(0, ${row * 10})`}
-            >
+            <g key={row} transform={`translate(0, ${row * 10})`}>
               <g mask="url(#contact-dot-mask)">
                 <circle cx="5" cy="5" r="5" />
               </g>
@@ -1569,96 +1882,184 @@ function DotMatrix() {
     </svg>
   );
 }
-export default function LandingComponent() {
-  const transitionRef = useRef(null);
-  const toothStepRef = useRef(null);
-  const statsRef = useRef(null);
-  const [scrollOffset, setScrollOffset] = useState(0);
 
-  const fadeStart = 0;
-  const fadeEnd = 0.3;
-
-  const fadeProgress = Math.min(
-    Math.max((scrollOffset - fadeStart) / (fadeEnd - fadeStart), 0),
-    1,
-  );
-  const opacity = 1 - fadeProgress;
-
-  const progress = Math.min(
-    Math.max((scrollOffset - fadeStart) / (fadeEnd - fadeStart), 0),
-    1,
-  );
-
-  const topTextTranslateY = -progress * window.innerHeight * 1.25;
-
-  const bottomStartY = window.innerHeight * 1;
-  const bottomTextTranslateY =
-    bottomStartY - progress * (bottomStartY + window.innerHeight);
-  const bottomTextOpacity = progress;
+function TransitionAnimatedCopy({
+  children,
+  charsRef,
+  colorInitial = "#999999",
+}) {
+  const headingRef = useRef(null);
 
   useLayoutEffect(() => {
-    const container = transitionRef.current;
-    const step = toothStepRef.current;
-    const stats = statsRef.current;
+    if (!headingRef.current) return;
 
-    if (!container || !step || !stats) return;
+    const split = SplitText.create(headingRef.current, {
+      type: "words,chars",
+      wordsClass: "transition-copy-word",
+      charsClass: "transition-copy-char",
+    });
 
-    const ctx = gsap.context(() => {
-      const timeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: container,
-          start: "top top",
-          end: "+=200%",
-          scrub: true,
-          pin: true,
-          pinSpacing: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
+    charsRef.current = split.chars;
+
+    gsap.set(split.chars, {
+      color: colorInitial,
+    });
+
+    return () => {
+      charsRef.current = [];
+      split.revert();
+    };
+  }, [charsRef, colorInitial]);
+
+  return React.cloneElement(children, {
+    ref: headingRef,
+  });
+}
+
+function AnimatedCopy({
+  children,
+  colorInitial = "#dddddd",
+  colorAccent = "#abff02",
+  colorFinal = "#000000",
+}) {
+  const containerRef = useRef(null);
+  const splitRefs = useRef([]);
+  const lastScrollProgress = useRef(0);
+  const colorTransitionTimers = useRef(new Map());
+  const completedChars = useRef(new Set());
+
+  useGSAP(
+    () => {
+      if (!containerRef.current) return;
+
+      splitRefs.current = [];
+      lastScrollProgress.current = 0;
+      colorTransitionTimers.current.clear();
+      completedChars.current.clear();
+
+      let elements = [];
+      if (containerRef.current.hasAttribute("data-copy-wrapper")) {
+        elements = Array.from(containerRef.current.children);
+      } else {
+        elements = [containerRef.current];
+      }
+
+      elements.forEach((element) => {
+        const charSplit = SplitText.create(element, {
+          type: "chars",
+          charsClass: "char",
+        });
+
+        elements.forEach((element) => {
+          const charSplit = SplitText.create(element, {
+            type: "chars",
+            charsClass: "char",
+          });
+
+          splitRefs.current.push({
+            wordSplit: null,
+            charSplit,
+          });
+        });
+      });
+
+      const allChars = splitRefs.current.flatMap(
+        ({ charSplit }) => charSplit.chars,
+      );
+
+      gsap.set(allChars, { color: colorInitial });
+
+      const scheduleFinalTransition = (char, index) => {
+        if (colorTransitionTimers.current.has(index)) {
+          clearTimeout(colorTransitionTimers.current.get(index));
+        }
+
+        const timer = setTimeout(() => {
+          if (!completedChars.current.has(index)) {
+            gsap.to(char, {
+              duration: 0.1,
+              ease: "none",
+              color: colorFinal,
+              onComplete: () => {
+                completedChars.current.add(index);
+              },
+            });
+          }
+          colorTransitionTimers.current.delete(index);
+        }, 100);
+
+        colorTransitionTimers.current.set(index, timer);
+      };
+
+      ScrollTrigger.create({
+        trigger: containerRef.current,
+        start: "top 90%",
+        end: "top 10%",
+        scrub: 1,
+        onUpdate: (self) => {
+          const progress = self.progress;
+          const totalChars = allChars.length;
+          const isScrollingDown = progress >= lastScrollProgress.current;
+          const currentCharIndex = Math.floor(progress * totalChars);
+
+          allChars.forEach((char, index) => {
+            if (!isScrollingDown && index >= currentCharIndex) {
+              if (colorTransitionTimers.current.has(index)) {
+                clearTimeout(colorTransitionTimers.current.get(index));
+                colorTransitionTimers.current.delete(index);
+              }
+              completedChars.current.delete(index);
+              gsap.set(char, { color: colorInitial });
+              return;
+            }
+
+            if (completedChars.current.has(index)) {
+              return;
+            }
+
+            if (index <= currentCharIndex) {
+              gsap.set(char, { color: colorAccent });
+              if (!colorTransitionTimers.current.has(index)) {
+                scheduleFinalTransition(char, index);
+              }
+            } else {
+              gsap.set(char, { color: colorInitial });
+            }
+          });
+
+          lastScrollProgress.current = progress;
         },
       });
 
-      timeline.fromTo(
-        step,
-        {
-          clipPath:
-            "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)",
-        },
-        {
-          clipPath:
-            "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)",
-          duration: 1,
-          ease: "none",
-        },
-        0,
-      );
+      return () => {
+        colorTransitionTimers.current.forEach((timer) => clearTimeout(timer));
+        colorTransitionTimers.current.clear();
+        completedChars.current.clear();
 
-      timeline.fromTo(
-        stats,
-        {
-          y: () => window.innerHeight,
-        },
-        {
-          y: 0,
-          duration: 0.8,
-          ease: "none",
-          immediateRender: true,
-        },
-        0.5,
-      );
-    }, container);
+        splitRefs.current.forEach(({ wordSplit, charSplit }) => {
+          if (charSplit) charSplit.revert();
+          if (wordSplit) wordSplit.revert();
+        });
+      };
+    },
+    {
+      scope: containerRef,
+      dependencies: [colorInitial, colorAccent, colorFinal],
+    },
+  );
 
-    return () => ctx.revert();
-  }, []);
-
-    const [introComplete, setIntroComplete] = useState(false);
-
-  const handleIntroComplete = useCallback(() => {
-    setIntroComplete(true);
-  }, []);
+  if (React.Children.count(children) === 1) {
+    return React.cloneElement(children, { ref: containerRef });
+  }
 
   return (
-    <>
-      {/* <div style={{ height: '100vh', width: '100vw' }}>
+    <div ref={containerRef} data-copy-wrapper="true">
+      {children}
+    </div>
+  );
+}
+{
+  /* <div style={{ height: '100vh', width: '100vw' }}>
       <Canvas camera={{ position: [0, 5, 30], fov: 50 }}>
   <ambientLight intensity={0.5} />
 <pointLight position={[0, 0, 7]} intensity={0.1} color="#ff6b35" />
@@ -1776,8 +2177,10 @@ export default function LandingComponent() {
      Modern care. Designed to move with you
           </p>
         </div>
-    </div> */}
-      {/* <div style={{ height: "200vh", margin: 0 }}>
+    </div> */
+}
+{
+  /* <div style={{ height: "200vh", margin: 0 }}>
         <div
           style={{
             position: "fixed",
@@ -1859,38 +2262,20 @@ export default function LandingComponent() {
      Modern care. Designed to move with you
           </p>
         </div>
-      </div> */}
-      <div style={{ overflowX: "clip" }}>
-        <div className="MainContainer">
-          <div ref={transitionRef} className="relative h-screen w-full">
-            <Hero toothStepRef={toothStepRef} />
-
-          <section
-  ref={statsRef}
-  className="absolute inset-x-0 top-0 z-30 h-screen w-full bg-[#F5F5F5] will-change-transform"
->
-               
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-          <div className="pointer-events-auto ">
-            <HeroMinimapIntro
-              onComplete={handleIntroComplete}
-            />
-          </div>
-        </div>
-              {/* <ShrimpFlow /> */}
-
-              <section className="relative flex h-full flex-col items-center justify-center px-8 text-center" />
-            </section>
-          </div>
-        </div>
-
-        <NewSection />
-        {/* <Testimonials /> */}
-        <LogoGrid />
-        <Locations />
-        <GiftCards />
+      </div> */
+}
+export default function LandingComponent() {
+  return (
+    <div style={{ overflowX: "clip" }}>
+      <div className="MainContainer">
+        <Hero />
       </div>
-    </>
+
+      <NewSection />
+      <LogoGrid />
+      <Locations />
+      <GiftCards />
+    </div>
   );
 }
 
@@ -2240,19 +2625,19 @@ function HeroMinimapIntro({ onComplete }) {
       if (cancelled) return;
 
       ctx = gsap.context(() => {
-        gsap.fromTo(
-          track,
-          {
-            yPercent: 0,
-          },
-          {
-            yPercent: -80,
-            duration: 1.5,
-            ease: "none",
-            force3D: false,
-            onComplete: () => onComplete?.(),
-          },
-        );
+        // gsap.fromTo(
+        //   track,
+        //   {
+        //     yPercent: 0,
+        //   },
+        //   {
+        //     yPercent: -80,
+        //     duration: 1.5,
+        //     ease: "none",
+        //     force3D: true,
+        //     onComplete: () => onComplete?.(),
+        //   },
+        // );
       }, track);
     };
 
@@ -2267,14 +2652,14 @@ function HeroMinimapIntro({ onComplete }) {
   return (
     <div className="hero-minimap">
       <div className="hero-minimap-left">
-<div className="flex items-center gap-[2px]" aria-label="01">
-  {[0, 1, 2].map((i) => (
-    <span
-      key={i}
-      className="block h-[6px] w-[6px] rounded-full bg-[#f5f5f5]"
-    />
-  ))}
-</div>
+        <div className="flex items-center gap-[2px]" aria-label="01">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="block h-[6px] w-[6px] rounded-full bg-[#f5f5f5]"
+            />
+          ))}
+        </div>
         <span>FREYSMILES</span>
       </div>
 
@@ -2415,46 +2800,42 @@ function MovingClouds({ skyMode = "day" }) {
   const { viewport } = useThree();
   const preset = SKY_PRESETS[skyMode] ?? SKY_PRESETS.day;
 
-const cloudConfigs = [
-  {
-    x: 0.12,
-    y: 0.15,
-    z: -5,
-    size: 32,
-    opacity: 0.65,
-  },
-  {
-    x: 0.52,
-    y: -0.25,
-    z: -6,
-    size: 38,
-    opacity: 0.58,
-  },
-  {
-    x: 0.88,
-    y: 0.25,
-    z: -5,
-    size: 33,
-    opacity: 0.68,
-  },
-];
+  const cloudConfigs = [
+    {
+      x: 0.12,
+      y: 0.15,
+      z: -5,
+      size: 32,
+      opacity: 0.65,
+    },
+    {
+      x: 0.52,
+      y: -0.25,
+      z: -6,
+      size: 38,
+      opacity: 0.58,
+    },
+    {
+      x: 0.88,
+      y: 0.25,
+      z: -5,
+      size: 33,
+      opacity: 0.68,
+    },
+  ];
   return (
     <Clouds frustumCulled={false} limit={1000}>
       {cloudConfigs.map((cloud, index) => (
-    <Cloud
-  key={index}
-  position={[
-    (cloud.x - 0.5) * viewport.width,
-    cloud.y,
-    cloud.z,
-  ]}
-  bounds={[cloud.size, 3, 2]}
-  volume={9}
-  color={preset.colors[index % preset.colors.length]}
-  opacity={cloud.opacity}
-  speed={0.3 + index * 0.05}
-  segments={14}
-/>
+        <Cloud
+          key={index}
+          position={[(cloud.x - 0.5) * viewport.width, cloud.y, cloud.z]}
+          bounds={[cloud.size, 3, 2]}
+          volume={9}
+          color={preset.colors[index % preset.colors.length]}
+          opacity={cloud.opacity}
+          speed={0.3 + index * 0.05}
+          segments={14}
+        />
       ))}
     </Clouds>
   );
@@ -2547,8 +2928,6 @@ function FreyCloudScene({ skyMode }) {
     </div>
   );
 }
-
-
 
 {
   /* <div
@@ -2868,7 +3247,7 @@ const Stats = () => {
   return (
     <section className="bg-[#F2F2F2] w-full min-h-screen flex items-center justify-center">
       <section className="grid grid-cols-12 px-12">
-        <div className="flex col-span-4">
+        {/* <div className="flex col-span-4">
           <div className="flex flex-col items-start justify-start w-full lg:w-1/3 lg:pl-8 ">
             <svg
               className="pointer-events-none"
@@ -2910,10 +3289,9 @@ const Stats = () => {
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="flex flex-col col-span-8">
-          \
           <div className="flex flex-wrap justify-end mt-8 space-x-4 sm:flex-nowrap sm:space-x-6 md:space-x-12">
             <div className="text-center">
               <p className="font-neue-montreal text-[12px] sm:text-[15px] mb-4 sm:mb-10 ">
@@ -2967,230 +3345,803 @@ const Stats = () => {
     </section>
   );
 };
+
+class FluidSimulation {
+  constructor(canvas, { image, background = "#f5f5f5" }) {
+    this.canvas = canvas;
+    this.disposed = false;
+
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: false,
+      antialias: false,
+      powerPreference: "high-performance",
+    });
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    this.geometry = new THREE.PlaneGeometry(2, 2);
+    this.scene = new THREE.Scene();
+
+    this.mesh = new THREE.Mesh(this.geometry);
+    this.mesh.frustumCulled = false;
+    this.scene.add(this.mesh);
+
+    this.width = 1;
+    this.height = 1;
+
+    this.simWidth = 128;
+    this.simHeight = 128;
+
+    this.time = 0;
+
+    this.pressureIterations = 16;
+
+    this.pointer = new THREE.Vector2(0.5, 0.5);
+    this.previousPointer = new THREE.Vector2(0.5, 0.5);
+
+    this.pendingSplats = [];
+
+    this.imageSize = new THREE.Vector2(1, 1);
+    this.resolution = new THREE.Vector2(1, 1);
+
+    const color = new THREE.Color(background);
+
+    this.backgroundColor = new THREE.Vector3(color.r, color.g, color.b);
+
+    // Floating-point render targets are required because
+    // velocity and pressure contain negative values.
+    this.targetOptions = {
+      type: THREE.HalfFloatType,
+      format: THREE.RGBAFormat,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      wrapS: THREE.ClampToEdgeWrapping,
+      wrapT: THREE.ClampToEdgeWrapping,
+      depthBuffer: false,
+      stencilBuffer: false,
+    };
+
+    const makeMaterial = (fragmentShader, uniforms) =>
+      new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms,
+        depthTest: false,
+        depthWrite: false,
+      });
+
+    this.splatMaterial = makeMaterial(splatShader, {
+      uTarget: { value: null },
+      uPoint: { value: new THREE.Vector2() },
+      uValue: { value: new THREE.Vector3() },
+      uRadius: { value: 0.1 },
+      uAspect: { value: 1 },
+      uClampDye: { value: 0 },
+    });
+
+    this.divergenceMaterial = makeMaterial(divergenceShader, {
+      uVelocity: { value: null },
+      uTexelSize: { value: new THREE.Vector2() },
+    });
+
+    this.pressureMaterial = makeMaterial(pressureShader, {
+      uPressure: { value: null },
+      uDivergence: { value: null },
+      uTexelSize: { value: new THREE.Vector2() },
+    });
+
+    this.gradientMaterial = makeMaterial(gradientSubtractShader, {
+      uPressure: { value: null },
+      uVelocity: { value: null },
+      uTexelSize: { value: new THREE.Vector2() },
+    });
+
+    this.advectionMaterial = makeMaterial(advectionShader, {
+      uVelocity: { value: null },
+      uSource: { value: null },
+      uTexelSize: { value: new THREE.Vector2() },
+      uDt: { value: 0.016 },
+      uDissipation: { value: 1 },
+    });
+
+    const placeholder = new THREE.DataTexture(
+      new Uint8Array([245, 245, 245, 255]),
+      1,
+      1,
+      THREE.RGBAFormat,
+    );
+
+    placeholder.colorSpace = THREE.SRGBColorSpace;
+    placeholder.needsUpdate = true;
+
+    this.placeholderTexture = placeholder;
+    this.loadedTexture = null;
+
+    this.displayMaterial = makeMaterial(displayShader, {
+      uDye: { value: null },
+      uImage: { value: placeholder },
+      uResolution: { value: this.resolution },
+      uImageSize: { value: this.imageSize },
+      uBackgroundColor: { value: this.backgroundColor },
+      uTime: { value: 0 },
+      uTexelSize: {
+        value: new THREE.Vector2(1, 1),
+      },
+    });
+
+    // Render targets.
+    this.velocity = this.createDoubleTarget(128, 128);
+    this.pressure = this.createDoubleTarget(128, 128);
+    this.divergence = this.createTarget(128, 128);
+    this.dye = this.createDoubleTarget(512, 512);
+
+    this.texelSize = new THREE.Vector2(1 / 128, 1 / 128);
+
+    this.divergenceMaterial.uniforms.uTexelSize.value = this.texelSize;
+
+    this.pressureMaterial.uniforms.uTexelSize.value = this.texelSize;
+
+    this.gradientMaterial.uniforms.uTexelSize.value = this.texelSize;
+
+    const loader = new THREE.TextureLoader();
+
+    loader.load(
+      image,
+      (texture) => {
+        if (this.disposed) {
+          texture.dispose();
+          return;
+        }
+
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+
+        this.loadedTexture = texture;
+
+        this.imageSize.set(texture.image.width, texture.image.height);
+
+        this.displayMaterial.uniforms.uImage.value = texture;
+      },
+      undefined,
+      (error) => {
+        console.error("Fluid reveal image failed:", error);
+      },
+    );
+  }
+
+  createTarget(width, height) {
+    return new THREE.WebGLRenderTarget(width, height, this.targetOptions);
+  }
+
+  createDoubleTarget(width, height) {
+    return {
+      read: this.createTarget(width, height),
+      write: this.createTarget(width, height),
+
+      swap() {
+        const temp = this.read;
+        this.read = this.write;
+        this.write = temp;
+      },
+
+      setSize(w, h) {
+        this.read.setSize(w, h);
+        this.write.setSize(w, h);
+      },
+
+      dispose() {
+        this.read.dispose();
+        this.write.dispose();
+      },
+    };
+  }
+
+  renderMaterial(material, target = null) {
+    this.mesh.material = material;
+
+    this.renderer.setRenderTarget(target);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  clearTarget(target) {
+    this.renderer.setRenderTarget(target);
+    this.renderer.clear();
+  }
+
+  resize(width, height) {
+    this.width = Math.max(1, width);
+    this.height = Math.max(1, height);
+    this.displayMaterial.uniforms.uTexelSize.value.set(1 / width, 1 / height);
+    this.renderer.setSize(this.width, this.height, false);
+
+    this.resolution.set(this.width, this.height);
+
+    const aspect = this.width / this.height;
+
+    // Low-resolution fluid simulation.
+    this.simWidth = Math.max(32, Math.round(128 * Math.max(aspect, 1)));
+
+    this.simHeight = Math.max(32, Math.round(128 / Math.max(aspect, 1)));
+
+    // Higher-resolution reveal mask.
+    const dyeWidth = Math.max(128, Math.round(512 * Math.max(aspect, 1)));
+
+    const dyeHeight = Math.max(128, Math.round(512 / Math.max(aspect, 1)));
+
+    this.velocity.setSize(this.simWidth, this.simHeight);
+
+    this.pressure.setSize(this.simWidth, this.simHeight);
+
+    this.divergence.setSize(this.simWidth, this.simHeight);
+
+    this.dye.setSize(dyeWidth, dyeHeight);
+
+    this.texelSize.set(1 / this.simWidth, 1 / this.simHeight);
+
+    this.splatMaterial.uniforms.uAspect.value = aspect;
+
+    [
+      this.velocity.read,
+      this.velocity.write,
+      this.pressure.read,
+      this.pressure.write,
+      this.divergence,
+      this.dye.read,
+      this.dye.write,
+    ].forEach((target) => this.clearTarget(target));
+
+    this.renderer.setRenderTarget(null);
+
+    this.pendingSplats.length = 0;
+  }
+
+  // --------------------------------------------------
+  // MOUSE INPUT
+  // --------------------------------------------------
+
+  addPointer(x, y, dx, dy) {
+    const forceX = THREE.MathUtils.clamp(dx * 1.5, -0.6, 0.6);
+    const forceY = THREE.MathUtils.clamp(dy * 1.5, -0.6, 0.6);
+    const speed = Math.hypot(dx, dy);
+
+    const radiusPx = THREE.MathUtils.lerp(
+      28.93,
+      61.99,
+      THREE.MathUtils.clamp(speed * 0.15, 0, 1),
+    );
+
+    const radius = radiusPx / this.height;
+    const marginX = radiusPx / this.width;
+    const marginY = radiusPx / this.height;
+
+    const safeX = THREE.MathUtils.clamp(x, marginX * 2, 1 - marginX * 2);
+
+    const safeY = THREE.MathUtils.clamp(y, marginY * 2, 1 - marginY * 2);
+
+    this.pendingSplats.push({
+      x: safeX,
+      y: safeY,
+      dx: forceX,
+      dy: forceY,
+      radius,
+    });
+
+    // Avoid an unbounded queue if pointer events
+    // arrive faster than animation frames.
+    if (this.pendingSplats.length > 24) {
+      this.pendingSplats.splice(0, this.pendingSplats.length - 24);
+    }
+  }
+
+  splat(target, point, value, radius) {
+    const uniforms = this.splatMaterial.uniforms;
+
+    uniforms.uTarget.value = target.read.texture;
+    uniforms.uPoint.value.set(point.x, point.y);
+    uniforms.uValue.value.set(value.x, value.y, value.z);
+    uniforms.uRadius.value = radius;
+    uniforms.uClampDye.value = target === this.dye ? 1 : 0;
+
+    this.renderMaterial(this.splatMaterial, target.write);
+
+    target.swap();
+  }
+
+  // --------------------------------------------------
+  // SIMULATION
+  // --------------------------------------------------
+
+  update(delta, elapsed) {
+    if (this.disposed) return;
+
+    const dt = Math.min(delta, 0.033);
+
+    this.time = elapsed;
+
+    // 1. Inject mouse movement into velocity and dye.
+    for (const splat of this.pendingSplats) {
+      const point = {
+        x: splat.x,
+        y: splat.y,
+      };
+
+      this.splat(
+        this.velocity,
+        point,
+        { x: splat.dx, y: splat.dy, z: 0 },
+        splat.radius * 1.3,
+      );
+
+      this.splat(
+        this.dye,
+        point,
+        { x: 0.45, y: 0.45, z: 0.45 },
+        splat.radius * 1.15,
+      );
+    }
+
+    this.pendingSplats.length = 0;
+
+    // 2. Calculate divergence.
+    this.divergenceMaterial.uniforms.uVelocity.value =
+      this.velocity.read.texture;
+
+    this.renderMaterial(this.divergenceMaterial, this.divergence);
+
+    // 3. Solve pressure.
+    for (let i = 0; i < this.pressureIterations; i++) {
+      this.pressureMaterial.uniforms.uPressure.value =
+        this.pressure.read.texture;
+
+      this.pressureMaterial.uniforms.uDivergence.value =
+        this.divergence.texture;
+
+      this.renderMaterial(this.pressureMaterial, this.pressure.write);
+
+      this.pressure.swap();
+    }
+
+    // 4. Remove pressure gradient from velocity.
+    this.gradientMaterial.uniforms.uPressure.value = this.pressure.read.texture;
+
+    this.gradientMaterial.uniforms.uVelocity.value = this.velocity.read.texture;
+
+    this.renderMaterial(this.gradientMaterial, this.velocity.write);
+
+    this.velocity.swap();
+
+    // 5. Advect velocity.
+    this.advectionMaterial.uniforms.uVelocity.value =
+      this.velocity.read.texture;
+
+    this.advectionMaterial.uniforms.uSource.value = this.velocity.read.texture;
+
+    this.advectionMaterial.uniforms.uDt.value = dt;
+
+    this.advectionMaterial.uniforms.uDissipation.value = Math.pow(
+      0.93,
+      dt * 60,
+    );
+
+    this.renderMaterial(this.advectionMaterial, this.velocity.write);
+
+    this.velocity.swap();
+
+    // 6. Advect dye through the updated velocity.
+    this.advectionMaterial.uniforms.uVelocity.value =
+      this.velocity.read.texture;
+
+    this.advectionMaterial.uniforms.uSource.value = this.dye.read.texture;
+
+    this.advectionMaterial.uniforms.uDissipation.value = Math.pow(
+      0.991,
+      dt * 60,
+    );
+
+    this.renderMaterial(this.advectionMaterial, this.dye.write);
+
+    this.dye.swap();
+
+    // 7. Display sharp photograph through fluid mask.
+    this.displayMaterial.uniforms.uDye.value = this.dye.read.texture;
+
+    this.displayMaterial.uniforms.uTime.value = elapsed;
+
+    this.renderMaterial(this.displayMaterial, null);
+  }
+
+  dispose() {
+    this.disposed = true;
+
+    this.velocity.dispose();
+    this.pressure.dispose();
+    this.divergence.dispose();
+    this.dye.dispose();
+
+    this.splatMaterial.dispose();
+    this.divergenceMaterial.dispose();
+    this.pressureMaterial.dispose();
+    this.gradientMaterial.dispose();
+    this.advectionMaterial.dispose();
+    this.displayMaterial.dispose();
+
+    this.geometry.dispose();
+
+    this.placeholderTexture.dispose();
+    this.loadedTexture?.dispose();
+
+    this.renderer.dispose();
+  }
+}
+
+function GooeyReveal({
+  image = "/images/benchmockup.png",
+  background = "#f5f5f5",
+}) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const simulation = new FluidSimulation(canvas, {
+      image,
+      background,
+    });
+
+    const pointer = {
+      initialized: false,
+      x: 0.5,
+      y: 0.5,
+      lastTime: 0,
+      vx: 0,
+      vy: 0,
+    };
+
+    let frameId = null;
+    let visible = true;
+
+    function resize() {
+      const rect = parent.getBoundingClientRect();
+
+      simulation.resize(Math.max(1, rect.width), Math.max(1, rect.height));
+
+      pointer.initialized = false;
+    }
+
+    function onPointerMove(event) {
+      const rect = parent.getBoundingClientRect();
+
+      if (!rect.width || !rect.height) return;
+
+      const x = (event.clientX - rect.left) / rect.width;
+
+      const y = 1 - (event.clientY - rect.top) / rect.height;
+
+      if (x < 0 || x > 1 || y < 0 || y > 1) {
+        pointer.initialized = false;
+        return;
+      }
+
+      const now = performance.now();
+
+      if (!pointer.initialized) {
+        pointer.initialized = true;
+        pointer.x = x;
+        pointer.y = y;
+        pointer.lastTime = now;
+
+        simulation.addPointer(x, y, 0, 0);
+        return;
+      }
+
+      const elapsed = Math.max((now - pointer.lastTime) / 1000, 0.008);
+
+      const rawDx = (x - pointer.x) / elapsed;
+      const rawDy = (y - pointer.y) / elapsed;
+
+      const smoothing = 1 - Math.exp(-elapsed * 12);
+
+      pointer.vx += (rawDx - pointer.vx) * smoothing;
+      pointer.vy += (rawDy - pointer.vy) * smoothing;
+
+      const dx = pointer.vx;
+      const dy = pointer.vy;
+      const distance = Math.hypot(x - pointer.x, y - pointer.y);
+
+      const steps = Math.min(4, Math.max(1, Math.ceil(distance / 0.12)));
+
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+
+        simulation.addPointer(
+          pointer.x + (x - pointer.x) * t,
+          pointer.y + (y - pointer.y) * t,
+          dx / steps,
+          dy / steps,
+        );
+      }
+
+      pointer.x = x;
+      pointer.y = y;
+      pointer.lastTime = now;
+    }
+
+    function onPointerLeave() {
+      pointer.initialized = false;
+    }
+
+    parent.addEventListener("pointermove", onPointerMove);
+
+    parent.addEventListener("pointerleave", onPointerLeave);
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(parent);
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+      },
+      {
+        threshold: 0,
+      },
+    );
+
+    visibilityObserver.observe(parent);
+
+    resize();
+
+    let lastTime = performance.now();
+    let elapsed = 0;
+
+    function animate(now) {
+      frameId = requestAnimationFrame(animate);
+
+      const delta = Math.min((now - lastTime) / 1000, 0.033);
+
+      lastTime = now;
+
+      if (!visible || document.hidden) return;
+
+      elapsed += delta;
+
+      simulation.update(delta, elapsed);
+    }
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+
+      parent.removeEventListener("pointermove", onPointerMove);
+
+      parent.removeEventListener("pointerleave", onPointerLeave);
+
+      resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+
+      simulation.dispose();
+    };
+  }, [image, background]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      style={{ zIndex: 0 }}
+    />
+  );
+}
 const NewSection = () => {
   const containerRef = useRef();
   const lineRefs = useRef([]);
   const textRefs = useRef([]);
-  const sectionLineRefs = useRef([]);
 
   const addToLineRefs = (el) => el && lineRefs.current.push(el);
   const addToTextRefs = (el) => el && textRefs.current.push(el);
-  const addToSectionLineRefs = (el) => el && sectionLineRefs.current.push(el);
 
   useEffect(() => {
-    const [topLine, bottomLine] = sectionLineRefs.current;
+    const container = containerRef.current;
+    if (!container) return;
 
-    // INITIAL STATE
-    gsap.set([topLine, bottomLine, ...lineRefs.current], {
-      scaleX: 0,
-      transformOrigin: "center center",
-    });
+    const ctx = gsap.context(() => {
+      const lines = lineRefs.current;
+      const texts = textRefs.current;
+      gsap.set(lines, {
+        scaleX: 0,
+        transformOrigin: "center center",
+      });
 
-    gsap.set(textRefs.current, {
-      opacity: 0,
-      y: 40,
-    });
+      gsap.set(texts, {
+        opacity: 0,
+        y: 40,
+      });
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: "top 75%",
-        toggleActions: "play none none none",
-      },
-    });
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: container,
+          start: "top 75%",
+          toggleActions: "play none none none",
+        },
+      });
 
-    tl.to(topLine, {
-      scaleX: 1,
-      duration: 1.9,
-      ease: "power3.inOut",
-    });
-
-    tl.to(
-      lineRefs.current,
-      {
+      // ROW DIVIDERS
+      tl.to(lines, {
         scaleX: 1,
         duration: 1.9,
         ease: "power3.inOut",
         stagger: {
           amount: 0.65,
         },
-      },
-      "-=1.45",
-    );
+      });
 
-    tl.to(
-      bottomLine,
-      {
-        scaleX: 1,
-        duration: 1.9,
-        ease: "power3.inOut",
-      },
-      "-=1.45",
-    );
+      // TEXT REVEAL
+      tl.to(
+        texts,
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          stagger: 0.06,
+        },
+        "-=1.4",
+      );
+    }, container);
 
-    tl.addPause("+=0.08");
-
-    tl.to(
-      textRefs.current,
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        ease: "power3.out",
-        stagger: 0.06,
-      },
-      "-=1.4",
-    );
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
+    return () => ctx.revert();
   }, []);
-  // const splitTextInstances = useRef([]);
 
-  // const linkRef = useRef(null);
+  const statRefs = useRef([]);
 
-  // useEffect(() => {
-  //   const link = linkRef.current;
+  useEffect(() => {
+    statRefs.current.forEach((ref) => {
+      if (!ref) return;
 
-  //   const span1 = link.querySelector("[data-tha-span-1]");
-  //   const span2 = link.querySelector("[data-tha-span-2]");
+      const targetValue = parseInt(ref.dataset.target, 10);
+      const digits = targetValue.toString().split("");
 
-  //   const handleMouseEnter = () => {
-  //     gsap.to([span1, span2], {
-  //       yPercent: -100,
-  //       duration: 0.8,
-  //       ease: "power4.inOut",
-  //     });
-  //   };
+      ref.innerHTML = "";
+      const containers = [];
 
-  //   const handleMouseLeave = () => {
-  //     gsap.to([span1, span2], {
-  //       yPercent: 0,
-  //       duration: 0.8,
-  //       ease: "power4.inOut",
-  //     });
-  //   };
+      digits.forEach((digit) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.overflow = "hidden";
+        wrapper.style.height = "1em";
+        wrapper.style.display = "inline-block";
 
-  //   link.addEventListener("mouseenter", handleMouseEnter);
-  //   link.addEventListener("mouseleave", handleMouseLeave);
+        const digitContainer = document.createElement("div");
+        digitContainer.style.position = "relative";
+        digitContainer.style.transform = "translateY(0)";
+        digitContainer.style.transition = "transform 0.5s ease-out";
 
-  //   return () => {
-  //     link.removeEventListener("mouseenter", handleMouseEnter);
-  //     link.removeEventListener("mouseleave", handleMouseLeave);
-  //   };
-  // }, []);
+        for (let i = 0; i <= 9; i++) {
+          const digitElement = document.createElement("div");
+          digitElement.innerText = i;
+          digitElement.style.height = "1em";
+          digitElement.style.lineHeight = "1em";
+          digitElement.style.textAlign = "center";
+          digitContainer.appendChild(digitElement);
+        }
+        wrapper.appendChild(digitContainer);
+        ref.appendChild(wrapper);
+        containers.push({ container: digitContainer, value: digit });
+      });
 
-  // const [hover, setHover] = useState(false);
+      containers.forEach(({ container, value }, index) => {
+        gsap.to(container, {
+          y: -value * 1 + "em",
+          duration: 4,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ref,
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        });
+      });
+    });
+  }, []);
 
   return (
     <>
-      <div className="bg-[#f5f5f5] accolades-section">
-        <div className="flex justify-start px-10 font-canelathin text-[18px]">
-          Accolades
-        </div>
-
-        <div
-          ref={containerRef}
-          className="mt-[6vh] w-full max-w-7xl mx-auto text-[11px] relative"
-        >
+      <div className="relative isolate bg-[#f5f5f5]">
+        <GooeyReveal
+          image="/images/ajomockupchairupdated.png"
+          background="#f5f5f5"
+        />
+        <section className="relative z-10 flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
           <div
-            ref={addToSectionLineRefs}
-            className="absolute top-0 left-0 right-0 h-[.5px] bg-black origin-left"
-          />
-
-          <div className="font-canelathin tracking-wide flex flex-col text-[1.25em]">
-            {[
-              ["6× Winner Best Orthodontist", "Best of the Valley"],
-              [
-                "5× Winner Best Orthodontist",
-                "Readers' Choice The Morning Call",
-              ],
-              [
-                "10× Cover Feature",
-                "American Journal of Orthodontics & Dentofacial Orthopedics",
-              ],
-              ["Nationally Recognized Top Orthodontist", "Top Dentists"],
-              ["Invisalign", "25+ Years of Experience"],
-              ["Invisalign Teen", "5000+ Cases Treated"],
-              ["Diamond Plus", "Top 1% of All Providers"],
-            ].map(([left, right], i) => (
-              <div key={i} className="flex py-3.5 items-center px-5 relative">
-                {i < 6 && (
+            ref={containerRef}
+            className="relative w-full max-w-7xl mx-auto text-[11px]"
+          >
+            <div className="relative z-10 mx-auto w-[94%] md:w-[85%] font-neueroman font-[800] tracking-wide flex flex-col text-[1.15em]">
+              <div className="relative">
+                {[
+                  ["2026", "6× Winner Best Orthodontist", "Best of the Valley"],
+                  [
+                    "2026",
+                    "5× Winner Best Orthodontist",
+                    "Readers' Choice The Morning Call",
+                  ],
+                  [
+                    "2026",
+                    "10× Cover Feature",
+                    "American Journal of Orthodontics & Dentofacial Orthopedics",
+                  ],
+                  [
+                    "2026",
+                    "Nationally Recognized Top Orthodontist",
+                    "Top Dentists",
+                  ],
+                  ["2026", "Invisalign", "25+ Years of Experience"],
+                  ["2026", "Invisalign Teen", "5000+ Cases Treated"],
+                  ["2026", "Diamond Plus", "Top 1% of All Providers"],
+                ].map(([date, achievement, distinction], i) => (
                   <div
-                    ref={addToLineRefs}
-                    className="absolute inset-x-0 bottom-0 h-[.5px] bg-black origin-center"
-                    style={{ transform: "scaleX(0)" }}
-                  />
-                )}
-
-                <div className="flex-1 pr-8 overflow-hidden">
-                  <div ref={addToTextRefs}>{left}</div>
-                </div>
-
-                <div className="w-[350px] pr-6 overflow-hidden">
-                  <div ref={addToTextRefs}>{right}</div>
-                </div>
-
-                <div className="w-[80px] text-right opacity-50 overflow-hidden">
-                  <div ref={addToTextRefs}>Date</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            ref={addToSectionLineRefs}
-            className="absolute bottom-0 left-0 right-0 h-[.5px] bg-black origin-left"
-          />
-        </div>
-      </div>
-      {/* <section className="flex items-center justify-center min-h-screen px-8  md:px-16">
-        <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
-          <div className=" text-black flex flex-col justify-center">
-            <div className="relative flex items-center justify-center mx-auto max-w-[80vw]">
-              <div className="absolute inset-0 bg-[#1d2120] h-full w-full" />
-              <div className="relative w-[110%] bg-[#FFF] px-48 py-2 rounded-[100px] border-t border-b border-[#1d2120] overflow-hidden">
-                <div className="py-2 font-neue-montreal text-center text-[18px] text-black">
-                  <a
-                    ref={linkRef}
-                    href="/book-now"
-                    data-tha
-                    style={{
-                      display: "inline-block",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
+                    key={i}
+                    className="
+    relative grid
+    grid-cols-[1fr_1.5fr_1.5fr]
+    items-center
+    gap-x-3 md:gap-x-6
+    px-2 md:px-3
+    py-1 md:py-1
+  "
                   >
-                    <span
-                      data-tha-span-1
-                      style={{
-                        fontSize: "1.25rem",
-                        fontFamily: "HelveticaNeue-Light",
-                        display: "inline-block",
-                        position: "relative",
-                      }}
-                    >
-                      BOOK NOW
+                    <div
+                      ref={addToLineRefs}
+                      className="absolute inset-x-0 bottom-0 h-[.5px] bg-[#DEDEDE] origin-center"
+                      style={{ transform: "scaleX(0)" }}
+                    />
+
+                    {/* Column 1 — Date */}
+                    <div className="min-w-0 overflow-hidden">
+                      <div ref={addToTextRefs}>{date}</div>
+                    </div>
+
+                    {/* Column 2 — Achievement */}
+                    <div className="min-w-0 overflow-hidden">
+                      <div ref={addToTextRefs}>{achievement}</div>
+                    </div>
+
+                    {/* Column 3 — Distinction */}
+                    <div className="min-w-0 overflow-hidden">
+                      <div ref={addToTextRefs}>{distinction}</div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pointer-events-none absolute left-full -top-[70px] ml-6 hidden md:block">
+                  <div className="flex flex-col items-end">
+                    <span className="font-neueroman text-[#C5C6C7] text-[36px] font-[600] uppercase tracking-[0.08em]">
+                      Awards
                     </span>
                     <span
-                      data-tha-span-2
+                      className="mt-2 ml-auto translate-x-[10px] font-neueroman text-[#C5C6C7] text-[36px] font-[600] uppercase tracking-[0.08em]"
                       style={{
-                        fontSize: "1.25rem",
-                        fontFamily: "HelveticaNeue-Light",
-                        display: "inline-block",
-                        position: "absolute",
-                        top: "100%",
-                        left: "0",
+                        writingMode: "vertical-rl",
+                        textOrientation: "mixed",
                       }}
                     >
-                      BOOK NOW
+                      Recognitions
                     </span>
-                  </a>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          {/* <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
 
           <div className="p-8 md:p-16 rounded-md flex flex-col justify-between">
             <svg
@@ -3222,8 +4173,86 @@ const NewSection = () => {
               />
             </svg>
           </div>
+           
+
+
+        </div> */}
+        </section>
+
+        {/* Awards / Recognition typography */}
+        <div className="pointer-events-none absolute left-full top-0 ml-6 hidden md:block">
+          <div className="flex flex-col items-start">
+            <span className="font-neueroman text-[12px] font-[600] uppercase tracking-[0.08em]">
+              Awards
+            </span>
+
+            <span
+              className="mt-2 font-neueroman text-[12px] font-[600] uppercase tracking-[0.08em]"
+              style={{
+                writingMode: "vertical-rl",
+                textOrientation: "mixed",
+              }}
+            >
+              Recognition
+            </span>
+          </div>
         </div>
-      </section> */}
+        {/* Stats — directly beneath awards */}
+        <div className="mx-auto mt-16 flex w-[94%] flex-wrap items-center justify-center gap-10 sm:gap-16 md:mt-20 md:w-[85%] md:gap-24">
+          {/* Years of Experience */}
+          <div className="flex flex-col items-center text-center">
+            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
+              Years of Experience
+            </p>
+
+            <h2 className="flex items-center gap-1 font-neue-montreal text-[5rem] font-neueroman text-[#C5C6C7] leading-none sm:text-[6rem] md:text-[7rem]">
+              <span
+                data-target="60"
+                ref={(el) => (statRefs.current[0] = el)}
+                className="pointer-events-none"
+              >
+                0
+              </span>
+              <span className="text-[2rem] sm:text-[3rem]">+</span>
+            </h2>
+          </div>
+
+          {/* Satisfied Patients */}
+          <div className="flex flex-col items-center text-center">
+            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
+              Satisfied Patients
+            </p>
+
+            <h2 className="flex items-center gap-1 font-neueroman text-[#C5C6C7] text-[5rem] leading-none sm:text-[6rem] md:text-[7rem]">
+              <span
+                data-target="25"
+                ref={(el) => (statRefs.current[1] = el)}
+                className="pointer-events-none"
+              >
+                0
+              </span>
+              <span className="text-[2rem] sm:text-[3rem]">k</span>
+            </h2>
+          </div>
+
+          {/* Locations */}
+          <div className="flex flex-col items-center text-center">
+            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
+              Locations
+            </p>
+
+            <h2 className="font-neueroman text-[#C5C6C7] text-[5rem] leading-none sm:text-[6rem] md:text-[7rem]">
+              <span
+                data-target="4"
+                ref={(el) => (statRefs.current[2] = el)}
+                className="pointer-events-none"
+              >
+                0
+              </span>
+            </h2>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
@@ -3545,201 +4574,6 @@ const LogoGrid = () => {
             <p className=" font-neue-montreal text-[15px] pl-4">
               Our greatest award is the success of our patients
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Testimonials = ({ textureUrl, position }) => {
-  const carouselItems = [
-    {
-      type: "image",
-      src: "../images/beigegradient.png",
-      name: "Lisa Moyer",
-      description:
-        "You will receive top-notch orthodontic care at Frey Smiles. Dr. Frey and his entire staff make every visit a pleasure. It is apparent at each appointment that Dr. Frey truly cares about his patients. He has treated both of our kids and my husband, and they all have beautiful smiles! I highly recommend!",
-    },
-    {
-      type: "image",
-      src: "../images/buttongradient.png",
-      name: "Karen O'Neill",
-      description:
-        "I had an open bite and misaligned teeth most of my life. Dr. Frey fixed it and in record time. 1 1/2 years with Invisalign. Highly recommended! Friendly staff and easy to make appointments!",
-    },
-    {
-      type: "image",
-      src: "../images/gradient2.jpeg",
-      name: "Karen Oneill",
-      description:
-        "I had an open bite and misaligned teeth most of my life. Dr. Frey fixed it and in record time. 1 1/2 years with Invisalign. Highly recommended! Friendly staff and easy to make appointments!",
-    },
-    {
-      type: "image",
-      src: "../images/radialgradient.png",
-      name: "Tanya Burnhauser",
-      description:
-        "Dr. Frey was my orthodontist when I was 11 years old. I'm now 42. I still talk about how amazing he was and the great work he did with my teeth. Thank you so much for giving the most beautiful smile!",
-    },
-  ];
-
-  const carouselRef = useRef(null);
-
-  const controls = useAnimation();
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const prevSlide = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? carouselItems.length - 1 : prevIndex - 1,
-    );
-  };
-
-  const nextSlide = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === carouselItems.length - 1 ? 0 : prevIndex + 1,
-    );
-  };
-
-  const [maxDrag, setMaxDrag] = useState(0);
-
-  useEffect(() => {
-    if (carouselRef.current) {
-      const containerWidth = carouselRef.current.scrollWidth;
-      const viewportWidth = carouselRef.current.offsetWidth;
-      setMaxDrag(-(containerWidth - viewportWidth));
-    }
-  }, [carouselItems]);
-
-  return (
-    <div className="relative sticky flex flex-col w-full h-screen overflow-hidden">
-      <div className="w-full bg-[#666] h-[1px]"></div>
-
-      <div className="relative flex flex-1 w-full overflow-hidden">
-        {/* Left Column */}
-        <div className="w-[25%] h-full flex flex-col justify-center items-center p-10 border-r border-[#666]">
-          <div className="font-neue-montreal text-white text-[40px] leading-tight">
-            Select Reviews
-          </div>
-
-          {/* Counter */}
-          <div className="flex inline-flex items-center gap-6 mt-20 text-sm text-white font-neue-montreal">
-            <div>{`${String(currentIndex + 1).padStart(2, "0")} / ${
-              carouselItems.length
-            }`}</div>
-            <div className="flex gap-4">
-              <button
-                onClick={prevSlide}
-                className="flex items-center justify-center "
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 100 267"
-                  xmlns="http://www.w3.org/2000/svg"
-                  stroke="white"
-                  fill="none"
-                  strokeWidth="10"
-                  transform="rotate(-90)"
-                >
-                  <path d="M49.894 2.766v262.979" strokeLinecap="square"></path>
-                  <path d="M99.75 76.596C73.902 76.596 52.62 43.07 49.895 0 47.168 43.07 25.886 76.596.036 76.596"></path>
-                </svg>
-              </button>
-              <button
-                onClick={nextSlide}
-                className="flex items-center justify-center "
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 100 267"
-                  xmlns="http://www.w3.org/2000/svg"
-                  stroke="white"
-                  fill="none"
-                  strokeWidth="10"
-                  transform="rotate(90)"
-                >
-                  <path d="M49.894 2.766v262.979" strokeLinecap="square"></path>
-                  <path d="M99.75 76.596C73.902 76.596 52.62 43.07 49.895 0 47.168 43.07 25.886 76.596.036 76.596"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="w-[75%] relative flex overflow-hidden">
-          <div
-            className="flex w-full overflow-x-auto snap-mandatory snap-x"
-            style={{
-              scrollSnapType: "x mandatory",
-              scrollBehavior: "smooth",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            <motion.div
-              ref={carouselRef}
-              className="flex w-full h-full cursor-grab active:cursor-grabbing gap-[2vw] pl-[2vw]"
-              style={{ willChange: "transform" }}
-              drag="x"
-              dragConstraints={{ left: maxDrag, right: 0 }}
-              dragElastic={0.1}
-              dragMomentum={false}
-              onDragEnd={(event, info) => {
-                const offset = info.offset.x;
-                const velocity = info.velocity.x;
-                const threshold = 60;
-                const velocityThreshold = 400;
-
-                if (offset > threshold || velocity > velocityThreshold) {
-                  prevSlide();
-                } else if (
-                  offset < -threshold ||
-                  velocity < -velocityThreshold
-                ) {
-                  nextSlide();
-                }
-              }}
-            >
-              {carouselItems.map((item, index) => (
-                <motion.div
-                  key={index}
-                  className="flex flex-col items-center justify-center flex-none cursor-grab active:cursor-grabbing"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {item.type === "image" ? (
-                    <div className="relative w-[30vw] h-[70vh] flex items-center justify-center">
-                      <img
-                        src={item.src}
-                        alt={item.name}
-                        className="object-cover w-full h-full pointer-events-none"
-                        draggable={false}
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center font-neue-montreal text-[#17191A] text-[15px] p-4">
-                        {item.description}
-                      </div>
-                    </div>
-                  ) : (
-                    <video
-                      src={item.src}
-                      autoPlay
-                      loop
-                      muted
-                      className="w-auto h-full max-w-[40vw] max-h-[85vh] object-cover pointer-events-none"
-                      draggable={false}
-                      preload="auto"
-                    />
-                  )}
-                  <p className="text-sm text-center font-neue-montreal">
-                    {item.name}
-                  </p>
-                </motion.div>
-              ))}
-            </motion.div>
           </div>
         </div>
       </div>
@@ -4125,7 +4959,7 @@ function Locations() {
         </div>
 
         <div className="font-neue-montreal text-[#171616]" ref={ref}>
-          {/* <motion.div
+          <motion.div
             id="locations-map"
             className="h-[60vh] overflow-hidden lg:absolute lg:right-0 lg:h-full lg:w-1/2"
             style={{
@@ -4151,7 +4985,7 @@ function Locations() {
                       .mapbox_map_title
               }
             />
-          </motion.div> */}
+          </motion.div>
 
           <div
             className="font-neue-montreal text-[#171616]"

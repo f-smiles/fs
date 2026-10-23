@@ -8561,13 +8561,14 @@ background: #1F42E3;
   position: relative;
   width: 100%;
   height: 500%;
-  will-change: transform;
+
 }
 
 .hero-minimap-slide {
   width: 100%;
   height: 20%;
   overflow: hidden;
+
 }
 
 .hero-minimap-slide img {
@@ -8578,9 +8579,6 @@ background: #1F42E3;
 }
 
 
-/* =========================================
-   OVAL SVG OVERLAYS
-========================================= */
 
 .hero-minimap-oval-overlay {
   position: absolute;
@@ -8643,9 +8641,7 @@ background: #1F42E3;
     inset: 0;
     clip-path: url(#hero-minimap-oval-clip-mobile);
   }
-  .hero-minimap-image-mask {
-  background: red;
-}
+
 }
 
 .frey-sky-marquee {
@@ -8678,21 +8674,14 @@ background: #1F42E3;
 .frey-sky-letter {
   clip-path: inset(100% 0 0 0);
 }
-.frey-hero-section {
-  position: relative;
-  min-height: 100svh;
-  isolation: isolate;
 
-}
-
-.frey-tooth-step {
+.hero-main-video {
   position: absolute;
   inset: 0 auto 0 0;
   width: 50%;
   height: 100%;
   z-index: 20;
   will-change: clip-path;
-
 
   clip-path: polygon(
     0 0,
@@ -8706,8 +8695,7 @@ background: #1F42E3;
   );
 }
 
-/* The 3D scene fills the entire stepped region */
-.frey-tooth-scene {
+.hero-main-video-scene {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -8715,7 +8703,6 @@ background: #1F42E3;
   overflow: hidden;
 }
 
-/* Marquee anchored at the bottom */
 .frey-hero-bottom-marquee {
   position: absolute;
   left: 0;
@@ -8725,3 +8712,7 @@ background: #1F42E3;
   z-index: 10;
 }
 
+.transition-copy-word {
+  display: inline-block;
+  white-space: nowrap;
+}
