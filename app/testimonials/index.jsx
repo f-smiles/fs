@@ -2566,9 +2566,8 @@ useLayoutEffect(() => {
               className="
     relative z-10
     translate-y-16
-    font-anton
-    text-[18px]
-    uppercase
+    font-canela italic
+    text-[20px]
     opacity-70
 
     max-[900px]:translate-y-4
@@ -2619,7 +2618,7 @@ useLayoutEffect(() => {
                     <div className="overflow-hidden">
                       <div
                         ref={titleRef}
-                        className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                        className="relative block text-left text-[14px] leading-[1.2] opacity-70 will-change-transform font-ibmplex-extralight"
                       >
                         {displayedTestimonial.project}
                       </div>
@@ -2639,7 +2638,7 @@ useLayoutEffect(() => {
                     <div className="overflow-hidden">
                       <p
                         ref={infoRef}
-                        className=" relative text-left font-neuehaas55 uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
+                        className=" relative text-left font-ibmplex-extralight uppercase text-[14px] leading-[1.2] opacity-70 will-change-transform"
                       >
                         {displayedTestimonial.type || "Treatment outcome"}
                       </p>
