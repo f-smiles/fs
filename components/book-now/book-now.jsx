@@ -155,111 +155,6 @@ export default function BookNow() {
         <HomePageLogo />
       </div>
 
-      {/* MOBILE NAVBAR */}
-      <div className="absolute top-6 left-0 right-0 flex justify-center items-center xl:hidden z-50">
-        <div
-          className="
-            relative
-            flex flex-wrap justify-center items-center gap-4
-            px-5 py-3
-            rounded-full
-            text-[11px] font-neuehaas35 tracking-wider uppercase
-            backdrop-blur-xl
-            max-w-[91vw] mx-auto
-          "
-          style={{
-            background: `
-              linear-gradient(
-                180deg,
-                rgba(255,255,255,0.35) 0%,
-                rgba(255,255,255,0.08) 40%,
-                rgba(255,255,255,0.03) 100%
-              )
-            `,
-            backdropFilter: "blur(20px) saturate(140%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 rounded-full"
-            style={{
-              background: `
-                linear-gradient(
-                  180deg,
-                  rgba(255,255,255,0.45) 0%,
-                  rgba(255,255,255,0.12) 25%,
-                  rgba(255,255,255,0.04) 50%,
-                  rgba(255,255,255,0.0) 70%,
-                  rgba(255,255,255,0.04) 85%,
-                  rgba(255,255,255,0.12) 95%,
-                  rgba(255,255,255,0.45) 100%
-                ),
-                radial-gradient(
-                  circle at 0% 50%,
-                  rgba(255,255,255,0.18),
-                  transparent 40%
-                ),
-                radial-gradient(
-                  circle at 100% 50%,
-                  rgba(255,255,255,0.12),
-                  transparent 40%
-                )
-              `,
-            }}
-          />
-
-          {/* MOBILE NAV LINKS */}
-          <a
-            href="/locations"
-            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
-          >
-            <div>
-              <span className="MenuItem-Text">Locations</span>
-            </div>
-          </a>
-          <a
-            href="/shop/products"
-            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
-          >
-            <div>
-              <span className="MenuItem-Text">Shop</span>
-            </div>
-          </a>
-
-          <div className="w-px h-4 bg-white/20" />
-
-          <a
-            href="/early-orthodontics"
-            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
-          >
-            <div>
-              <span className="MenuItem-Text">Early Orthodontics</span>
-            </div>
-          </a>
-
-          <div className="w-px h-4 bg-white/20" />
-
-          <a
-            href="/adult-orthodontics"
-            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
-          >
-            <div>
-              <span className="MenuItem-Text">Adult Orthodontics</span>
-            </div>
-          </a>
-
-          <a
-            href="/testimonials"
-            className="MenuItem text-[11px] tracking-wider uppercase leading-none block"
-          >
-            <div>
-              <span className="MenuItem-Text">Testimonials</span>
-            </div>
-          </a>
-
-          {cart.length > 0 && <CartComponent />}
-        </div>
-      </div>
-
       <motion.div
         className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-0"
         initial={{ opacity: 0 }}
@@ -292,16 +187,17 @@ export default function BookNow() {
       </motion.div>
       
       {/* DESKTOP NAVBAR */}
-      <div
+      <motion.div
         ref={navbarRef}
         className="
-          mt-10 mx-auto w-max h-10
-          flex items-center gap-6
+          mt-10 mx-auto w-max
+          flex flex-wrap justify-center items-center gap-6
           px-5 py-3
           rounded-full
           text-[11px] font-neuehaas35 tracking-wider uppercase
           backdrop-blur-xl
         "
+        initial={{ width: "auto" }}
         style={{
           background: `
             linear-gradient(
@@ -412,7 +308,7 @@ export default function BookNow() {
             <CartComponent />
           </motion.div>
         }
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 items-center px-4 xl:px-12 gap-8 xl:gap-0 relative">
         <div className="flex flex-col items-center xl:items-center order-2 xl:order-1">
