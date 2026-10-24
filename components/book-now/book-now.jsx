@@ -22,6 +22,8 @@ export default function BookNow() {
   const [time, setTime] = useState("");
   const [showScheduler, setShowScheduler] = useState(false);
 
+  const { cart } = useCartStore()
+
   useEffect(() => {
     const update = () => {
       const now = new Date();
@@ -33,28 +35,10 @@ export default function BookNow() {
     return () => clearInterval(interval);
   }, []);
 
-  const { cart } = useCartStore()
-
   useEffect(() => {
-    if (!navbarRef.current) return
-
-    gsap.set(navbarRef.current, {
-      width: "46px",
-      opacity: 0,
-    })
-    
-    const tl = gsap.timeline()
-    tl.to(navbarRef.current, {
-      width: "auto",
-      opacity: 1,
-      duration: 2,
-      delay: 0.8,
-      ease: "power2.inOut"
-    })
-
-  }, [])
-
-  useEffect(() => {
+    /*
+    * 3D rotate navlink text on hover
+    */
     const menuItems = [...document.querySelectorAll('.MenuItem')]
 
     menuItems.forEach((item) => {
@@ -79,6 +63,23 @@ export default function BookNow() {
       item.appendChild(cloneDiv)
     })
   }, [])
+
+  useEffect(() => {
+    /*
+     *  pressing 'Esc' key closes appointment scheduler model
+     */
+    const handleCloseScheduler = (e) => {
+      if (e.key === "Escape" || e.keyCode === 27) {
+        setShowScheduler(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleCloseScheduler)
+
+    return () => {
+      window.removeEventListener("keydown", handleCloseScheduler)
+    }
+  }, [showScheduler])
 
   return (
     <section 
