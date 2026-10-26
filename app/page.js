@@ -29,6 +29,7 @@ import SwiperCore, { Keyboard, Mousewheel } from "swiper/core";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import Matter from "matter-js";
+
 import * as THREE from "three";
 import { RectAreaLight } from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
@@ -64,6 +65,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { SplitText } from "gsap/SplitText";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 import ChevronRightIcon from "./_components/ui/ChevronRightIcon";
 import * as OGL from "ogl";
 import {
@@ -102,6 +104,7 @@ if (typeof window !== "undefined") {
     useGSAP,
     CustomEase,
     MotionPathPlugin,
+    MorphSVGPlugin,
   );
   CustomEase.create("hop", "0.6, 0, 0.2, 1");
 }
@@ -1167,14 +1170,222 @@ const ScrollTracker = ({ onScrollChange }) => {
 
 // const { scrollY } = useScroll();
 // const y = useTransform(scrollY, (latest) => -latest * 0.5);
+function TestimonialBike() {
+  return (
+    <div className="bike">
+      <div className="back-wheel">
+        <ul>
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} />
+          ))}
+        </ul>
+      </div>
 
-const Hero = () => {
+      <div className="back-wheel-cover" />
+
+      <div className="front-wheel">
+        <ul>
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} />
+          ))}
+        </ul>
+      </div>
+
+      <div className="front-wheel-cover" />
+
+      <div className="back">
+        <div className="seat" />
+      </div>
+
+      <div className="middle">
+        <div className="pedal" />
+      </div>
+
+      <div className="front" />
+      <div className="basket-holder" />
+      <div className="basket" />
+
+      <div className="flower">
+        <div className="green-flower">
+          <ul>
+            <li />
+            <li />
+          </ul>
+        </div>
+
+        {[
+          "first-flower",
+          "second-flower",
+          "third-flower",
+        ].map((className) => (
+          <div className={className} key={className}>
+            <ul>
+              {[0, 1, 2, 3].map((i) => (
+                <li key={i} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TestimonialHills() {
+  const hillPathRef = useRef(null);
+const bikeRef = useRef(null);
+const sceneRef = useRef(null);
+  const rawId = useId();
+  const clipId = `testimonial-hills-${rawId.replace(/:/g, "")}`;
+
+  const width = 1200;
+  const height = 560;
+
+  const path = useMemo(() => {
+    const points = [];
+
+    const curve = (x) => {
+      const baseY = height * 0.48;
+      const amplitude = 95;
+
+      return (
+        baseY -
+        amplitude *
+          Math.sin((x * Math.PI) / 600) *
+          Math.cos((x * Math.PI) / 2400) *
+          Math.cos((x * Math.PI) / 450)
+      );
+    };
+
+    for (let x = 0; x <= width; x += 3) {
+      points.push(
+        `${x === 0 ? "M" : "L"} ${x} ${curve(x)}`
+      );
+    }
+
+    return points.join(" ");
+  }, []);
+
+
+useLayoutEffect(() => {
+  const scene = sceneRef.current;
+  const bike = bikeRef.current;
+  const hill = hillPathRef.current;
+
+  if (!scene || !bike || !hill) return;
+
+  const progress = { value: 0 };
+
+  const updateBike = () => {
+    const length = hill.getTotalLength();
+    const point = hill.getPointAtLength(
+      length * progress.value
+    );
+
+    const nextPoint = hill.getPointAtLength(
+      Math.min(length, length * progress.value + 2)
+    );
+
+    const svg = hill.ownerSVGElement;
+    const matrix = svg.getScreenCTM();
+
+    if (!matrix) return;
+
+    const screenPoint = new DOMPoint(
+      point.x,
+      point.y
+    ).matrixTransform(matrix);
+
+    const screenNext = new DOMPoint(
+      nextPoint.x,
+      nextPoint.y
+    ).matrixTransform(matrix);
+
+    const sceneRect = scene.getBoundingClientRect();
+
+    const x = screenPoint.x - sceneRect.left;
+    const y = screenPoint.y - sceneRect.top;
+
+    const angle =
+      Math.atan2(
+        screenNext.y - screenPoint.y,
+        screenNext.x - screenPoint.x
+      ) *
+      (180 / Math.PI);
+
+    gsap.set(bike, {
+      x: x - 71,
+      y: y - 44,
+      rotation: angle,
+      transformOrigin: "50% 100%",
+    });
+  };
+
+  const ctx = gsap.context(() => {
+    gsap.to(progress, {
+      value: 1,
+      duration: 10,
+      ease: "none",
+      repeat: -1,
+      onUpdate: updateBike,
+    });
+
+    updateBike();
+  }, scene);
+
+  window.addEventListener("resize", updateBike);
+
+  return () => {
+    window.removeEventListener("resize", updateBike);
+    ctx.revert();
+  };
+}, []);
+
+
+
+return (
+  <div
+    ref={sceneRef}
+    className="pointer-events-none absolute inset-0 z-30"
+  >
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      className="absolute inset-0 h-full w-full overflow-visible"
+      aria-hidden="true"
+    >
+      <path
+        ref={hillPathRef}
+        d={path}
+        fill="none"
+        stroke="rgba(255,255,255,0.7)"
+        strokeWidth="1.5"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+
+ <div
+  ref={bikeRef}
+  className="pointer-events-none absolute left-0 top-0 h-[104px] w-[142px]"
+>
+  <div className="bike-scale">
+    <TestimonialBike />
+  </div>
+</div>
+  </div>
+);
+
+}
+
+const Hero = ({ shapeRef }) => {
   const transitionRef = useRef(null);
   const videoStepRef = useRef(null);
   const videoRef = useRef(null);
   const sectionRef = useRef(null);
   const shapeTrackRef = useRef(null);
-
+  const [circleGeometry, setCircleGeometry] = useState(null);
+  const [logoPhysicsActive, setLogoPhysicsActive] = useState(false);
+  const [physicsGeometry, setPhysicsGeometry] = useState(null);
   // Hero refs
   const marqueeRef = useRef(null);
   const videoButtonRef = useRef(null);
@@ -1182,12 +1393,22 @@ const Hero = () => {
 
   // Statistics refs
   const statRefs = useRef([]);
+  const statHighlightRefs = useRef([]);
   const statDigitRefs = useRef([]);
   const statsTextCharsRef = useRef([]);
-  const shapeRef = useRef(null);
 
   const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      ScrollTrigger.refresh();
+    };
 
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
   useLayoutEffect(() => {
     const container = marqueeRef.current;
     if (!container) return;
@@ -1369,205 +1590,387 @@ const Hero = () => {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const container = transitionRef.current;
+    const step = videoStepRef.current;
+    const section = sectionRef.current;
 
-useLayoutEffect(() => {
-  const container = transitionRef.current;
-  const step = videoStepRef.current;
-  const section = sectionRef.current;
-  const shape = shapeRef.current;
+    if (!container || !step || !section) return;
 
-  if (!container || !step || !section || !shape) return;
+    let cleanupPhysicsResize = () => {};
 
-  const ctx = gsap.context(() => {
-    const timeline = gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: {
-        trigger: container,
-        start: "top top",
-        end: "+=200%",
-        scrub: true,
-        pin: true,
-        pinSpacing: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-    });
+    const ctx = gsap.context(() => {
+      const timeline = gsap.timeline({
+        defaults: { ease: "none" },
 
-    // Video stepped clip-path
-    timeline.fromTo(
-      step,
-      {
-        clipPath:
-          "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)",
-      },
-      {
-        clipPath:
-          "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)",
-        duration: 1,
-      },
-      0
-    );
-
-    // Statistics panel enters
-    timeline.fromTo(
-      section,
-      { yPercent: 100 },
-      {
-        yPercent: 0,
-        duration: 0.8,
-        immediateRender: true,
-        force3D: true,
-      },
-      0.5
-    );
-
-    // Editorial copy
-    const chars = statsTextCharsRef.current;
-
-    let textEnd = 1.3;
-
-    if (chars.length) {
-      const stagger = 0.012;
-      const passDuration = 0.12;
-
-      timeline.to(
-        chars,
-        {
-          color: "#abff02",
-          duration: passDuration,
-          stagger: { each: stagger },
+        scrollTrigger: {
+          trigger: container,
+          start: "top top",
+          end: "+=250%",
+          scrub: true,
+          pin: true,
+          pinSpacing: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
         },
-        0.65
+      });
+
+
+      timeline.fromTo(
+        step,
+        {
+          clipPath:
+            "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)",
+        },
+        {
+          clipPath:
+            "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)",
+          duration: 1,
+        },
+        0,
       );
 
-      timeline.to(
-        chars,
+      timeline.fromTo(
+        section,
+        { yPercent: 100 },
         {
-          color: "#000000",
-          duration: passDuration,
-          stagger: { each: stagger },
+          yPercent: 0,
+          duration: 0.8,
+          immediateRender: true,
+          force3D: true,
         },
-        0.85
+        0.5,
       );
 
-      textEnd =
-        0.85 + (chars.length - 1) * stagger + passDuration;
-    }
+      const chars = statsTextCharsRef.current;
+      let textEnd = 1.3;
 
-    // Rolling statistics
-    let countersEnd = 1.3;
+      if (chars.length) {
+        const stagger = 0.012;
+        const passDuration = 0.12;
 
-    statDigitRefs.current.forEach(({ element, value }, index) => {
-      const start = 0.75 + index * 0.06;
+        timeline.to(
+          chars,
+          {
+            color: "#abff02",
+            duration: passDuration,
+            stagger: { each: stagger },
+          },
+          0.65,
+        );
 
-      timeline.to(
-        element,
-        {
-          y: `${-value}em`,
-          duration: 0.7,
-          ease: "power3.out",
-        },
-        start
-      );
+        timeline.to(
+          chars,
+          {
+            color: "#000000",
+            duration: passDuration,
+            stagger: { each: stagger },
+          },
+          0.85,
+        );
 
-      countersEnd = Math.max(countersEnd, start + 0.7);
-    });
-const animationEnd = Math.max(textEnd, countersEnd);
+        textEnd = 0.85 + (chars.length - 1) * stagger + passDuration;
+      }
 
-timeline.to({}, {
-  duration: Math.max(0.01, animationEnd - timeline.duration()),
-});
-    // Nothing happens to the SVG until the copy and counters finish
-    const shapeStart = Math.max(textEnd, countersEnd) + 0.15;
 
-    timeline.addLabel("shapeExpansion", shapeStart);
 
-    // Expansion without rotation
-    timeline.fromTo(
-      shape,
-      {
-        scale: 1,
-        rotation: 0,
-        transformOrigin: "50% 50%",
-      },
-      {
-        scale: () => {
-          const width = shape.offsetWidth;
+      const starPath = shapeRef.current;
 
-          const diagonal = Math.hypot(
-            window.innerWidth,
-            window.innerHeight
+      if (starPath) {
+        const circlePath =
+          "M80.5 2.5 C123.6 2.5 158.5 37.4 158.5 80.5 C158.5 123.6 123.6 158.5 80.5 158.5 C37.4 158.5 2.5 123.6 2.5 80.5 C2.5 37.4 37.4 2.5 80.5 2.5 Z";
+
+        const morphStart = 0.65;
+        const morphEnd = textEnd;
+
+        const morphDuration = Math.max(0.01, morphEnd - morphStart);
+
+        timeline.to(
+          starPath,
+          {
+            morphSVG: {
+              shape: circlePath,
+              type: "rotational",
+            },
+            duration: morphDuration,
+            ease: "none",
+          },
+          morphStart,
+        );
+
+        timeline.fromTo(
+          starPath.ownerSVGElement,
+          { rotation: 0 },
+          {
+            rotation: 180,
+            transformOrigin: "50% 50%",
+            duration: morphDuration,
+            ease: "none",
+          },
+          morphStart,
+        );
+      }
+      const circleSVG = shapeRef.current?.ownerSVGElement;
+      const circleSlot = squareSlotRef.current;
+      const testimonialLayer = testimonialContentRef.current;
+
+      if (circleSVG && circleSlot && testimonialLayer) {
+        const expansionStart = textEnd;
+
+        const expansion = { progress: 0 };
+
+        const getGeometry = () => {
+          const slotRect = circleSlot.getBoundingClientRect();
+          const layerRect = testimonialLayer.getBoundingClientRect();
+
+          const isMobile = layerRect.width <= 768;
+
+          const centerX = slotRect.left + slotRect.width / 2 - layerRect.left;
+
+          const initialCenterY =
+            slotRect.top + slotRect.height / 2 - layerRect.top;
+
+          const initialRadius = (slotRect.width * 78) / 161;
+
+          const centerY = isMobile
+            ? layerRect.height * 0.5
+            : initialCenterY - 220;
+          const maxX = Math.max(
+            Math.abs(centerX),
+            Math.abs(layerRect.width - centerX),
           );
 
-          return (diagonal / width) * 5;
-        },
-        rotation: 0,
-        duration: 1.6,
-        ease: "power2.in",
-        immediateRender: false,
+          const maxY = Math.max(
+            Math.abs(centerY),
+            Math.abs(layerRect.height - centerY),
+          );
+
+          const finalRadius = Math.hypot(maxX, maxY) + (isMobile ? 200 : 20);
+
+          return {
+            centerX,
+            centerY,
+            initialCenterY,
+            initialRadius,
+            finalRadius,
+          };
+        };
+
+        const updatePhysicsGeometry = () => {
+          const geometry = getGeometry();
+
+          setPhysicsGeometry((previous) => {
+            const next = {
+              centerX: geometry.centerX,
+              centerY: geometry.centerY,
+              radius: geometry.finalRadius,
+              viewportHeight: testimonialLayer.clientHeight,
+            };
+
+            if (
+              previous &&
+              previous.centerX === next.centerX &&
+              previous.centerY === next.centerY &&
+              previous.radius === next.radius &&
+              previous.viewportHeight === next.viewportHeight
+            ) {
+              return previous;
+            }
+
+            return next;
+          });
+        };
+
+const renderExpansion = () => {
+  const {
+    centerX,
+    centerY,
+    initialCenterY,
+    initialRadius,
+    finalRadius,
+  } = getGeometry();
+
+  const progress = expansion.progress;
+
+  const radius =
+    initialRadius + (finalRadius - initialRadius) * progress;
+
+  const animatedCenterY =
+    initialCenterY + (centerY - initialCenterY) * progress;
+
+
+  const svgOpacity = 1 - gsap.utils.clamp(0, 1, progress / 0.12);
+
+  gsap.set(circleSVG, {
+    scale: radius / initialRadius,
+    x: 0,
+    y: 0,
+    transformOrigin: "50% 50%",
+    opacity: svgOpacity,
+  });
+
+  gsap.set(testimonialLayer, {
+    clipPath: `circle(${radius}px at ${centerX}px ${animatedCenterY}px)`,
+  });
+};
+        const handleResize = () => {
+          updatePhysicsGeometry();
+          renderExpansion();
+        };
+
+        updatePhysicsGeometry();
+
+        window.addEventListener("resize", handleResize);
+
+        cleanupPhysicsResize = () => {
+          window.removeEventListener("resize", handleResize);
+        };
+        timeline.to(
+          expansion,
+          {
+            progress: 1,
+            duration: 1.2,
+            ease: "power2.out",
+            onUpdate: renderExpansion,
+            onReverseComplete: () => {
+              gsap.set(circleSVG, {
+                scale: 1,
+                x: 0,
+                y: 0,
+              });
+              
+              gsap.set(testimonialLayer, {
+                clipPath: "circle(0px at 0px 0px)",
+              });
+            },
+          },
+          expansionStart,
+        );
+
+        timeline.call(
+          () => setLogoPhysicsActive(true),
+          [],
+          expansionStart + 1.2,
+        );
+
+        timeline.to({}, { duration: 0.6 });
+
+        const cards = testimonialCardsRef.current.filter(Boolean);
+
+        if (cards.length) {
+          const cardsStart = expansionStart + 1.2;
+
+          const startingHeights = [140, 95, 70, 45];
+
+          timeline.fromTo(
+            cards,
+            {
+              height: (index) => startingHeights[index],
+            },
+            {
+              height: () => (window.innerWidth >= 1024 ? 560 : 380),
+              duration: 1.4,
+              stagger: {
+                each: 0.18,
+              },
+              ease: "none",
+              immediateRender: true,
+            },
+            cardsStart,
+          );
+        }
+        timeline.to({}, { duration: 0.6 });
+      }
+    }, container);
+
+    return () => {
+      cleanupPhysicsResize();
+      ctx.revert();
+    };
+  }, []);
+useEffect(() => {
+  const animations = [];
+
+  statDigitRefs.current.forEach(({ element, value }) => {
+    const tween = gsap.to(element, {
+      y: `${-value}em`,
+      duration: 4,
+      ease: "power3.out",
+      scrollTrigger: {
+        trigger: element.closest("[data-stat]"),
+        start: "top 85%",
+        toggleActions: "play none none none",
       },
-      "shapeExpansion"
-    );
-  }, container);
+    });
 
-  return () => ctx.revert();
+    animations.push(tween);
+  });
+
+  return () => {
+    animations.forEach((tween) => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+    });
+  };
 }, []);
-
+  const squareSlotRef = useRef(null);
+  const testimonialContentRef = useRef(null);
+  const expansionTrackRef = useRef(null);
+  const testimonialCardsRef = useRef([]);
 
   return (
     <>
+      <div ref={transitionRef} className="relative h-screen w-full">
+        <section className="relative flex h-screen w-full flex-col justify-end overflow-hidden bg-[#0F0F0F]">
+          <div ref={videoStepRef} className="hero-main-video">
+            <div
+              className="hero-main-video-scene"
+              style={{
+                backgroundImage: "url('/images/boyholdingaligner-poster.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              <video
+                ref={videoRef}
+                src="/videos/boyholdingaligner.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                onLoadedData={() => setVideoReady(true)}
+                className={`h-full w-full object-cover transition-opacity duration-700 ease-out ${
+                  videoReady ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            </div>
 
-    <div ref={transitionRef} className="relative h-screen w-full">
-      <section className="relative flex h-screen w-full flex-col justify-end overflow-hidden bg-[#0F0F0F]">
-        <div ref={videoStepRef} className="hero-main-video">
-          <div
-            className="hero-main-video-scene"
-            style={{
-              backgroundImage: "url('/images/boyholdingaligner-poster.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            <video
-              ref={videoRef}
-              src="/videos/boyholdingaligner.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              onLoadedData={() => setVideoReady(true)}
-              className={`h-full w-full object-cover transition-opacity duration-700 ease-out ${
-                videoReady ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          </div>
+            <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
+              <h2 className="frey-video-headline m-0 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
+                <LocationCharacterReveal
+                  ready={videoReady}
+                  delay={0.35}
+                  stagger={0.045}
+                >
+                  Where smiles
+                </LocationCharacterReveal>
 
-          <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-            <h2 className="frey-video-headline m-0 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
-              <LocationCharacterReveal
-                ready={videoReady}
-                delay={0.35}
-                stagger={0.045}
-              >
-                Where smiles
-              </LocationCharacterReveal>
+                <br />
 
-              <br />
+                <LocationCharacterReveal
+                  ready={videoReady}
+                  delay={0.8}
+                  stagger={0.045}
+                >
+                  take shape
+                </LocationCharacterReveal>
+              </h2>
 
-              <LocationCharacterReveal
-                ready={videoReady}
-                delay={0.8}
-                stagger={0.045}
-              >
-                take shape
-              </LocationCharacterReveal>
-            </h2>
-
-            <a
-              ref={videoButtonRef}
-              href="/book-now"
-              className="
+              <a
+                ref={videoButtonRef}
+                href="/book-now"
+                className="
                 frey-video-button
                 inline-flex min-h-[56px] items-center justify-center
                 rounded-full border border-white/25
@@ -1578,223 +1981,373 @@ timeline.to({}, {
                 transition-colors duration-300
                 hover:bg-white/40 hover:border-white/40
               "
-            >
-              <span className="frey-video-button-label whitespace-nowrap">
-                Book Now
+              >
+                <span className="frey-video-button-label whitespace-nowrap">
+                  Book Now
+                </span>
+              </a>
+            </div>
+          </div>
+
+          <div
+            ref={editorialRef}
+            className="absolute bottom-[66%] left-[56%] right-[6%] z-[5] grid grid-cols-2 gap-10 text-[#111820] max-md:bottom-[55%] max-md:left-[53%] max-md:gap-4"
+          >
+            <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
+              <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
+                (01) — OUR PHILOSOPHY
               </span>
-            </a>
-          </div>
-        </div>
 
-        <div
-          ref={editorialRef}
-          className="absolute bottom-[66%] left-[56%] right-[6%] z-[5] grid grid-cols-2 gap-10 text-[#111820] max-md:bottom-[55%] max-md:left-[53%] max-md:gap-4"
-        >
-          <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
-            <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
-              (01) — OUR PHILOSOPHY
-            </span>
-
-            <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em] text-[#f5f5f5]">
-              Every smile is a story. At our office, we guide you through every
-              step of your orthodontic journey
-            </p>
-          </div>
-
-          <div className="frey-editorial-column flex flex-col gap-3 text-white">
-            <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
-              (02) — OUR PRACTICE
-            </span>
-
-            <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em]">
-              with advanced treatment, personalized care, and results that go
-              beyond the ordinary.
-            </p>
-          </div>
-        </div>
-
-        <div className="absolute bottom-[36%] left-[56%] right-[4%] z-[5] flex items-start gap-6 text-white max-md:bottom-[24%] max-md:left-[53%] max-md:gap-3">
-          <div className="mt-[5px] shrink-0">
-            <DotMatrix />
-          </div>
-
-          <h1 className="m-0 font-neuehaas45 text-[clamp(1.25rem,2.1vw,2.75rem)] lowercase leading-[1.04] max-md:text-[clamp(0.7rem,2.5vw,1.25rem)]">
-            <div>
-              <LocationCharacterReveal
-                ready={videoReady}
-                delay={0.1}
-                stagger={0.045}
-              >
-                We understand the art
-              </LocationCharacterReveal>
+              <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em] text-[#f5f5f5]">
+                Every smile is a story. At our office, we guide you through
+                every step of your orthodontic journey
+              </p>
             </div>
 
-            <div>
-              <LocationCharacterReveal
-                ready={videoReady}
-                delay={1.45}
-                stagger={0.045}
-              >
-                behind the smile.
-              </LocationCharacterReveal>
-            </div>
-          </h1>
-        </div>
+            <div className="frey-editorial-column flex flex-col gap-3 text-white">
+              <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
+                (02) — OUR PRACTICE
+              </span>
 
-        <div
-          ref={marqueeRef}
-          className="frey-hero-bottom-marquee pointer-events-none absolute inset-x-0 bottom-0 z-10 w-full"
-        >
-          <div className="frey-sky-marquee">
-            <div className="frey-sky-background">
-              <FreyCloudScene />
+              <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em]">
+                with advanced treatment, personalized care, and results that go
+                beyond the ordinary.
+              </p>
+            </div>
+          </div>
+
+          <div className="absolute bottom-[36%] left-[56%] right-[4%] z-[5] flex items-start gap-6 text-white max-md:bottom-[24%] max-md:left-[53%] max-md:gap-3">
+            <div className="mt-[5px] shrink-0">
+              <DotMatrix />
             </div>
 
-            <svg
-              className="frey-sky-mask-definition"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 2700 240"
-              aria-hidden="true"
-            >
-              <defs>
-                <mask
-                  id="frey-sky-text-mask"
-                  maskUnits="userSpaceOnUse"
-                  maskContentUnits="userSpaceOnUse"
-                  x="0"
-                  y="0"
-                  width="2700"
-                  height="240"
+            <h1 className="m-0 font-neuehaas45 text-[clamp(1.25rem,2.1vw,2.75rem)] lowercase leading-[1.04] max-md:text-[clamp(0.7rem,2.5vw,1.25rem)]">
+              <div>
+                <LocationCharacterReveal
+                  ready={videoReady}
+                  delay={0.1}
+                  stagger={0.045}
                 >
-                  <rect width="100%" height="100%" fill="black" />
+                  We understand the art
+                </LocationCharacterReveal>
+              </div>
 
-                  <g className="frey-sky-moving-letters">
-                    {[0, 1].map((copyIndex) => (
-                      <text
-                        key={copyIndex}
-                        x={copyIndex * 2700}
-                        y="205"
-                        fontFamily="OTF-Glusp"
-                        fontSize="230"
-                        letterSpacing="-10"
-                        fill="white"
-                        xmlSpace="preserve"
-                      >
-                        {"FREY SMILES".split("").map((letter, index) => (
-                          <tspan key={index} className="frey-sky-letter">
-                            {letter}
-                          </tspan>
-                        ))}
-                      </text>
-                    ))}
-                  </g>
-                </mask>
-              </defs>
-            </svg>
-          </div>
-        </div>
-      </section>
-
-      <section
-        ref={sectionRef}
-className="absolute inset-x-0 top-0 z-30 h-screen w-full bg-[#F5F5F5]"
-      >
-        <ShrimpFlow />
-
-        <div className="pointer-events-none absolute inset-0 z-20 flex flex-col lg:flex-row">
-          {/* LEFT — EDITORIAL COPY */}
-          <div className="flex w-full items-center px-8 lg:w-1/2 lg:px-16">
-            <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
-              <h2 className="w-full max-w-[520px] font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em]">
-                Our doctors are fully invested in treatment planning your case
-                correctly. Guided by board-certified standards and decades of
-                clinical practice, we approach every case with the same rigor
-                demanded in academic orthodontics.
-              </h2>
-            </TransitionAnimatedCopy>
+              <div>
+                <LocationCharacterReveal
+                  ready={videoReady}
+                  delay={1.45}
+                  stagger={0.045}
+                >
+                  behind the smile.
+                </LocationCharacterReveal>
+              </div>
+            </h1>
           </div>
 
-          {/* RIGHT — STATISTICS */}
-          <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 lg:px-16">
-            <div className="w-[75%]">
-              {/* STAT 1 */}
-              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
-                <div className="flex items-end font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
-                  <span
-                    ref={(el) => (statRefs.current[0] = el)}
-                    data-target="60"
-                  >
-                    0
-                  </span>
-                  <span className="mb-[3px] ml-1 text-[0.45em]">+</span>
-                </div>
-
-                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
-                  Years of Experience
-                </p>
+          <div
+            ref={marqueeRef}
+            className="frey-hero-bottom-marquee pointer-events-none absolute inset-x-0 bottom-0 z-10 w-full"
+          >
+            <div className="frey-sky-marquee">
+              <div className="frey-sky-background">
+                <FreyCloudScene />
               </div>
 
-              {/* STAT 2 */}
-              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
-                <div className="flex items-end font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
-                  <span
-                    ref={(el) => (statRefs.current[1] = el)}
-                    data-target="25"
+              <svg
+                className="frey-sky-mask-definition"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 2700 240"
+                aria-hidden="true"
+              >
+                <defs>
+                  <mask
+                    id="frey-sky-text-mask"
+                    maskUnits="userSpaceOnUse"
+                    maskContentUnits="userSpaceOnUse"
+                    x="0"
+                    y="0"
+                    width="2700"
+                    height="240"
                   >
-                    0
-                  </span>
-                  <span className="mb-[3px] ml-1 text-[0.45em]">k</span>
-                </div>
+                    <rect width="100%" height="100%" fill="black" />
 
-                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
-                  Satisfied Patients
-                </p>
-              </div>
-
-              {/* STAT 3 */}
-              <div className="relative flex items-center justify-between gap-4 py-5 before:absolute before:left-0 before:top-0 before:h-[1px] before:w-full before:bg-gradient-to-r before:from-black/10 before:via-black/30 before:to-black/80">
-                <div className="font-ibmplex text-[clamp(1.75rem,2.75vw,2.5rem)] font-light leading-none tracking-[-0.06em]">
-                  <span
-                    ref={(el) => (statRefs.current[2] = el)}
-                    data-target="4"
-                  >
-                    0
-                  </span>
-                </div>
-
-                <p className="text-right font-ibmplex text-[13px] uppercase text-black/60">
-                  Locations
-                </p>
-              </div>
+                    <g className="frey-sky-moving-letters">
+                      {[0, 1].map((copyIndex) => (
+                        <text
+                          key={copyIndex}
+                          x={copyIndex * 2700}
+                          y="205"
+                          fontFamily="OTF-Glusp"
+                          fontSize="230"
+                          letterSpacing="-10"
+                          fill="white"
+                          xmlSpace="preserve"
+                        >
+                          {"FREY SMILES".split("").map((letter, index) => (
+                            <tspan key={index} className="frey-sky-letter">
+                              {letter}
+                            </tspan>
+                          ))}
+                        </text>
+                      ))}
+                    </g>
+                  </mask>
+                </defs>
+              </svg>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* BOTTOM HEADLINE + EXPANDING SHAPE */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 px-8 lg:px-16">
-          <h2 className="flex flex-wrap items-center gap-x-[0.25em] gap-y-2 font-neueroman text-[clamp(2rem,5.5vw,7rem)] leading-[0.9] tracking-[-0.005em] text-black">
-            <span>Clearly simple</span>
+        <section
+          ref={sectionRef}
+          className="absolute inset-x-0 top-0 z-30 h-screen w-full overflow-visible bg-[#F5F5F5]"
+        >
+<ShrimpFlow statHighlightRefs={statHighlightRefs} />
 
-        <span
-  ref={shapeRef}
-  className="inline-block h-[0.65em] w-[0.65em] shrink-0 bg-black"
-  aria-hidden="true"
-/>
-            <span>clearly yours</span>
-          </h2>
-        </div>
-      </section>
+<div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
+<div
+  data-stat
+  ref={(el) => (statHighlightRefs.current[0] = el)}
+  className="absolute left-[51%] top-[25%] flex items-baseline gap-4"
+>
+  <div className="flex items-end font-neueroman text-[clamp(2.5rem,4vw,5rem)] leading-none tracking-[-0.06em]">
+    <span
+      ref={(el) => (statRefs.current[0] = el)}
+      data-target="60"
+    >
+      0
+    </span>
+    <span className="mb-1 ml-1 text-[0.45em]">+</span>
+  </div>
+
+  <p className="whitespace-nowrap font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
+    Years of Experience
+  </p>
+</div>
+
+  <div
+  data-stat
+    ref={(el) => (statHighlightRefs.current[1] = el)}
+    className="absolute left-[34%] top-[50%] items-baseline gap-4 flex flex-row gap-2"
+  >
+    <div className="flex items-end font-neueroman text-[clamp(2.5rem,4vw,5rem)] font-light leading-none tracking-[-0.06em]">
+      <span
+        ref={(el) => (statRefs.current[1] = el)}
+        data-target="25"
+      >
+        0
+      </span>
+      <span className="mb-1 ml-1 text-[0.45em]">k</span>
     </div>
 
-    <div
-      ref={shapeTrackRef}
-      className="relative h-[150vh] w-full"
-      aria-hidden="true"
-    />
-  </>
-);
+    <p className="font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
+      Satisfied Patients
+    </p>
+  </div>
+
+  <div
+  data-stat
+    ref={(el) => (statHighlightRefs.current[2] = el)}
+    className="absolute left-[8%] top-[65%] flex flex-row items-baseline gap-4"
+  >
+    <div className="font-neueroman text-[clamp(2.5rem,4vw,5rem)] font-light leading-none tracking-[-0.06em]">
+      <span
+        ref={(el) => (statRefs.current[2] = el)}
+        data-target="4"
+      >
+        0
+      </span>
+    </div>
+
+    <p className="font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
+      Locations
+    </p>
+  </div>
+
+</div>
+
+          <div className="pointer-events-none absolute inset-0 z-20 flex flex-col lg:flex-row">
+            {/* LEFT — EDITORIAL COPY */}
+            <div className="flex w-full -translate-y-[80px] items-center px-8 lg:w-1/2 lg:px-16">
+                          <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
+                <h2 className="w-full max-w-[520px] font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em]">
+                  Our doctors are fully invested in treatment planning your case
+                  correctly. Guided by board-certified standards and decades of
+                  clinical practice, we approach every case with the same rigor
+                  demanded in academic orthodontics.
+                </h2>
+              </TransitionAnimatedCopy>
+           
+            </div>
+
+            {/* RIGHT — STATISTICS */}
+            <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 lg:-translate-y-[100px] lg:px-16">
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 px-8 lg:px-16">
+ 
+            <h2 className="flex flex-wrap items-center gap-x-[0.25em] gap-y-2 font-neueroman text-[clamp(2rem,4.5vw,5rem)] leading-[0.9] tracking-[-0.005em] text-black">
+                <span
+                ref={squareSlotRef}
+                className="relative inline-block h-[0.65em] w-[0.65em] shrink-0"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 161 161"
+                  className="block h-full w-full overflow-visible text-black"
+                  aria-hidden="true"
+                >
+                  <path
+                    ref={shapeRef}
+                    fill="currentColor"
+                    d="M108 88.7c-10.8 0-19.7 8.8-19.7 19.7v47.4c0 1.9-1.5 3.4-3.4 3.4h-8.6c-1.9 0-3.4-1.5-3.4-3.4v-47.4c0-10.8-8.8-19.7-19.7-19.7H6.4c-1.9 0-3.4-1.5-3.4-3.4v-8c0-1.9 1.5-3.4 3.4-3.4h46.9c10.8 0 19.7-8.8 19.6-19.7V6.4c0-1.9 1.5-3.4 3.4-3.4H85c1.9 0 3.4 1.5 3.4 3.4v47.8c0 10.8 8.8 19.7 19.7 19.7h46.6c1.9 0 3.4 1.5 3.4 3.4v8c0 1.9-1.5 3.4-3.4 3.4H108z"
+                  />
+                </svg>
+              </span>
+      
+              <span>shaped here</span>
+                 
+
+              <span>smile everywhere</span>
+            </h2>
+          </div>
+            </div>
+          </div>
+
+          {/* SVG STAR DEFINITION */}
+          <svg
+            width="0"
+            height="0"
+            className="pointer-events-none absolute"
+            aria-hidden="true"
+          >
+            <defs>
+              <clipPath
+                id="testimonial-star-clip"
+                clipPathUnits="objectBoundingBox"
+              >
+                <path
+                  transform="scale(0.0061728395)"
+                  d="M108 88.7c-10.8 0-19.7 8.8-19.7 19.7v47.4c0 1.9-1.5 3.4-3.4 3.4h-8.6c-1.9 0-3.4-1.5-3.4-3.4v-47.4c0-10.8-8.8-19.7-19.7-19.7H6.4c-1.9 0-3.4-1.5-3.4-3.4v-8c0-1.9 1.5-3.4 3.4-3.4h46.9c10.8 0 19.7-8.8 19.6-19.7V6.4c0-1.9 1.5-3.4 3.4-3.4H85c1.9 0 3.4 1.5 3.4 3.4v47.8c0 10.8 8.8 19.7 19.7 19.7h46.6c1.9 0 3.4 1.5 3.4 3.4v8c0 1.9-1.5 3.4-3.4 3.4H108z"
+                />
+              </clipPath>
+            </defs>
+          </svg>
+
+          {/* BOTTOM HEADLINE */}
 
 
+
+          <div
+            ref={testimonialContentRef}
+            className="pointer-events-none absolute inset-0 z-40 overflow-hidden bg-black"
+            style={{
+              clipPath: "circle(0px at 0px 0px)",
+            }}
+          >
+
+            <div className="pointer-events-none relative z-20 flex h-full w-full flex-col px-8 pt-[15vh] text-white lg:px-16">
+              <div className="relative z-10 shrink-0">
+                <p className="mb-4 font-neueroman text-[13px] uppercase tracking-wide">
+                  What our patients say
+                </p>
+
+                <h3 className="max-w-[900px] font-neueroman text-[14px] leading-[1.05]">
+                  Our greatest award is the success of our patients
+                </h3>
+              </div>
+
+             
+<div className="relative z-20 mt-auto w-full pb-8">
+  <div className="relative grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
+
+             {[
+                  { number: "01", quote: "Dr. Frey treated both me (as an adult with a complex bite issue) and my son, and we couldn’t be happier with the results. He is knowledgeable, thoughtful, and truly cares about achieving the best outcome for his patients. The entire staff is friendly and supportive. I highly recommend him.", name: "Michele" },
+                  { number: "02", quote: "Dr Frey and his team are amazing! They explain everything all the way through the process at every visit. Their Growth and Guidance program caught 2 significant issues my youngest had and we were able to address them early. They also work with you on finances. Highly recommend!", name: "Mary Ost" },
+                  { number: "03", quote: "Excellent service. I always get called in early to my appointments, they are very organized and put together, and they are always quick. Did great with my teeth - they look amazing.", name: "Meadow Phillips" },
+                  { number: "04", quote: "Absolutely love the team at FreySmiles in Lehighton. From day one they have been amazing and so sweet to my teen thru her braces and Invisalign journey. Dr Frey is wonderful to chat with and I highly recommend especially if you’re the nervous type.", name: "Christina Seo" },
+                ].map((testimonial, index) => (
+                  <div
+                    key={testimonial.number}
+                    ref={(el) => {
+                      testimonialCardsRef.current[index] = el;
+                    }}
+
+className="
+  relative flex h-[380px] flex-col justify-between
+  overflow-hidden 
+  border border-white/[0.14]
+  bg-white/[0.07]
+  p-5 text-white
+  backdrop-blur-[24px] backdrop-saturate-[140%]
+
+  lg:h-[560px] lg:p-6
+"
+
+                  >
+                    <span className="font-ibmplex text-[12px] tracking-widest text-white/50">
+                      {testimonial.number}
+                    </span>
+
+                    <div>
+                      <p className="mb-6 max-w-[260px] font-neueroman text-[clamp(14px,1.1vw,18px)] leading-[1.15]">
+                        “{testimonial.quote}”
+                      </p>
+
+                      <span className="font-ibmplex text-[12px] uppercase tracking-wider text-white/50">
+                        {testimonial.name}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+  </div>
+
+  <TestimonialHills />
+</div>
+
+            </div>
+          </div>
+        </section>
+      </div>
+      {physicsGeometry && (
+        <div
+          ref={expansionTrackRef}
+          className="relative w-full overflow-hidden bg-[#F5F5F5]"
+          style={{
+            height: Math.max(
+              0,
+              physicsGeometry.centerY +
+                physicsGeometry.radius -
+                physicsGeometry.viewportHeight,
+            ),
+          }}
+        >
+          {/* CONTINUATION OF THE SAME BLACK CIRCLE */}
+          <div
+            className="absolute inset-0 bg-black"
+            style={{
+              clipPath: `circle(
+          ${physicsGeometry.radius}px at
+          ${physicsGeometry.centerX}px
+          ${physicsGeometry.centerY - physicsGeometry.viewportHeight}px
+        )`,
+            }}
+          />
+
+          <div
+            className="pointer-events-auto absolute inset-x-0 z-10"
+            style={{
+              top: -physicsGeometry.viewportHeight,
+              height: physicsGeometry.centerY + physicsGeometry.radius,
+            }}
+          >
+            <LogoGrid
+              active={logoPhysicsActive}
+              circleGeometry={physicsGeometry}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 function DotMatrix() {
@@ -1916,148 +2469,7 @@ function TransitionAnimatedCopy({
   });
 }
 
-function AnimatedCopy({
-  children,
-  colorInitial = "#dddddd",
-  colorAccent = "#abff02",
-  colorFinal = "#000000",
-}) {
-  const containerRef = useRef(null);
-  const splitRefs = useRef([]);
-  const lastScrollProgress = useRef(0);
-  const colorTransitionTimers = useRef(new Map());
-  const completedChars = useRef(new Set());
 
-  useGSAP(
-    () => {
-      if (!containerRef.current) return;
-
-      splitRefs.current = [];
-      lastScrollProgress.current = 0;
-      colorTransitionTimers.current.clear();
-      completedChars.current.clear();
-
-      let elements = [];
-      if (containerRef.current.hasAttribute("data-copy-wrapper")) {
-        elements = Array.from(containerRef.current.children);
-      } else {
-        elements = [containerRef.current];
-      }
-
-      elements.forEach((element) => {
-        const charSplit = SplitText.create(element, {
-          type: "chars",
-          charsClass: "char",
-        });
-
-        elements.forEach((element) => {
-          const charSplit = SplitText.create(element, {
-            type: "chars",
-            charsClass: "char",
-          });
-
-          splitRefs.current.push({
-            wordSplit: null,
-            charSplit,
-          });
-        });
-      });
-
-      const allChars = splitRefs.current.flatMap(
-        ({ charSplit }) => charSplit.chars,
-      );
-
-      gsap.set(allChars, { color: colorInitial });
-
-      const scheduleFinalTransition = (char, index) => {
-        if (colorTransitionTimers.current.has(index)) {
-          clearTimeout(colorTransitionTimers.current.get(index));
-        }
-
-        const timer = setTimeout(() => {
-          if (!completedChars.current.has(index)) {
-            gsap.to(char, {
-              duration: 0.1,
-              ease: "none",
-              color: colorFinal,
-              onComplete: () => {
-                completedChars.current.add(index);
-              },
-            });
-          }
-          colorTransitionTimers.current.delete(index);
-        }, 100);
-
-        colorTransitionTimers.current.set(index, timer);
-      };
-
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        start: "top 90%",
-        end: "top 10%",
-        scrub: 1,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          const totalChars = allChars.length;
-          const isScrollingDown = progress >= lastScrollProgress.current;
-          const currentCharIndex = Math.floor(progress * totalChars);
-
-          allChars.forEach((char, index) => {
-            if (!isScrollingDown && index >= currentCharIndex) {
-              if (colorTransitionTimers.current.has(index)) {
-                clearTimeout(colorTransitionTimers.current.get(index));
-                colorTransitionTimers.current.delete(index);
-              }
-              completedChars.current.delete(index);
-              gsap.set(char, { color: colorInitial });
-              return;
-            }
-
-            if (completedChars.current.has(index)) {
-              return;
-            }
-
-            if (index <= currentCharIndex) {
-              gsap.set(char, { color: colorAccent });
-              if (!colorTransitionTimers.current.has(index)) {
-                scheduleFinalTransition(char, index);
-              }
-            } else {
-              gsap.set(char, { color: colorInitial });
-            }
-          });
-
-          lastScrollProgress.current = progress;
-        },
-      });
-
-      return () => {
-        colorTransitionTimers.current.forEach((timer) => clearTimeout(timer));
-        colorTransitionTimers.current.clear();
-        completedChars.current.clear();
-
-        splitRefs.current.forEach(({ wordSplit, charSplit }) => {
-          if (charSplit) charSplit.revert();
-          if (wordSplit) wordSplit.revert();
-        });
-      };
-    },
-    {
-      scope: containerRef,
-      dependencies: [colorInitial, colorAccent, colorFinal],
-    },
-  );
-
-  if (React.Children.count(children) === 1) {
-    return React.cloneElement(children, { ref: containerRef });
-  }
-
-  return (
-    <div ref={containerRef} data-copy-wrapper="true">
-      {children}
-    </div>
-  );
-}
 {
   /* <div style={{ height: '100vh', width: '100vw' }}>
       <Canvas camera={{ position: [0, 5, 30], fov: 50 }}>
@@ -2264,16 +2676,17 @@ function AnimatedCopy({
         </div>
       </div> */
 }
+
 export default function LandingComponent() {
+  const shapeRef = useRef(null);
   return (
     <div style={{ overflowX: "clip" }}>
       <div className="MainContainer">
-        <Hero />
+        <Hero shapeRef={shapeRef} />
       </div>
 
       <NewSection />
-      <LogoGrid />
-      <Locations />
+      {/* <Locations /> */}
       <GiftCards />
     </div>
   );
@@ -2287,10 +2700,12 @@ const PATH_MAIN =
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-function ShrimpFlow({ className = "" }) {
+function ShrimpFlow({
+  className = "",
+  statHighlightRefs,
+}) {
   const containerRef = useRef(null);
   const mainRef = useRef(null);
-  const subRef = useRef(null);
 
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
@@ -2298,23 +2713,17 @@ function ShrimpFlow({ className = "" }) {
     () => {
       const container = containerRef.current;
       const main = mainRef.current;
-      const sub = subRef.current;
 
-      if (!container || !main || !sub) return;
+      if (!container || !main) return;
 
       const trigger = container.parentElement;
 
       if (!trigger) return;
 
-      gsap.set(main, {
-        strokeDashoffset: -1000,
-        opacity: 1,
-      });
-
-      gsap.set(sub, {
-        strokeDashoffset: -1040,
-        opacity: 1,
-      });
+gsap.set([main, glowRef.current], {
+  strokeDashoffset: -1000,
+  opacity: 1,
+});
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -2325,124 +2734,117 @@ function ShrimpFlow({ className = "" }) {
           invalidateOnRefresh: true,
         },
       });
+    tl.to(
+  [main, glowRef.current],
+  {
+    strokeDashoffset: 0,
+    ease: "none",
+    duration: 1,
+  },
+  0
+);
+const stats = statHighlightRefs?.current || [];
 
-      tl.to(
-        main,
-        {
-          strokeDashoffset: 0,
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
+gsap.set(stats, {
+  opacity: 0.35,
+});
 
-      tl.to(
-        sub,
-        {
-          strokeDashoffset: -60,
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
+[
+  { index: 0, at: 0.18 }, // 60+ Years
+  { index: 1, at: 0.48 }, // 25k Patients
+  { index: 2, at: 0.75 }, // 4 Locations
+].forEach(({ index, at }) => {
+  const stat = stats[index];
 
-      tl.to(
-        [main, sub],
-        {
-          opacity: 0,
-          ease: "none",
-          duration: 0.18,
-        },
-        0.82,
-      );
+  if (!stat) return;
+
+  tl.to(
+    stat,
+    {
+      opacity: 1,
+      duration: 0.08,
+      ease: "none",
+    },
+    at
+  );
+});
+    tl.to(
+  [main, glowRef.current],
+  {
+    opacity: 0,
+    ease: "none",
+    duration: 0.18,
+  },
+  0.82
+);
     },
     { scope: containerRef },
   );
+const glowRef = useRef(null);
 
-  return (
-    <div
-      ref={containerRef}
-      className={`shrimp-flow ${className}`}
-      aria-hidden="true"
+return (
+  <div
+    ref={containerRef}
+    className={`shrimp-flow ${className}`}
+    aria-hidden="true"
+  >
+    <svg
+      className="shrimp-svg shrimp-svg--main"
+      viewBox="0 0 1920 915"
+      preserveAspectRatio="xMidYMid meet"
+      fill="none"
     >
-      <svg
-        className="shrimp-svg shrimp-svg--sub"
-        viewBox="0 0 1920 914"
-        preserveAspectRatio="xMidYMid meet"
+      <defs>
+        <filter
+          id={`shrimpGlow-${uid}`}
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
+      </defs>
+
+      {/* ORIGINAL STATIC PATH — SUBTLE GRAY */}
+      <path
+        d={PATH_MAIN}
+        stroke="#A3A3A3"
+        strokeOpacity="0.35"
+        strokeWidth="1"
         fill="none"
-      >
-        <defs>
-          <linearGradient
-            id={`shrimpGradSub-${uid}`}
-            x1="1926"
-            y1="-47.4999"
-            x2="43.5"
-            y2="937"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="white" stopOpacity="0" />
-            <stop offset="0.5" stopColor="white" />
-            <stop offset="1" stopColor="white" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+      />
 
-        <path
-          d={PATH_SUB}
-          stroke={`url(#shrimpGradSub-${uid})`}
-          strokeOpacity="0.15"
-        />
-
-        <path
-          ref={subRef}
-          d={PATH_SUB}
-          className="shrimp-pulse"
-          strokeOpacity="0.55"
-          pathLength="1000"
-          strokeDasharray="90 910"
-          strokeDashoffset="-1040"
-        />
-      </svg>
-
-      <svg
-        className="shrimp-svg shrimp-svg--main"
-        viewBox="0 0 1920 915"
-        preserveAspectRatio="xMidYMid meet"
+      {/* SOFT LILAC GLOW */}
+      <path
+        ref={glowRef}
+        d={PATH_MAIN}
+        stroke="#B9A7FF"
+        strokeOpacity="0.65"
+        strokeWidth="3"
         fill="none"
-      >
-        <defs>
-          <linearGradient
-            id={`shrimpGradMain-${uid}`}
-            x1="1896"
-            y1="-46.9999"
-            x2="13.5"
-            y2="937.5"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="white" stopOpacity="0" />
-            <stop offset="0.5" stopColor="white" />
-            <stop offset="1" stopColor="white" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+        pathLength="1000"
+        strokeDasharray="120 880"
+        strokeDashoffset="-1000"
+        filter={`url(#shrimpGlow-${uid})`}
+      />
 
-        <path
-          d={PATH_MAIN}
-          stroke={`url(#shrimpGradMain-${uid})`}
-          strokeOpacity="0.35"
-          strokeWidth="1"
-        />
-
-        <path
-          ref={mainRef}
-          d={PATH_MAIN}
-          className="shrimp-pulse"
-          strokeOpacity="0.9"
-          pathLength="1000"
-          strokeDasharray="120 880"
-          strokeDashoffset="-1000"
-        />
-      </svg>
-    </div>
-  );
+      {/* SHARP LILAC PULSE */}
+      <path
+        ref={mainRef}
+        d={PATH_MAIN}
+        className="shrimp-pulse"
+        stroke="#C4B5FD"
+        strokeOpacity="1"
+        strokeWidth="1.5"
+        fill="none"
+        pathLength="1000"
+        strokeDasharray="120 880"
+        strokeDashoffset="-1000"
+      />
+    </svg>
+  </div>
+);
 }
 function Tooth() {
   const group = useRef();
@@ -3116,6 +3518,7 @@ const Stats = () => {
     setHoveredCard(null);
   };
   const statRefs = useRef([]);
+  
 
   useEffect(() => {
     statRefs.current.forEach((ref) => {
@@ -4257,327 +4660,359 @@ const NewSection = () => {
   );
 };
 
-const LogoGrid = () => {
-  const logos = [
-    [
-      "../images/movingbannerfiles/diamondplus.svg",
-      "../images/movingbannerfiles/readers.png",
-      "../images/movingbannerfiles/damonsystem.svg",
-      "../images/movingbannerfiles/damonsystem.svg",
-    ],
-    [
-      "../images/movingbannerfiles/topDentist_logo.png",
-      "../images/movingbannerfiles/invisalign_invert.png",
-      "../images/movingbannerfiles/ajodo.svg",
-      "../images/movingbannerfiles/ABO_invert.png",
-      "../images/movingbannerfiles/ABO_invert.png",
-    ],
-    [
-      "../images/movingbannerfiles/valley.png",
-      "../images/movingbannerfiles/top-Dentist.png",
-      "../images/movingbannerfiles/aao_invert.png",
-      "../images/movingbannerfiles/aao_invert.png",
-    ],
-  ];
+const LOGO_SOURCES = [
+  "/images/movingbannerfiles/diamondplus.svg",
+  "/images/movingbannerfiles/readers.png",
+  "/images/movingbannerfiles/damonsystem.svg",
+  "/images/movingbannerfiles/topDentist_logo.png",
+  "/images/movingbannerfiles/invisalign_invert.png",
+  "/images/movingbannerfiles/ajodo.svg",
+  "/images/movingbannerfiles/ABO_invert.png",
+  "/images/movingbannerfiles/ABO_invert.png",
+  "/images/movingbannerfiles/valley.png",
+  "/images/movingbannerfiles/top-Dentist.png",
+  "/images/movingbannerfiles/aao_invert.png",
+];
 
-  let isSphereCreated = false;
+const LogoGrid = ({ active = false, circleGeometry }) => {
+  const containerRef = useRef(null);
 
+  const [viewportSize, setViewportSize] = useState({
+    width: 0,
+    height: 0,
+  });
   useEffect(() => {
-    console.log("sphere");
-    if (isSphereCreated) {
-      return;
-    }
-    isSphereCreated = true;
-    console.log("createsphere");
-    const createSphere = async () => {
-      let majorPlatformVersion;
-      const canvasSphereWrapp = document.querySelector("#ballcanvas");
-
-      if (navigator.userAgentData) {
-        try {
-          if (navigator.userAgentData.platform === "Windows") {
-            let ua = await navigator.userAgentData.getHighEntropyValues([
-              "platformVersion",
-            ]);
-            majorPlatformVersion = parseInt(ua.platformVersion.split(".")[0]);
-          }
-        } catch (error) {
-          console.error("version", error);
-
-          majorPlatformVersion = undefined;
-        }
-      }
-
-      let sW = canvasSphereWrapp.offsetWidth;
-      let halfsW = sW / 2;
-      let circleW = sW / 12;
-
-      let Engine = Matter.Engine,
-        Render = Matter.Render,
-        Runner = Matter.Runner,
-        Body = Matter.Body,
-        Bodies = Matter.Bodies,
-        Common = Matter.Common,
-        Composite = Matter.Composite,
-        World = Matter.World,
-        Mouse = Matter.Mouse,
-        Events = Matter.Events,
-        MouseConstraint = Matter.MouseConstraint;
-
-      let engine = Engine.create();
-
-      let render = Render.create({
-        element: canvasSphereWrapp,
-        engine: engine,
-        options: {
-          isSensor: true,
-          width: canvasSphereWrapp.offsetWidth,
-          pixelRatio: "auto",
-          height: canvasSphereWrapp.offsetHeight,
-          background: "transparent",
-          wireframes: false,
-        },
+    const updateSize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
       });
-
-      if (majorPlatformVersion >= 13) {
-        engine.timing.timeScale = 0.35;
-      }
-
-      engine.gravity.y = 1;
-      engine.gravity.x = 0;
-      engine.gravity.scale = 0.0025;
-
-      let stack = [];
-      const texts = ["INVISALIGN", "DAMON", "DIAMOND 1%"];
-
-      let ballsWithText = [];
-
-      for (let i = 0; i < 12; i++) {
-        const ball = Bodies.circle(halfsW, halfsW, circleW, {
-          restitution: 0.3, // reduce bounces
-          friction: 0.1, //
-
-          density: 0.02,
-          collisionFilter: {
-            category: 0x0003,
-            mask: 0x0003 | 0x0001,
-          },
-          render: {
-            fillStyle: "#1e90ff",
-          },
-        });
-
-        ballsWithText.push({ ball, text: texts[i] });
-        Composite.add(engine.world, ball);
-      }
-      Events.on(render, "afterRender", function () {
-        const ctx = render.context;
-        ballsWithText.forEach(({ ball, text }, index) => {
-          const position = ball.position;
-
-          const image = new Image();
-          image.src = logos[Math.floor(index / 4)][index % 4];
-          const aspectRatio = image.width / image.height;
-
-          let imageWidth, imageHeight;
-          if (aspectRatio > 1) {
-            imageWidth = circleW;
-            imageHeight = circleW / aspectRatio;
-          } else {
-            imageWidth = circleW * aspectRatio;
-            imageHeight = circleW;
-          }
-
-          const destX = position.x - imageWidth / 2;
-          const destY = position.y - imageHeight / 2;
-
-          ctx.drawImage(image, destX, destY, imageWidth, imageHeight);
-        });
-      });
-
-      let mouse = Mouse.create(render.canvas),
-        mouseConstraint = MouseConstraint.create(engine, {
-          mouse: mouse,
-          constraint: {
-            stiffness: 0.2,
-            render: {
-              visible: false,
-            },
-          },
-        });
-
-      mouseConstraint.mouse.element.removeEventListener(
-        "mousewheel",
-        mouseConstraint.mouse.mousewheel,
-      );
-      mouseConstraint.mouse.element.removeEventListener(
-        "DOMMouseScroll",
-        mouseConstraint.mouse.mousewheel,
-      );
-
-      let shakeScene = function (engine, bodies) {
-        let timeScale = 1000 / 60 / engine.timing.lastDelta;
-
-        for (let i = 0; i < bodies.length; i++) {
-          let body = bodies[i];
-
-          if (!body.isStatic) {
-            let forceMagnitude = 0.03 * body.mass * timeScale;
-
-            Body.applyForce(body, body.position, {
-              x:
-                (forceMagnitude + Common.random() * forceMagnitude) *
-                Common.choose([1, -1]),
-              y: -forceMagnitude + Common.random() * -forceMagnitude,
-            });
-          }
-        }
-      };
-
-      Events.on(mouseConstraint, "mousemove", function (event) {
-        let foundPhysics = Matter.Query.point(stack, event.mouse.position);
-        shakeScene(engine, foundPhysics);
-      });
-
-      Composite.add(engine.world, mouseConstraint);
-
-      render.mouse = mouse;
-
-      Render.run(render);
-      let boxWidth = sW * 0.9;
-      let boxHeight = sW * 0.8;
-      let boxX = sW / 2;
-      let boxY = sW / 2;
-      let wallThickness = 50;
-
-      let walls = [
-        Bodies.rectangle(
-          boxX,
-          boxY - boxHeight / 2 - wallThickness / 2,
-          boxWidth,
-          wallThickness,
-          {
-            isStatic: true,
-            render: { fillStyle: "transparent" },
-          },
-        ),
-
-        Bodies.rectangle(boxX, boxY + boxHeight / 2, boxWidth, wallThickness, {
-          isStatic: true,
-          render: { fillStyle: "transparent" },
-        }),
-
-        // Left Wall
-        Bodies.rectangle(
-          boxX - boxWidth / 2 - wallThickness / 2,
-          boxY,
-          wallThickness,
-          boxHeight,
-          {
-            isStatic: true,
-            render: { fillStyle: "transparent" },
-          },
-        ),
-
-        // Right Wall
-        Bodies.rectangle(
-          boxX + boxWidth / 2 + wallThickness / 2,
-          boxY,
-          wallThickness,
-          boxHeight,
-          {
-            isStatic: true,
-            render: { fillStyle: "transparent" },
-          },
-        ),
-      ];
-
-      Composite.add(engine.world, walls);
-
-      // let r = sW / 2;
-      // let parts = [];
-      // let pegCount = 32;
-      // let TAU = Math.PI * 2;
-      // for (let i = 0; i < pegCount; i++) {
-      //   const segment = TAU / pegCount;
-      //   let angle2 = (i / pegCount) * TAU + segment / 2;
-      //   let x2 = Math.cos(angle2);
-      //   let y2 = Math.sin(angle2);
-      //   let cx2 = x2 * r + sW / 2;
-      //   let cy2 = y2 * r + sW / 2;
-      //   let rect = addRect({
-      //     x: cx2,
-      //     y: cy2,
-      //     w: (10 / 1000) * sW,
-      //     h: (400 / 1000) * sW,
-      //     options: {
-      //       angle: angle2,
-      //       isStatic: true,
-      //       density: 1,
-      //       render: {
-      //         fillStyle: "transparent",
-      //         strokeStyle: "transparent",
-      //         lineWidth: 0,
-      //       },
-      //     },
-      //   });
-      //   parts.push(rect);
-      // }
-
-      function addBody(...bodies) {
-        World.add(engine.world, ...bodies);
-      }
-
-      function addRect({ x = 0, y = 0, w = 10, h = 10, options = {} } = {}) {
-        let body = Bodies.rectangle(x, y, w, h, options);
-        addBody(body);
-        return body;
-      }
-
-      let runner = Runner.create();
-
-      Runner.run(runner, engine);
     };
 
-    createSphere();
+    updateSize();
 
-    return () => {};
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      window.removeEventListener("resize", updateSize);
+    };
   }, []);
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container || !circleGeometry) return;
+
+    const {
+      Engine,
+      Render,
+      Runner,
+      Bodies,
+      Composite,
+      Events,
+      Mouse,
+      MouseConstraint,
+    } = Matter;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    if (!width || !height) return;
+
+    // -----------------------------------
+    // SHARED CIRCLE GEOMETRY
+    // -----------------------------------
+
+    const { centerX, centerY, radius: circleRadius } = circleGeometry;
+
+    const viewportHeight = circleGeometry.viewportHeight ?? window.innerHeight;
+
+    const isMobile = width <= 768;
+
+    const ballRadius = isMobile
+      ? Math.min(55, Math.max(30, width * 0.105))
+      : 100;
+
+    const ballDiameter = ballRadius * 2;
+
+    const engine = Engine.create();
+
+    engine.gravity.x = 0;
+    engine.gravity.y = 1;
+    engine.gravity.scale = 0.0015;
+
+    const runner = Runner.create();
+
+    const render = Render.create({
+      element: container,
+      engine,
+      options: {
+        width,
+        height,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        background: "transparent",
+        wireframes: false,
+      },
+    });
+
+    const segments = isMobile ? 160 : 240;
+    const wallThickness = isMobile ? 35 : 70;
+    const wallRadius = circleRadius + wallThickness / 2;
+    const walls = [];
+
+    for (let i = 0; i < segments; i++) {
+      const angle1 = (i / segments) * Math.PI * 2;
+
+      const angle2 = ((i + 1) / segments) * Math.PI * 2;
+
+      const x1 = centerX + Math.cos(angle1) * wallRadius;
+      const y1 = centerY + Math.sin(angle1) * wallRadius;
+
+      const x2 = centerX + Math.cos(angle2) * wallRadius;
+      const y2 = centerY + Math.sin(angle2) * wallRadius;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      const length = Math.hypot(x2 - x1, y2 - y1) + 4;
+
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+
+      walls.push(
+        Bodies.rectangle(midX, midY, length, wallThickness, {
+          isStatic: true,
+          angle,
+          friction: 0.6,
+          restitution: 0.08,
+          render: {
+            visible: false,
+          },
+        }),
+      );
+    }
+
+    Composite.add(engine.world, walls);
+
+    const balls = LOGO_SOURCES.map((_, index) => {
+      // All balls enter from the RIGHT side.
+
+      const horizontalOffset = circleRadius * (0.55 + (index % 4) * 0.06);
+
+      const x = centerX + horizontalOffset;
+
+      const upperBoundaryY =
+        centerY -
+        Math.sqrt(
+          Math.max(
+            0,
+            circleRadius * circleRadius - horizontalOffset * horizontalOffset,
+          ),
+        );
+
+      const y =
+        upperBoundaryY +
+        ballRadius * 2.5 +
+        Math.floor(index / 4) * ballDiameter * 1.2;
+
+      return Bodies.circle(x, y, ballRadius, {
+        restitution: 0.28,
+        friction: 0.35,
+        frictionStatic: 0.55,
+        frictionAir: 0.012,
+        density: 0.001,
+
+        render: {
+          fillStyle: "#1e90ff",
+          strokeStyle: "#1e90ff",
+          lineWidth: 0,
+        },
+      });
+    });
+
+    Composite.add(engine.world, balls);
+
+    const images = LOGO_SOURCES.map((src) => {
+      const image = new Image();
+
+      image.decoding = "async";
+      image.src = src;
+
+      return image;
+    });
+
+    const drawLogos = () => {
+      const ctx = render.context;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      balls.forEach((ball, index) => {
+        const image = images[index];
+
+        if (!image.complete || !image.naturalWidth || !image.naturalHeight) {
+          return;
+        }
+
+        const aspect = image.naturalWidth / image.naturalHeight;
+
+        const maxSize = ballRadius * 1.6;
+
+        const imageWidth = aspect >= 1 ? maxSize : maxSize * aspect;
+
+        const imageHeight = aspect >= 1 ? maxSize / aspect : maxSize;
+
+        ctx.save();
+
+        ctx.translate(ball.position.x, ball.position.y);
+
+        ctx.rotate(ball.angle);
+
+        ctx.drawImage(
+          image,
+          -imageWidth / 2,
+          -imageHeight / 2,
+          imageWidth,
+          imageHeight,
+        );
+
+        ctx.restore();
+      });
+    };
+
+    Events.on(render, "afterRender", drawLogos);
+
+    const mouse = Mouse.create(render.canvas);
+
+    const mouseConstraint = MouseConstraint.create(engine, {
+      mouse,
+      constraint: {
+        stiffness: 0.05,
+        render: {
+          visible: false,
+        },
+      },
+    });
+
+    Composite.add(engine.world, mouseConstraint);
+
+    render.mouse = mouse;
+
+    const cursor = {
+      x: 0,
+      y: 0,
+      inside: false,
+    };
+
+    const handleMouseMove = (event) => {
+      const rect = render.canvas.getBoundingClientRect();
+
+      if (!rect.width || !rect.height) {
+        cursor.inside = false;
+        return;
+      }
+
+      const x = (event.clientX - rect.left) * (width / rect.width);
+
+      const y = (event.clientY - rect.top) * (height / rect.height);
+
+      cursor.x = x;
+      cursor.y = y;
+      console.log("CURSOR", {
+        x: cursor.x,
+        y: cursor.y,
+        inside: cursor.inside,
+        active,
+      });
+      // Only apply repulsion when the pointer
+      // is within the actual physics canvas.
+      cursor.inside = x >= 0 && x <= width && y >= 0 && y <= height;
+    };
+
+    const handleMouseLeave = () => {
+      cursor.inside = false;
+    };
+
+    window.addEventListener("pointermove", handleMouseMove, { passive: true });
+
+    window.addEventListener("blur", handleMouseLeave);
+
+    const repelNearbyBalls = () => {
+      if (!cursor.inside || !active) return;
+
+      const hoveredBall = balls.find((ball) => {
+        if (mouseConstraint.body === ball) return false;
+
+        const dx = cursor.x - ball.position.x;
+        const dy = cursor.y - ball.position.y;
+        return Math.hypot(dx, dy) < ball.circleRadius;
+      });
+
+      if (!hoveredBall) return;
+
+      const dx = hoveredBall.position.x - cursor.x;
+      const dy = hoveredBall.position.y - cursor.y;
+
+      const distance = Math.hypot(dx, dy);
+
+      const directionX = distance > 0.001 ? dx / distance : 1;
+
+      const directionY = distance > 0.001 ? dy / distance : 0;
+
+      const pushStrength = 2.8;
+      const maxSpeed = 14;
+
+      const nextVX = hoveredBall.velocity.x + directionX * pushStrength;
+
+      const nextVY = hoveredBall.velocity.y + directionY * pushStrength;
+
+      const speed = Math.hypot(nextVX, nextVY);
+
+      const scale = speed > maxSpeed ? maxSpeed / speed : 1;
+
+      Matter.Body.setVelocity(hoveredBall, {
+        x: nextVX * scale,
+        y: nextVY * scale,
+      });
+    };
+
+    Events.on(engine, "beforeUpdate", repelNearbyBalls);
+
+    mouse.element.removeEventListener("mousewheel", mouse.mousewheel);
+
+    mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
+
+    Render.run(render);
+
+    if (active) {
+      Runner.run(runner, engine);
+    }
+
+    return () => {
+      Events.off(engine, "beforeUpdate", repelNearbyBalls);
+
+      window.removeEventListener("pointermove", handleMouseMove);
+
+      window.removeEventListener("blur", handleMouseLeave);
+
+      Mouse.clearSourceEvents(mouse);
+
+      Runner.stop(runner);
+      Render.stop(render);
+
+      Composite.clear(engine.world, false);
+      Engine.clear(engine);
+
+      render.canvas?.remove();
+
+      render.textures = {};
+    };
+  }, [active, circleGeometry, viewportSize.width, viewportSize.height]);
 
   return (
-    <div className="bg-[#F1F7FF] relative h-screen overflow-hidden">
-      {/* <div className="grid grid-cols-2 gap-4">
-        {logos.map((columnLogos, columnIndex) => (
-          <div key={columnIndex} className="flex flex-col items-center">
-            {columnLogos.map((logo, logoIndex) => (
-              <div key={logoIndex} className="p-2">
-                <img
-                  src={logo}
-                  alt={`Logo ${logoIndex + 1}`}
-                  className="w-auto h-14"
-                />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div> */}
-      <div className="container flex flex-col-reverse items-center justify-center h-full gap-4 py-32 mx-auto overflow-hidden lg:py-0 lg:flex-row lg:overflow-visible">
-        <div
-          id="ballcanvas"
-          className="z-10 w-full h-full lg:w-1/2 horizontal-item"
-        />
-
-        <div className="lg:w-1/2 ">
-          <p className="font-neue-montreal text-[24px]">Awards & Recognition</p>
-          <div className="flex items-center mt-10">
-            <div className="w-48 h-px bg-black"></div>
-            <p className=" font-neue-montreal text-[15px] pl-4">
-              Our greatest award is the success of our patients
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div
+      ref={containerRef}
+      className="relative h-full w-full overflow-hidden"
+      aria-label="Interactive orthodontic award logos"
+    />
   );
 };
 

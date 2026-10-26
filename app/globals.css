@@ -8351,25 +8351,28 @@ animation-delay:
   height: auto;
   max-width: none;
   display: block;
-  transform: translate(-50%, 220px);
+transform: translate(-50%, 30px);
 }
 
 .shrimp-svg--sub {
   transform: translate(-50%, 205px);
 }
 
+/* SHARED PATH STYLING */
 .shrimp-flow path {
   vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
+/* SHARP LILAC PULSE */
 .shrimp-pulse {
   fill: none;
-  stroke: white;
-  stroke-width: 1;
+  stroke: #c4b5fd;
+  stroke-width: 1.5;
 }
 
+/* TABLET */
 @media (max-width: 991px) {
   .shrimp-svg {
     width: 185%;
@@ -8381,6 +8384,7 @@ animation-delay:
   }
 }
 
+/* MOBILE */
 @media (max-width: 767px) {
   .shrimp-svg {
     width: 210%;
@@ -8392,6 +8396,7 @@ animation-delay:
   }
 }
 
+/* SMALL MOBILE */
 @media (max-width: 479px) {
   .shrimp-svg {
     width: 235%;
@@ -8402,7 +8407,6 @@ animation-delay:
     transform: translate(-50%, 36px);
   }
 }
-
 .frosted-donut {
   position: relative;
 width: min(40vw, 347px);
@@ -8716,3 +8720,5 @@ background: #1F42E3;
   display: inline-block;
   white-space: nowrap;
 }
+
+
