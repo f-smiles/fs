@@ -107,114 +107,246 @@ const config = {
   edgePadding: 0.1,
 }
 
-export default function FlutedGlassEffect({ src, className = "" }) {
-  const containerRef = useRef(null)
-const BASE_WIDTH = 1799.6
-const BASE_HEIGHT = 1071.5
+export default function FlutedGlassEffect({
+  src,
+  className = "",
+}) {
+  const containerRef = useRef(null);
 
-useEffect(() => {
-  const container = containerRef.current
-  if (!container) return
+  const BASE_WIDTH = 1799.6;
+  const BASE_HEIGHT = 1071.5;
 
-  container.innerHTML = ""
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
+    container.innerHTML = "";
 
-  const scene = new THREE.Scene()
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10)
-  camera.position.z = 1
+    const scene = new THREE.Scene();
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setClearColor(0x000000, 0)
-  container.appendChild(renderer.domElement)
+    const camera = new THREE.OrthographicCamera(
+      -1, 1, 1, -1, 0.01, 10
+    );
+    camera.position.z = 1;
 
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
 
-  renderer.setSize(BASE_WIDTH, BASE_HEIGHT, false)
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
 
-  renderer.domElement.style.width = "100%"
-  renderer.domElement.style.height = "100%"
-  renderer.domElement.style.display = "block"
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
 
-  const mouse = new THREE.Vector2(0.5, 0.5)
-  const targetMouse = new THREE.Vector2(0.5, 0.5)
-  const lerp = (a, b, t) => a + (b - a) * t
+    renderer.setSize(BASE_WIDTH, BASE_HEIGHT, false);
 
-  const textureSize = new THREE.Vector2(1, 1)
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
 
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uTexture: { value: null },
-      uResolution: { value: new THREE.Vector2(BASE_WIDTH, BASE_HEIGHT) },
-      uTextureSize: { value: textureSize },
-      uMouse: { value: mouse },
-      uParallaxStrength: { value: config.parallaxStrength },
-      uDistortionMultiplier: { value: config.distortionMultiplier },
-      uGlassStrength: { value: config.glassStrength },
-      ustripesFrequency: { value: config.stripesFrequency },
-      uglassSmoothness: { value: config.glassSmoothness },
-      uEdgePadding: { value: config.edgePadding },
-    },
-    vertexShader,
-    fragmentShader,
-  })
+    const mouse = new THREE.Vector2(0.5, 0.5);
+    const targetMouse = new THREE.Vector2(0.5, 0.5);
 
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material)
-  scene.add(mesh)
+    const textureSize = new THREE.Vector2(1, 1);
 
-  const loader = new THREE.TextureLoader()
-  const tex = loader.load(src, (t) => {
-    t.colorSpace = THREE.SRGBColorSpace
-    t.minFilter = THREE.LinearFilter
-    t.magFilter = THREE.LinearFilter
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy()
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTexture: { value: null },
+        uResolution: {
+          value: new THREE.Vector2(BASE_WIDTH, BASE_HEIGHT),
+        },
+        uTextureSize: { value: textureSize },
+        uMouse: { value: mouse },
+        uParallaxStrength: {
+          value: config.parallaxStrength,
+        },
+        uDistortionMultiplier: {
+          value: config.distortionMultiplier,
+        },
+        uGlassStrength: {
+          value: config.glassStrength,
+        },
+        ustripesFrequency: {
+          value: config.stripesFrequency,
+        },
+        uglassSmoothness: {
+          value: config.glassSmoothness,
+        },
+        uEdgePadding: {
+          value: config.edgePadding,
+        },
+      },
+      vertexShader,
+      fragmentShader,
+    });
 
-    const img = t.image
-    textureSize.set(img.naturalWidth || img.width, img.naturalHeight || img.height)
-    material.uniforms.uTexture.value = t
-  })
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      material
+    );
 
+    scene.add(mesh);
 
-  const onMouseMove = (e) => {
-    const rect = container.getBoundingClientRect()
-    targetMouse.x = (e.clientX - rect.left) / rect.width
-    targetMouse.y = 1.0 - (e.clientY - rect.top) / rect.height
-  }
+    let texture = null;
+    let video = null;
 
-  const onResize = () => {
-    renderer.domElement.style.width = `${container.clientWidth}px`
-    renderer.domElement.style.height = `${container.clientHeight}px`
-  }
+    const isVideo = /\.(mp4|webm|ogg)(\?.*)?$/i.test(src);
 
-  container.addEventListener("mousemove", onMouseMove)
-  window.addEventListener("resize", onResize)
+    if (isVideo) {
+      // Create a video element for the WebGL texture
+      video = document.createElement("video");
 
-  let raf = 0
-  const animate = () => {
-    raf = requestAnimationFrame(animate)
-    mouse.lerp(targetMouse, config.lerpFactor)
-    material.uniforms.uMouse.value.copy(mouse)
-    renderer.render(scene, camera)
-  }
+      video.src = src;
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
 
-  animate()
+      // Required for reliable inline playback
+      video.setAttribute("playsinline", "");
+      video.setAttribute("muted", "");
 
-  return () => {
-    cancelAnimationFrame(raf)
-    container.removeEventListener("mousemove", onMouseMove)
-    window.removeEventListener("resize", onResize)
-    tex?.dispose?.()
-    material.dispose()
-    mesh.geometry.dispose()
-    renderer.dispose()
-    container.removeChild(renderer.domElement)
-  }
-}, [src])
+      texture = new THREE.VideoTexture(video);
 
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{ width: "100%", height: "100vh", position: "relative" }}
-    />
-  )
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      material.uniforms.uTexture.value = texture;
+
+      const onVideoLoaded = () => {
+        textureSize.set(
+          video.videoWidth,
+          video.videoHeight
+        );
+      };
+
+      video.addEventListener(
+        "loadedmetadata",
+        onVideoLoaded
+      );
+
+      // Begin playback
+      video.play().catch((error) => {
+        console.warn("Video autoplay was prevented:", error);
+      });
+
+      // Save handler for cleanup
+      video._onVideoLoaded = onVideoLoaded;
+    } else {
+      // Existing image support
+      const loader = new THREE.TextureLoader();
+
+      texture = loader.load(src, (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.minFilter = THREE.LinearFilter;
+        t.magFilter = THREE.LinearFilter;
+
+        t.anisotropy =
+          renderer.capabilities.getMaxAnisotropy();
+
+        const img = t.image;
+
+        textureSize.set(
+          img.naturalWidth || img.width,
+          img.naturalHeight || img.height
+        );
+
+        material.uniforms.uTexture.value = t;
+      });
+    }
+
+    const onMouseMove = (e) => {
+      const rect = container.getBoundingClientRect();
+
+      targetMouse.x =
+        (e.clientX - rect.left) / rect.width;
+
+      targetMouse.y =
+        1.0 - (e.clientY - rect.top) / rect.height;
+    };
+
+    const onResize = () => {
+      renderer.domElement.style.width =
+        `${container.clientWidth}px`;
+
+      renderer.domElement.style.height =
+        `${container.clientHeight}px`;
+    };
+
+    container.addEventListener(
+      "mousemove",
+      onMouseMove
+    );
+
+    window.addEventListener("resize", onResize);
+
+    let raf = 0;
+
+    const animate = () => {
+      raf = requestAnimationFrame(animate);
+
+      mouse.lerp(
+        targetMouse,
+        config.lerpFactor
+      );
+
+      material.uniforms.uMouse.value.copy(mouse);
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(raf);
+
+      container.removeEventListener(
+        "mousemove",
+        onMouseMove
+      );
+
+      window.removeEventListener(
+        "resize",
+        onResize
+      );
+
+      if (video) {
+        video.pause();
+
+        video.removeEventListener(
+          "loadedmetadata",
+          video._onVideoLoaded
+        );
+
+        video.removeAttribute("src");
+        video.load();
+      }
+
+      texture?.dispose();
+      material.dispose();
+      mesh.geometry.dispose();
+      renderer.dispose();
+
+      if (renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement);
+      }
+    };
+  }, [src]);
+
+ return (
+  <div
+    ref={containerRef}
+    className={className}
+    style={{
+      width: "100%",
+      height: "100%",
+      position: "relative",
+    }}
+  />
+);
 }

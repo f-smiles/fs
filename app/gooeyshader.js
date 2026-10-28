@@ -1,22 +1,4 @@
 
-/*
- * FREYSMILES — FLUID REVEAL SHADERS
- *
- * Simulation:
- * 1. Splat
- * 2. Divergence
- * 3. Pressure
- * 4. Gradient subtraction
- * 5. Advection (velocity and dye)
- * 6. Display / image reveal
- *
- * GLSL ES 1.00 — compatible with THREE.ShaderMaterial
- */
-
-// --------------------------------------------------
-// FULLSCREEN VERTEX
-// --------------------------------------------------
-
 export const vertexShader = `
   varying vec2 vUv;
 
@@ -26,19 +8,6 @@ export const vertexShader = `
   }
 `;
 
-
-// --------------------------------------------------
-// 1. SPLAT
-// Injects mouse force or dye into a texture.
-//
-// For velocity:
-//   uValue = vec3(velocityX, velocityY, 0.0)
-//
-// For dye:
-//   uValue = vec3(1.0)
-//
-// uRadius is in UV-height units.
-// --------------------------------------------------
 
 export const splatShader = `
   uniform sampler2D uTarget;
@@ -75,11 +44,6 @@ export const splatShader = `
   }
 `;
 
-// --------------------------------------------------
-// 2. DIVERGENCE
-// Measures whether the velocity field is expanding
-// or contracting at each simulation cell.
-// --------------------------------------------------
 
 export const divergenceShader = `
   uniform sampler2D uVelocity;
@@ -121,14 +85,6 @@ export const divergenceShader = `
   }
 `;
 
-
-// --------------------------------------------------
-// 3. PRESSURE
-// Jacobi iteration.
-//
-// Run this shader repeatedly, ping-ponging
-// between pressure render targets.
-// --------------------------------------------------
 
 export const pressureShader = `
   uniform sampler2D uPressure;
@@ -177,13 +133,6 @@ export const pressureShader = `
   }
 `;
 
-
-// --------------------------------------------------
-// 4. GRADIENT SUBTRACTION
-// Removes pressure gradients from velocity,
-// making the flow approximately incompressible.
-// --------------------------------------------------
-
 export const gradientSubtractShader = `
   uniform sampler2D uPressure;
   uniform sampler2D uVelocity;
@@ -231,22 +180,10 @@ export const gradientSubtractShader = `
   }
 `;
 
-
-// --------------------------------------------------
-// 5. ADVECTION
-// Transports a texture through the velocity field.
-//
-// Use for both:
-// - Velocity (low-resolution target)
-// - Dye/reveal mask (higher-resolution target)
-//
-// Velocity is stored in UV units per second.
-// --------------------------------------------------
-
 export const advectionShader = `
   uniform sampler2D uVelocity;
   uniform sampler2D uSource;
-
+uniform vec2 uDrift;
   uniform vec2 uTexelSize;
 
   uniform float uDt;
@@ -260,12 +197,11 @@ export const advectionShader = `
       vUv
     ).xy;
 
-    vec2 coord = clamp(
-      vUv - uDt * velocity,
-      vec2(0.0),
-      vec2(1.0)
-    );
-
+vec2 coord = clamp(
+  vUv - uDt * (velocity + uDrift),
+  vec2(0.0),
+  vec2(1.0)
+);
     vec4 result = texture2D(
       uSource,
       coord
@@ -280,16 +216,6 @@ export const advectionShader = `
   }
 `;
 
-
-// --------------------------------------------------
-// 6. DISPLAY — CREAMY IMAGE REVEAL
-//
-// Gray background above.
-// Photograph appears wherever dye exists.
-//
-// The dye itself moves through the fluid solver.
-// This shader controls only the visual boundary.
-// --------------------------------------------------
 
 export const displayShader = `
 uniform vec2 uTexelSize;
@@ -352,8 +278,7 @@ float rightInset = 45.0;
 float bottomInset = 45.0;
 float topInset = 12.0;
 
-float fadeWidth = 20.0;
-
+float fadeWidth = 2.0;
 float left = smoothstep(
   leftInset * uTexelSize.x,
   (leftInset + fadeWidth) * uTexelSize.x,
@@ -381,7 +306,11 @@ float boundary = left * right * bottom * top;
 
 field *= boundary;
 
-float reveal = smoothstep(0.42, 0.44, field);
+float reveal = smoothstep(
+  0.48,
+  0.485,
+  field
+);
 
 // Calculate the image coordinates
 vec2 imageUV = coverUV(
@@ -404,13 +333,7 @@ gl_FragColor = vec4(finalColor, 1.0);
 
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
-gl_FragColor = vec4(
-  finalColor,
-  1.0
-);
 
-#include <tonemapping_fragment>
-#include <colorspace_fragment>
   }
 `;
 

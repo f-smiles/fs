@@ -1,4 +1,5 @@
 "use client";
+import FlutedGlassEffect from "/utils/glass";
 import {
   vertexShader,
   splatShader,
@@ -1170,71 +1171,53 @@ const ScrollTracker = ({ onScrollChange }) => {
 
 // const { scrollY } = useScroll();
 // const y = useTransform(scrollY, (latest) => -latest * 0.5);
-function TestimonialBike() {
+function FSMark({ x, y, size = 80, rotation = 0 }) {
   return (
-    <div className="bike">
-      <div className="back-wheel">
-        <ul>
-          {[0, 1, 2, 3].map((i) => (
-            <li key={i} />
-          ))}
-        </ul>
-      </div>
-
-      <div className="back-wheel-cover" />
-
-      <div className="front-wheel">
-        <ul>
-          {[0, 1, 2, 3].map((i) => (
-            <li key={i} />
-          ))}
-        </ul>
-      </div>
-
-      <div className="front-wheel-cover" />
-
-      <div className="back">
-        <div className="seat" />
-      </div>
-
-      <div className="middle">
-        <div className="pedal" />
-      </div>
-
-      <div className="front" />
-      <div className="basket-holder" />
-      <div className="basket" />
-
-      <div className="flower">
-        <div className="green-flower">
-          <ul>
-            <li />
-            <li />
-          </ul>
-        </div>
-
-        {[
-          "first-flower",
-          "second-flower",
-          "third-flower",
-        ].map((className) => (
-          <div className={className} key={className}>
-            <ul>
-              {[0, 1, 2, 3].map((i) => (
-                <li key={i} />
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </div>
+    <svg
+      x={x}
+      y={y}
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      overflow="visible"
+    >
+      <g fill="#000" transform={`rotate(${rotation} 8 8)`}>
+        <path d="M3,4.75h0c.55,0,1,.45,1,1v1h-1c-.55,0-1-.45-1-1h0c0-.55.45-1,1-1Z" />
+        <path d="M3,7h1v1c0,.55-.45,1-1,1h0c-.55,0-1-.45-1-1h0c0-.55.45-1,1-1Z" />
+        <path d="M3,9.25h1v1c0,.55-.45,1-1,1h-1v-1c0-.55.45-1,1-1Z" />
+        <path d="M5.25,4.75h1c.55,0,1,.45,1,1h0c0,.55-.45,1-1,1h-2v-1c0-.55.45-1,1-1Z" />
+        <path d="M4.25,7h1c.55,0,1,.45,1,1h0c0,.55-.45,1-1,1h-1v-2h0Z" />
+        <path d="M9.06,4.75h1.56v3.12h-1.56c-.86,0-1.56-.7-1.56-1.56h0c0-.86.7-1.56,1.56-1.56Z" />
+        <path d="M10.87,4.75h1.56c.86,0,1.56.7,1.56,1.56v1.56h-1.56c-.86,0-1.56-.7-1.56-1.56v-1.56h0Z" />
+        <path d="M7.5,8.12h1.56c.86,0,1.56.7,1.56,1.56v1.56h-1.56c-.86,0-1.56-.7-1.56-1.56v-1.56h0Z" />
+        <path d="M10.87,8.12h1.56c.86,0,1.56.7,1.56,1.56h0c0,.86-.7,1.56-1.56,1.56h-1.56v-3.13h0Z" />
+      </g>
+    </svg>
   );
 }
-
+function TestimonialSoccerBall() {
+  return (
+    <svg
+      className="testimonial-soccer-ball"
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle
+        cx="50"
+        cy="50"
+        r="48"
+        fill="none"
+        stroke="white"
+        strokeWidth="1"
+      />
+    </svg>
+  );
+}
 function TestimonialHills() {
   const hillPathRef = useRef(null);
-const bikeRef = useRef(null);
-const sceneRef = useRef(null);
+  const bikeRef = useRef(null);
+  const sceneRef = useRef(null);
   const rawId = useId();
   const clipId = `testimonial-hills-${rawId.replace(/:/g, "")}`;
 
@@ -1258,146 +1241,122 @@ const sceneRef = useRef(null);
     };
 
     for (let x = 0; x <= width; x += 3) {
-      points.push(
-        `${x === 0 ? "M" : "L"} ${x} ${curve(x)}`
-      );
+      points.push(`${x === 0 ? "M" : "L"} ${x} ${curve(x)}`);
     }
 
     return points.join(" ");
   }, []);
 
+  useLayoutEffect(() => {
+    const scene = sceneRef.current;
+    const bike = bikeRef.current;
+    const hill = hillPathRef.current;
 
-useLayoutEffect(() => {
-  const scene = sceneRef.current;
-  const bike = bikeRef.current;
-  const hill = hillPathRef.current;
+    if (!scene || !bike || !hill) return;
 
-  if (!scene || !bike || !hill) return;
+    const progress = { value: 0 };
 
-  const progress = { value: 0 };
+    const updateBike = () => {
+      const length = hill.getTotalLength();
 
-  const updateBike = () => {
-    const length = hill.getTotalLength();
-    const point = hill.getPointAtLength(
-      length * progress.value
-    );
+      const distance = length * progress.value;
 
-    const nextPoint = hill.getPointAtLength(
-      Math.min(length, length * progress.value + 2)
-    );
+      const point = hill.getPointAtLength(distance);
 
-    const svg = hill.ownerSVGElement;
-    const matrix = svg.getScreenCTM();
+      const nextPoint = hill.getPointAtLength(Math.min(length, distance + 2));
 
-    if (!matrix) return;
+      const svg = hill.ownerSVGElement;
+      const matrix = svg.getScreenCTM();
 
-    const screenPoint = new DOMPoint(
-      point.x,
-      point.y
-    ).matrixTransform(matrix);
+      if (!matrix) return;
 
-    const screenNext = new DOMPoint(
-      nextPoint.x,
-      nextPoint.y
-    ).matrixTransform(matrix);
+      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(
+        matrix,
+      );
 
-    const sceneRect = scene.getBoundingClientRect();
+      const screenNext = new DOMPoint(nextPoint.x, nextPoint.y).matrixTransform(
+        matrix,
+      );
 
-    const x = screenPoint.x - sceneRect.left;
-    const y = screenPoint.y - sceneRect.top;
+      const sceneRect = scene.getBoundingClientRect();
 
-    const angle =
-      Math.atan2(
-        screenNext.y - screenPoint.y,
-        screenNext.x - screenPoint.x
-      ) *
-      (180 / Math.PI);
+      const x = screenPoint.x - sceneRect.left;
+      const y = screenPoint.y - sceneRect.top;
 
-    gsap.set(bike, {
-      x: x - 71,
-      y: y - 44,
-      rotation: angle,
-      transformOrigin: "50% 100%",
-    });
-  };
+      const angle =
+        Math.atan2(screenNext.y - screenPoint.y, screenNext.x - screenPoint.x) *
+        (180 / Math.PI);
 
-  const ctx = gsap.context(() => {
-    gsap.to(progress, {
-      value: 1,
-      duration: 10,
-      ease: "none",
-      repeat: -1,
-      onUpdate: updateBike,
-    });
+      gsap.set(bike, {
+        x,
+        y,
+        rotation: angle,
+        xPercent: -50,
+        yPercent: -100,
+        transformOrigin: "50% 100%",
+      });
+    };
 
-    updateBike();
-  }, scene);
+    const ctx = gsap.context(() => {
+      gsap.to(progress, {
+        value: 1,
+        duration: 10,
+        ease: "none",
+        repeat: -1,
+        onUpdate: updateBike,
+      });
 
-  window.addEventListener("resize", updateBike);
+      updateBike();
+    }, scene);
 
-  return () => {
-    window.removeEventListener("resize", updateBike);
-    ctx.revert();
-  };
-}, []);
+    window.addEventListener("resize", updateBike);
 
+    return () => {
+      window.removeEventListener("resize", updateBike);
+      ctx.revert();
+    };
+  }, []);
 
+  return (
+    <div ref={sceneRef} className="pointer-events-none absolute inset-0 z-30">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full overflow-visible"
+        aria-hidden="true"
+      >
+        <path
+          ref={hillPathRef}
+          d={path}
+          fill="none"
+          stroke="rgba(255,255,255,0.7)"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
-return (
-  <div
-    ref={sceneRef}
-    className="pointer-events-none absolute inset-0 z-30"
-  >
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-      className="absolute inset-0 h-full w-full overflow-visible"
-      aria-hidden="true"
-    >
-      <path
-        ref={hillPathRef}
-        d={path}
-        fill="none"
-        stroke="rgba(255,255,255,0.7)"
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-
- <div
-  ref={bikeRef}
-  className="pointer-events-none absolute left-0 top-0 h-[104px] w-[142px]"
->
-  <div className="bike-scale">
-    <TestimonialBike />
-  </div>
-</div>
-  </div>
-);
-
+      <div
+        ref={bikeRef}
+        className="pointer-events-none absolute left-0 top-0 h-[84px] w-[132px]"
+      >
+        <TestimonialSoccerBall />
+      </div>
+    </div>
+  );
 }
 
-const Hero = ({ shapeRef }) => {
+const Hero = () => {
   const transitionRef = useRef(null);
   const videoStepRef = useRef(null);
   const videoRef = useRef(null);
   const sectionRef = useRef(null);
-  const shapeTrackRef = useRef(null);
-  const [circleGeometry, setCircleGeometry] = useState(null);
-  const [logoPhysicsActive, setLogoPhysicsActive] = useState(false);
-  const [physicsGeometry, setPhysicsGeometry] = useState(null);
-  // Hero refs
+
   const marqueeRef = useRef(null);
   const videoButtonRef = useRef(null);
   const editorialRef = useRef(null);
-
-  // Statistics refs
-  const statRefs = useRef([]);
-  const statHighlightRefs = useRef([]);
-  const statDigitRefs = useRef([]);
   const statsTextCharsRef = useRef([]);
-
   const [videoReady, setVideoReady] = useState(false);
+  const notchPathRef = useRef(null);
   useEffect(() => {
     const handleResize = () => {
       ScrollTrigger.refresh();
@@ -1409,6 +1368,7 @@ const Hero = ({ shapeRef }) => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
   useLayoutEffect(() => {
     const container = marqueeRef.current;
     if (!container) return;
@@ -1526,78 +1486,11 @@ const Hero = ({ shapeRef }) => {
   }, [videoReady]);
 
   useLayoutEffect(() => {
-    const originalContents = [];
-
-    statDigitRefs.current = [];
-
-    statRefs.current.forEach((ref) => {
-      if (!ref) return;
-
-      originalContents.push({
-        ref,
-        html: ref.innerHTML,
-      });
-
-      const targetValue = parseInt(ref.dataset.target, 10);
-
-      const digits = targetValue.toString().split("");
-
-      ref.innerHTML = "";
-
-      digits.forEach((digit) => {
-        const wrapper = document.createElement("div");
-
-        wrapper.style.overflow = "hidden";
-        wrapper.style.height = "1em";
-        wrapper.style.display = "inline-block";
-        wrapper.style.verticalAlign = "top";
-
-        const digitContainer = document.createElement("div");
-
-        digitContainer.style.position = "relative";
-
-        for (let i = 0; i <= 9; i++) {
-          const digitElement = document.createElement("div");
-
-          digitElement.innerText = i;
-          digitElement.style.height = "1em";
-          digitElement.style.lineHeight = "1em";
-          digitElement.style.textAlign = "center";
-
-          digitContainer.appendChild(digitElement);
-        }
-
-        wrapper.appendChild(digitContainer);
-        ref.appendChild(wrapper);
-
-        gsap.set(digitContainer, {
-          y: "0em",
-        });
-
-        statDigitRefs.current.push({
-          element: digitContainer,
-          value: Number(digit),
-        });
-      });
-    });
-
-    return () => {
-      originalContents.forEach(({ ref, html }) => {
-        ref.innerHTML = html;
-      });
-
-      statDigitRefs.current = [];
-    };
-  }, []);
-
-  useLayoutEffect(() => {
     const container = transitionRef.current;
     const step = videoStepRef.current;
     const section = sectionRef.current;
 
     if (!container || !step || !section) return;
-
-    let cleanupPhysicsResize = () => {};
 
     const ctx = gsap.context(() => {
       const timeline = gsap.timeline({
@@ -1615,6 +1508,7 @@ const Hero = ({ shapeRef }) => {
         },
       });
 
+      // 1. VIDEO CLIP-PATH TRANSITION
 
       timeline.fromTo(
         step,
@@ -1630,9 +1524,13 @@ const Hero = ({ shapeRef }) => {
         0,
       );
 
+      // 2. EDITORIAL SECTION SLIDES INTO VIEW
+
       timeline.fromTo(
         section,
-        { yPercent: 100 },
+        {
+          yPercent: 100,
+        },
         {
           yPercent: 0,
           duration: 0.8,
@@ -1642,8 +1540,9 @@ const Hero = ({ shapeRef }) => {
         0.5,
       );
 
+      // 3. EDITORIAL TEXT COLOR ANIMATION
+
       const chars = statsTextCharsRef.current;
-      let textEnd = 1.3;
 
       if (chars.length) {
         const stagger = 0.012;
@@ -1668,255 +1567,84 @@ const Hero = ({ shapeRef }) => {
           },
           0.85,
         );
-
-        textEnd = 0.85 + (chars.length - 1) * stagger + passDuration;
-      }
-
-
-
-      const starPath = shapeRef.current;
-
-      if (starPath) {
-        const circlePath =
-          "M80.5 2.5 C123.6 2.5 158.5 37.4 158.5 80.5 C158.5 123.6 123.6 158.5 80.5 158.5 C37.4 158.5 2.5 123.6 2.5 80.5 C2.5 37.4 37.4 2.5 80.5 2.5 Z";
-
-        const morphStart = 0.65;
-        const morphEnd = textEnd;
-
-        const morphDuration = Math.max(0.01, morphEnd - morphStart);
-
-        timeline.to(
-          starPath,
-          {
-            morphSVG: {
-              shape: circlePath,
-              type: "rotational",
-            },
-            duration: morphDuration,
-            ease: "none",
-          },
-          morphStart,
-        );
-
-        timeline.fromTo(
-          starPath.ownerSVGElement,
-          { rotation: 0 },
-          {
-            rotation: 180,
-            transformOrigin: "50% 50%",
-            duration: morphDuration,
-            ease: "none",
-          },
-          morphStart,
-        );
-      }
-      const circleSVG = shapeRef.current?.ownerSVGElement;
-      const circleSlot = squareSlotRef.current;
-      const testimonialLayer = testimonialContentRef.current;
-
-      if (circleSVG && circleSlot && testimonialLayer) {
-        const expansionStart = textEnd;
-
-        const expansion = { progress: 0 };
-
-        const getGeometry = () => {
-          const slotRect = circleSlot.getBoundingClientRect();
-          const layerRect = testimonialLayer.getBoundingClientRect();
-
-          const isMobile = layerRect.width <= 768;
-
-          const centerX = slotRect.left + slotRect.width / 2 - layerRect.left;
-
-          const initialCenterY =
-            slotRect.top + slotRect.height / 2 - layerRect.top;
-
-          const initialRadius = (slotRect.width * 78) / 161;
-
-          const centerY = isMobile
-            ? layerRect.height * 0.5
-            : initialCenterY - 220;
-          const maxX = Math.max(
-            Math.abs(centerX),
-            Math.abs(layerRect.width - centerX),
-          );
-
-          const maxY = Math.max(
-            Math.abs(centerY),
-            Math.abs(layerRect.height - centerY),
-          );
-
-          const finalRadius = Math.hypot(maxX, maxY) + (isMobile ? 200 : 20);
-
-          return {
-            centerX,
-            centerY,
-            initialCenterY,
-            initialRadius,
-            finalRadius,
-          };
-        };
-
-        const updatePhysicsGeometry = () => {
-          const geometry = getGeometry();
-
-          setPhysicsGeometry((previous) => {
-            const next = {
-              centerX: geometry.centerX,
-              centerY: geometry.centerY,
-              radius: geometry.finalRadius,
-              viewportHeight: testimonialLayer.clientHeight,
-            };
-
-            if (
-              previous &&
-              previous.centerX === next.centerX &&
-              previous.centerY === next.centerY &&
-              previous.radius === next.radius &&
-              previous.viewportHeight === next.viewportHeight
-            ) {
-              return previous;
-            }
-
-            return next;
-          });
-        };
-
-const renderExpansion = () => {
-  const {
-    centerX,
-    centerY,
-    initialCenterY,
-    initialRadius,
-    finalRadius,
-  } = getGeometry();
-
-  const progress = expansion.progress;
-
-  const radius =
-    initialRadius + (finalRadius - initialRadius) * progress;
-
-  const animatedCenterY =
-    initialCenterY + (centerY - initialCenterY) * progress;
-
-
-  const svgOpacity = 1 - gsap.utils.clamp(0, 1, progress / 0.12);
-
-  gsap.set(circleSVG, {
-    scale: radius / initialRadius,
-    x: 0,
-    y: 0,
-    transformOrigin: "50% 50%",
-    opacity: svgOpacity,
-  });
-
-  gsap.set(testimonialLayer, {
-    clipPath: `circle(${radius}px at ${centerX}px ${animatedCenterY}px)`,
-  });
-};
-        const handleResize = () => {
-          updatePhysicsGeometry();
-          renderExpansion();
-        };
-
-        updatePhysicsGeometry();
-
-        window.addEventListener("resize", handleResize);
-
-        cleanupPhysicsResize = () => {
-          window.removeEventListener("resize", handleResize);
-        };
-        timeline.to(
-          expansion,
-          {
-            progress: 1,
-            duration: 1.2,
-            ease: "power2.out",
-            onUpdate: renderExpansion,
-            onReverseComplete: () => {
-              gsap.set(circleSVG, {
-                scale: 1,
-                x: 0,
-                y: 0,
-              });
-              
-              gsap.set(testimonialLayer, {
-                clipPath: "circle(0px at 0px 0px)",
-              });
-            },
-          },
-          expansionStart,
-        );
-
-        timeline.call(
-          () => setLogoPhysicsActive(true),
-          [],
-          expansionStart + 1.2,
-        );
-
-        timeline.to({}, { duration: 0.6 });
-
-        const cards = testimonialCardsRef.current.filter(Boolean);
-
-        if (cards.length) {
-          const cardsStart = expansionStart + 1.2;
-
-          const startingHeights = [140, 95, 70, 45];
-
-          timeline.fromTo(
-            cards,
-            {
-              height: (index) => startingHeights[index],
-            },
-            {
-              height: () => (window.innerWidth >= 1024 ? 560 : 380),
-              duration: 1.4,
-              stagger: {
-                each: 0.18,
-              },
-              ease: "none",
-              immediateRender: true,
-            },
-            cardsStart,
-          );
-        }
-        timeline.to({}, { duration: 0.6 });
       }
     }, container);
 
-    return () => {
-      cleanupPhysicsResize();
-      ctx.revert();
-    };
+    return () => ctx.revert();
   }, []);
-useEffect(() => {
-  const animations = [];
 
-  statDigitRefs.current.forEach(({ element, value }) => {
-    const tween = gsap.to(element, {
-      y: `${-value}em`,
-      duration: 4,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: element.closest("[data-stat]"),
-        start: "top 85%",
-        toggleActions: "play none none none",
-      },
-    });
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const path = notchPathRef.current;
 
-    animations.push(tween);
-  });
+    if (!section || !path) return;
 
-  return () => {
-    animations.forEach((tween) => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
-    });
-  };
-}, []);
-  const squareSlotRef = useRef(null);
-  const testimonialContentRef = useRef(null);
-  const expansionTrackRef = useRef(null);
-  const testimonialCardsRef = useRef([]);
+    // Original SVG dimensions: 728 × 470
+    const H = 470;
+
+    // The original notch begins at approximately y = 74.57
+    const notch = { y: 74.57 };
+
+    const updatePath = () => {
+      // Keep the notch inside the SVG boundaries
+      const shift = notch.y - 74.57;
+
+      const d = `
+      M -0.5,-0.5
+      L 728.5,-0.5
+      L 728.5,470.5
+      L 473.49,470.02
+      L 437.09,470
+      L 182.29,470
+      L 145.89,470
+      L -0.5,470.5
+
+      L -0.02,${314.97 + shift}
+
+      A 22.39,22.39 0 0 1
+        5.09,${300.8 + shift}
+
+      L 24.91,${276.74 + shift}
+
+      A 22.29,22.29 0 0 0
+        30,${262.57 + shift}
+
+      L 30,${126.97 + shift}
+
+      A 22.29,22.29 0 0 0
+        24.91,${112.8 + shift}
+
+      L 5.09,${88.74 + shift}
+
+      A 22.5,22.5 0 0 1
+        -0.05,${74.57 + shift}
+
+      L -0.5,-0.5
+      Z
+    `;
+
+      path.setAttribute("d", d);
+    };
+
+    updatePath();
+
+    const ctx = gsap.context(() => {
+      gsap.to(notch, {
+        y: 150,
+        ease: "none",
+        onUpdate: updatePath,
+
+        scrollTrigger: {
+          trigger: section,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    }, section);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
     <>
@@ -2102,250 +1830,52 @@ useEffect(() => {
           ref={sectionRef}
           className="absolute inset-x-0 top-0 z-30 h-screen w-full overflow-visible bg-[#F5F5F5]"
         >
-<ShrimpFlow statHighlightRefs={statHighlightRefs} />
-
-<div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
-<div
-  data-stat
-  ref={(el) => (statHighlightRefs.current[0] = el)}
-  className="absolute left-[51%] top-[25%] flex items-baseline gap-4"
->
-  <div className="flex items-end font-neueroman text-[clamp(2.5rem,4vw,5rem)] leading-none tracking-[-0.06em]">
-    <span
-      ref={(el) => (statRefs.current[0] = el)}
-      data-target="60"
-    >
-      0
-    </span>
-    <span className="mb-1 ml-1 text-[0.45em]">+</span>
-  </div>
-
-  <p className="whitespace-nowrap font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
-    Years of Experience
-  </p>
-</div>
-
-  <div
-  data-stat
-    ref={(el) => (statHighlightRefs.current[1] = el)}
-    className="absolute left-[34%] top-[50%] items-baseline gap-4 flex flex-row gap-2"
-  >
-    <div className="flex items-end font-neueroman text-[clamp(2.5rem,4vw,5rem)] font-light leading-none tracking-[-0.06em]">
-      <span
-        ref={(el) => (statRefs.current[1] = el)}
-        data-target="25"
-      >
-        0
-      </span>
-      <span className="mb-1 ml-1 text-[0.45em]">k</span>
-    </div>
-
-    <p className="font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
-      Satisfied Patients
-    </p>
-  </div>
-
-  <div
-  data-stat
-    ref={(el) => (statHighlightRefs.current[2] = el)}
-    className="absolute left-[8%] top-[65%] flex flex-row items-baseline gap-4"
-  >
-    <div className="font-neueroman text-[clamp(2.5rem,4vw,5rem)] font-light leading-none tracking-[-0.06em]">
-      <span
-        ref={(el) => (statRefs.current[2] = el)}
-        data-target="4"
-      >
-        0
-      </span>
-    </div>
-
-    <p className="font-ibmplex text-[12px] uppercase tracking-wide text-black/50">
-      Locations
-    </p>
-  </div>
-
-</div>
-
-          <div className="pointer-events-none absolute inset-0 z-20 flex flex-col lg:flex-row">
-            {/* LEFT — EDITORIAL COPY */}
-            <div className="flex w-full -translate-y-[80px] items-center px-8 lg:w-1/2 lg:px-16">
-                          <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
-                <h2 className="w-full max-w-[520px] font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em]">
-                  Our doctors are fully invested in treatment planning your case
-                  correctly. Guided by board-certified standards and decades of
-                  clinical practice, we approach every case with the same rigor
-                  demanded in academic orthodontics.
-                </h2>
-              </TransitionAnimatedCopy>
-           
-            </div>
-
-            {/* RIGHT — STATISTICS */}
-            <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 lg:-translate-y-[100px] lg:px-16">
-          <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 px-8 lg:px-16">
- 
-            <h2 className="flex flex-wrap items-center gap-x-[0.25em] gap-y-2 font-neueroman text-[clamp(2rem,4.5vw,5rem)] leading-[0.9] tracking-[-0.005em] text-black">
-                <span
-                ref={squareSlotRef}
-                className="relative inline-block h-[0.65em] w-[0.65em] shrink-0"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 161 161"
-                  className="block h-full w-full overflow-visible text-black"
-                  aria-hidden="true"
-                >
-                  <path
-                    ref={shapeRef}
-                    fill="currentColor"
-                    d="M108 88.7c-10.8 0-19.7 8.8-19.7 19.7v47.4c0 1.9-1.5 3.4-3.4 3.4h-8.6c-1.9 0-3.4-1.5-3.4-3.4v-47.4c0-10.8-8.8-19.7-19.7-19.7H6.4c-1.9 0-3.4-1.5-3.4-3.4v-8c0-1.9 1.5-3.4 3.4-3.4h46.9c10.8 0 19.7-8.8 19.6-19.7V6.4c0-1.9 1.5-3.4 3.4-3.4H85c1.9 0 3.4 1.5 3.4 3.4v47.8c0 10.8 8.8 19.7 19.7 19.7h46.6c1.9 0 3.4 1.5 3.4 3.4v8c0 1.9-1.5 3.4-3.4 3.4H108z"
-                  />
-                </svg>
-              </span>
-      
-              <span>shaped here</span>
-                 
-
-              <span>smile everywhere</span>
-            </h2>
-          </div>
-            </div>
-          </div>
-
-          {/* SVG STAR DEFINITION */}
           <svg
             width="0"
             height="0"
-            className="pointer-events-none absolute"
+            className="absolute pointer-events-none"
             aria-hidden="true"
           >
             <defs>
               <clipPath
-                id="testimonial-star-clip"
+                id="moving-fluted-clip"
                 clipPathUnits="objectBoundingBox"
+                transform="scale(0.001373626 0.00212766)"
               >
-                <path
-                  transform="scale(0.0061728395)"
-                  d="M108 88.7c-10.8 0-19.7 8.8-19.7 19.7v47.4c0 1.9-1.5 3.4-3.4 3.4h-8.6c-1.9 0-3.4-1.5-3.4-3.4v-47.4c0-10.8-8.8-19.7-19.7-19.7H6.4c-1.9 0-3.4-1.5-3.4-3.4v-8c0-1.9 1.5-3.4 3.4-3.4h46.9c10.8 0 19.7-8.8 19.6-19.7V6.4c0-1.9 1.5-3.4 3.4-3.4H85c1.9 0 3.4 1.5 3.4 3.4v47.8c0 10.8 8.8 19.7 19.7 19.7h46.6c1.9 0 3.4 1.5 3.4 3.4v8c0 1.9-1.5 3.4-3.4 3.4H108z"
-                />
+                <path ref={notchPathRef} />
               </clipPath>
             </defs>
           </svg>
 
-          {/* BOTTOM HEADLINE */}
+          <div className="relative flex h-full w-full items-center justify-center">
+            <div
+              className="relative aspect-video w-[75vw] overflow-hidden"
+              style={{
+                clipPath: "url(#moving-fluted-clip)",
+              }}
+            >
+              <FlutedGlassEffect
+                className="h-full w-full"
+                src="/videos/invisman.mp4"
+              />
+            </div>
 
-
-
-          <div
-            ref={testimonialContentRef}
-            className="pointer-events-none absolute inset-0 z-40 overflow-hidden bg-black"
-            style={{
-              clipPath: "circle(0px at 0px 0px)",
-            }}
-          >
-
-            <div className="pointer-events-none relative z-20 flex h-full w-full flex-col px-8 pt-[15vh] text-white lg:px-16">
-              <div className="relative z-10 shrink-0">
-                <p className="mb-4 font-neueroman text-[13px] uppercase tracking-wide">
-                  What our patients say
-                </p>
-
-                <h3 className="max-w-[900px] font-neueroman text-[14px] leading-[1.05]">
-                  Our greatest award is the success of our patients
-                </h3>
+            {/* EDITORIAL COPY — OVERLAID ON RIGHT */}
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-end">
+              <div className="w-[42%] pr-[14%]">
+                <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
+                  <h2 className="font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em] text-black">
+                    Our doctors are fully invested in treatment planning your
+                    case correctly. Guided by board-certified standards and
+                    decades of clinical practice, we approach every case with
+                    the same rigor demanded in academic orthodontics.
+                  </h2>
+                </TransitionAnimatedCopy>
               </div>
-
-             
-<div className="relative z-20 mt-auto w-full pb-8">
-  <div className="relative grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
-
-             {[
-                  { number: "01", quote: "Dr. Frey treated both me (as an adult with a complex bite issue) and my son, and we couldn’t be happier with the results. He is knowledgeable, thoughtful, and truly cares about achieving the best outcome for his patients. The entire staff is friendly and supportive. I highly recommend him.", name: "Michele" },
-                  { number: "02", quote: "Dr Frey and his team are amazing! They explain everything all the way through the process at every visit. Their Growth and Guidance program caught 2 significant issues my youngest had and we were able to address them early. They also work with you on finances. Highly recommend!", name: "Mary Ost" },
-                  { number: "03", quote: "Excellent service. I always get called in early to my appointments, they are very organized and put together, and they are always quick. Did great with my teeth - they look amazing.", name: "Meadow Phillips" },
-                  { number: "04", quote: "Absolutely love the team at FreySmiles in Lehighton. From day one they have been amazing and so sweet to my teen thru her braces and Invisalign journey. Dr Frey is wonderful to chat with and I highly recommend especially if you’re the nervous type.", name: "Christina Seo" },
-                ].map((testimonial, index) => (
-                  <div
-                    key={testimonial.number}
-                    ref={(el) => {
-                      testimonialCardsRef.current[index] = el;
-                    }}
-
-className="
-  relative flex h-[380px] flex-col justify-between
-  overflow-hidden 
-  border border-white/[0.14]
-  bg-white/[0.07]
-  p-5 text-white
-  backdrop-blur-[24px] backdrop-saturate-[140%]
-
-  lg:h-[560px] lg:p-6
-"
-
-                  >
-                    <span className="font-ibmplex text-[12px] tracking-widest text-white/50">
-                      {testimonial.number}
-                    </span>
-
-                    <div>
-                      <p className="mb-6 max-w-[260px] font-neueroman text-[clamp(14px,1.1vw,18px)] leading-[1.15]">
-                        “{testimonial.quote}”
-                      </p>
-
-                      <span className="font-ibmplex text-[12px] uppercase tracking-wider text-white/50">
-                        {testimonial.name}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-  </div>
-
-  <TestimonialHills />
-</div>
-
             </div>
           </div>
         </section>
       </div>
-      {physicsGeometry && (
-        <div
-          ref={expansionTrackRef}
-          className="relative w-full overflow-hidden bg-[#F5F5F5]"
-          style={{
-            height: Math.max(
-              0,
-              physicsGeometry.centerY +
-                physicsGeometry.radius -
-                physicsGeometry.viewportHeight,
-            ),
-          }}
-        >
-          {/* CONTINUATION OF THE SAME BLACK CIRCLE */}
-          <div
-            className="absolute inset-0 bg-black"
-            style={{
-              clipPath: `circle(
-          ${physicsGeometry.radius}px at
-          ${physicsGeometry.centerX}px
-          ${physicsGeometry.centerY - physicsGeometry.viewportHeight}px
-        )`,
-            }}
-          />
-
-          <div
-            className="pointer-events-auto absolute inset-x-0 z-10"
-            style={{
-              top: -physicsGeometry.viewportHeight,
-              height: physicsGeometry.centerY + physicsGeometry.radius,
-            }}
-          >
-            <LogoGrid
-              active={logoPhysicsActive}
-              circleGeometry={physicsGeometry}
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 };
@@ -2468,7 +1998,6 @@ function TransitionAnimatedCopy({
     ref: headingRef,
   });
 }
-
 
 {
   /* <div style={{ height: '100vh', width: '100vw' }}>
@@ -2687,7 +2216,7 @@ export default function LandingComponent() {
 
       <NewSection />
       {/* <Locations /> */}
-      <GiftCards />
+      {/* <GiftCards /> */}
     </div>
   );
 }
@@ -2700,10 +2229,7 @@ const PATH_MAIN =
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-function ShrimpFlow({
-  className = "",
-  statHighlightRefs,
-}) {
+function ShrimpFlow({ className = "", statHighlightRefs }) {
   const containerRef = useRef(null);
   const mainRef = useRef(null);
 
@@ -2720,10 +2246,10 @@ function ShrimpFlow({
 
       if (!trigger) return;
 
-gsap.set([main, glowRef.current], {
-  strokeDashoffset: -1000,
-  opacity: 1,
-});
+      gsap.set([main, glowRef.current], {
+        strokeDashoffset: -1000,
+        opacity: 1,
+      });
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -2734,117 +2260,117 @@ gsap.set([main, glowRef.current], {
           invalidateOnRefresh: true,
         },
       });
-    tl.to(
-  [main, glowRef.current],
-  {
-    strokeDashoffset: 0,
-    ease: "none",
-    duration: 1,
-  },
-  0
-);
-const stats = statHighlightRefs?.current || [];
+      tl.to(
+        [main, glowRef.current],
+        {
+          strokeDashoffset: 0,
+          ease: "none",
+          duration: 1,
+        },
+        0,
+      );
+      const stats = statHighlightRefs?.current || [];
 
-gsap.set(stats, {
-  opacity: 0.35,
-});
+      gsap.set(stats, {
+        opacity: 0.35,
+      });
 
-[
-  { index: 0, at: 0.18 }, // 60+ Years
-  { index: 1, at: 0.48 }, // 25k Patients
-  { index: 2, at: 0.75 }, // 4 Locations
-].forEach(({ index, at }) => {
-  const stat = stats[index];
+      [
+        { index: 0, at: 0.18 }, // 60+ Years
+        { index: 1, at: 0.48 }, // 25k Patients
+        { index: 2, at: 0.75 }, // 4 Locations
+      ].forEach(({ index, at }) => {
+        const stat = stats[index];
 
-  if (!stat) return;
+        if (!stat) return;
 
-  tl.to(
-    stat,
-    {
-      opacity: 1,
-      duration: 0.08,
-      ease: "none",
-    },
-    at
-  );
-});
-    tl.to(
-  [main, glowRef.current],
-  {
-    opacity: 0,
-    ease: "none",
-    duration: 0.18,
-  },
-  0.82
-);
+        tl.to(
+          stat,
+          {
+            opacity: 1,
+            duration: 0.08,
+            ease: "none",
+          },
+          at,
+        );
+      });
+      tl.to(
+        [main, glowRef.current],
+        {
+          opacity: 0,
+          ease: "none",
+          duration: 0.18,
+        },
+        0.82,
+      );
     },
     { scope: containerRef },
   );
-const glowRef = useRef(null);
+  const glowRef = useRef(null);
 
-return (
-  <div
-    ref={containerRef}
-    className={`shrimp-flow ${className}`}
-    aria-hidden="true"
-  >
-    <svg
-      className="shrimp-svg shrimp-svg--main"
-      viewBox="0 0 1920 915"
-      preserveAspectRatio="xMidYMid meet"
-      fill="none"
+  return (
+    <div
+      ref={containerRef}
+      className={`shrimp-flow ${className}`}
+      aria-hidden="true"
     >
-      <defs>
-        <filter
-          id={`shrimpGlow-${uid}`}
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-        >
-          <feGaussianBlur stdDeviation="5" />
-        </filter>
-      </defs>
-
-      {/* ORIGINAL STATIC PATH — SUBTLE GRAY */}
-      <path
-        d={PATH_MAIN}
-        stroke="#A3A3A3"
-        strokeOpacity="0.35"
-        strokeWidth="1"
+      <svg
+        className="shrimp-svg shrimp-svg--main"
+        viewBox="0 0 1920 915"
+        preserveAspectRatio="xMidYMid meet"
         fill="none"
-      />
+      >
+        <defs>
+          <filter
+            id={`shrimpGlow-${uid}`}
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
+          >
+            <feGaussianBlur stdDeviation="5" />
+          </filter>
+        </defs>
 
-      {/* SOFT LILAC GLOW */}
-      <path
-        ref={glowRef}
-        d={PATH_MAIN}
-        stroke="#B9A7FF"
-        strokeOpacity="0.65"
-        strokeWidth="3"
-        fill="none"
-        pathLength="1000"
-        strokeDasharray="120 880"
-        strokeDashoffset="-1000"
-        filter={`url(#shrimpGlow-${uid})`}
-      />
+        {/* ORIGINAL STATIC PATH — SUBTLE GRAY */}
+        <path
+          d={PATH_MAIN}
+          stroke="#A3A3A3"
+          strokeOpacity="0.35"
+          strokeWidth="1"
+          fill="none"
+        />
 
-      {/* SHARP LILAC PULSE */}
-      <path
-        ref={mainRef}
-        d={PATH_MAIN}
-        className="shrimp-pulse"
-        stroke="#C4B5FD"
-        strokeOpacity="1"
-        strokeWidth="1.5"
-        fill="none"
-        pathLength="1000"
-        strokeDasharray="120 880"
-        strokeDashoffset="-1000"
-      />
-    </svg>
-  </div>
-);
+        {/* SOFT LILAC GLOW */}
+        <path
+          ref={glowRef}
+          d={PATH_MAIN}
+          stroke="#B9A7FF"
+          strokeOpacity="0.65"
+          strokeWidth="3"
+          fill="none"
+          pathLength="1000"
+          strokeDasharray="120 880"
+          strokeDashoffset="-1000"
+          filter={`url(#shrimpGlow-${uid})`}
+        />
+
+        {/* SHARP LILAC PULSE */}
+        <path
+          ref={mainRef}
+          d={PATH_MAIN}
+          className="shrimp-pulse"
+          stroke="#C4B5FD"
+          strokeOpacity="1"
+          strokeWidth="1.5"
+          fill="none"
+          pathLength="1000"
+          strokeDasharray="120 880"
+          strokeDashoffset="-1000"
+        />
+      </svg>
+    </div>
+  );
 }
 function Tooth() {
   const group = useRef();
@@ -3478,277 +3004,6 @@ function FreyCloudScene({ skyMode }) {
 </div> */
 }
 
-const Stats = () => {
-  const colors = [
-    ["#8ACBBA", "#E64627", "#AE74DC", "#2A286F"],
-    ["#2A286F", "#F9931F", "#FD5CD0", "#F9E132"],
-    ["#241F21", "#8ACBBA", "#E51932", "#006980"],
-    ["#FD5CD0", "#F9931F", "#2A286F", "#E51932"],
-    // ["#9BFFE3", "#C6FEF1", "#DAFFEF", "#F1FFEB"],
-    // ["#8BE5C9", "#B4E5D8", "#C5E5D6", "#D9E4D7"],
-    // ["#7FCCB7", "#A1CCBF", "#B1CCBE", "#C2CDC0"],
-    // ["#6DB29D", "#86AFA4", "#99B4A8", "#A7B2A7"],
-  ];
-
-  // const projects = [
-  //   {
-  //     title: "Clear Aligners",
-  //     subtitle: "Invisalign",
-  //     image: "../images/handgrid.png",
-  //   },
-  //   {
-  //     title: "Braces",
-  //     subtitle: "Damon Ultima",
-  //     image: "../images/mainsectionimage.jpg",
-  //   },
-  //   {
-  //     title: "Advanced Technology",
-  //     subtitle: "3D i-Cat Imaging, Digital Scans",
-  //     image: "../images/handbackground.png",
-  //   },
-  // ];
-
-  const [hoveredCard, setHoveredCard] = useState(null);
-
-  const handleMouseEnter = (cardIndex) => {
-    setHoveredCard(cardIndex);
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredCard(null);
-  };
-  const statRefs = useRef([]);
-  
-
-  useEffect(() => {
-    statRefs.current.forEach((ref) => {
-      if (!ref) return;
-
-      const targetValue = parseInt(ref.dataset.target, 10);
-      const digits = targetValue.toString().split("");
-
-      ref.innerHTML = "";
-      const containers = [];
-
-      digits.forEach((digit) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.overflow = "hidden";
-        wrapper.style.height = "1em";
-        wrapper.style.display = "inline-block";
-
-        const digitContainer = document.createElement("div");
-        digitContainer.style.position = "relative";
-        digitContainer.style.transform = "translateY(0)";
-        digitContainer.style.transition = "transform 0.5s ease-out";
-
-        for (let i = 0; i <= 9; i++) {
-          const digitElement = document.createElement("div");
-          digitElement.innerText = i;
-          digitElement.style.height = "1em";
-          digitElement.style.lineHeight = "1em";
-          digitElement.style.textAlign = "center";
-          digitContainer.appendChild(digitElement);
-        }
-        wrapper.appendChild(digitContainer);
-        ref.appendChild(wrapper);
-        containers.push({ container: digitContainer, value: digit });
-      });
-
-      containers.forEach(({ container, value }, index) => {
-        gsap.to(container, {
-          y: -value * 1 + "em",
-          duration: 4,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ref,
-            start: "top 85%",
-            toggleActions: "play none none none",
-          },
-        });
-      });
-    });
-  }, []);
-
-  const rows = 3;
-  const cols = 6;
-  const dx = 100;
-  const dy = 100;
-  const circleRefs = useRef([]);
-
-  useEffect(() => {
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0 });
-
-    // forward Animation, each circle will animate from (0,0) to its grid position.
-    // each diagonal grouping is (row+col)*0.3 to animate together
-    circleRefs.current.forEach((circle) => {
-      const col = parseInt(circle.getAttribute("data-col"), 10);
-      const row = parseInt(circle.getAttribute("data-row"), 10);
-      const forwardDelay = (row + col) * 0.3;
-
-      tl.to(
-        circle,
-        {
-          duration: 1.5,
-          x: col * dx,
-          y: row * dy,
-          ease: "power2.inOut",
-        },
-        forwardDelay,
-      );
-    });
-
-    // longest delay starts with circle from the highest row+col val.
-    const maxSum = rows + cols - 2; // maximum diagonal value (0-index)
-    const forwardTotalTime = maxSum * 0.3 + 1.5;
-
-    // reverse Animation: for each circle, reverse delay =  (maxSum - (row+col)) * 0.3. (highest=7)
-    circleRefs.current.forEach((circle) => {
-      const col = parseInt(circle.getAttribute("data-col"), 10);
-      const row = parseInt(circle.getAttribute("data-row"), 10);
-      const diagonal = row + col;
-      const reverseDelay = (maxSum - diagonal) * 0.3;
-
-      tl.to(
-        circle,
-        {
-          duration: 1.5,
-          x: 0,
-          y: 0,
-          ease: "power2.inOut",
-        },
-        forwardTotalTime + reverseDelay,
-      );
-    });
-  }, [cols, rows, dx, dy]);
-
-  const circles = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      circles.push({ id: `${row}-${col}`, row, col });
-    }
-  }
-
-  const palette = [
-    "#DFC0FC",
-    "#E0FF65",
-    // "#034CFF",
-    // "#AE33FB",
-  ];
-  const getRandomColor = () =>
-    palette[Math.floor(Math.random() * palette.length)];
-
-  const paragraphRef = useRef(null);
-  const [lineWidth, setLineWidth] = useState(0);
-  const [lineFinished, setLineFinished] = useState(false);
-
-  useEffect(() => {
-    if (paragraphRef.current) {
-      setLineWidth(paragraphRef.current.offsetWidth);
-    }
-  }, []);
-
-  return (
-    <section className="bg-[#F2F2F2] w-full min-h-screen flex items-center justify-center">
-      <section className="grid grid-cols-12 px-12">
-        {/* <div className="flex col-span-4">
-          <div className="flex flex-col items-start justify-start w-full lg:w-1/3 lg:pl-8 ">
-            <svg
-              className="pointer-events-none"
-              width="1000"
-              height="500"
-              viewBox="-50 -50 1000 500"
-            >
-              <g id="multiply-circles">
-                {circles.map((circle, index) => (
-                  <circle
-                    key={circle.id}
-                    ref={(el) => (circleRefs.current[index] = el)}
-                    cx={0}
-                    cy={0}
-                    r={50}
-                    fill={getRandomColor()}
-                    data-row={circle.row}
-                    data-col={circle.col}
-                  />
-                ))}
-              </g>
-            </svg>
-
-            <div className="">
-              {colors.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex ">
-                  {row.map((color, circleIndex) => (
-                    <div
-                      key={circleIndex}
-                      className={`w-[100px] h-[100px] ${
-                        (rowIndex + circleIndex) % 3 === 0
-                          ? "rounded-[40px]"
-                          : "rounded-full"
-                      } transition-transform duration-300 ease-in-out hover:scale-75`}
-                      style={{ backgroundColor: color }}
-                    ></div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div> */}
-
-        <div className="flex flex-col col-span-8">
-          <div className="flex flex-wrap justify-end mt-8 space-x-4 sm:flex-nowrap sm:space-x-6 md:space-x-12">
-            <div className="text-center">
-              <p className="font-neue-montreal text-[12px] sm:text-[15px] mb-4 sm:mb-10 ">
-                Years of Experience
-              </p>
-              <h2 className="font-neue-montreal text-[5rem] sm:text-[6rem] md:text-[7rem] font-light flex items-center gap-1 sm:gap-2">
-                <span
-                  data-target="60"
-                  ref={(el) => (statRefs.current[0] = el)}
-                  className="pointer-events-none"
-                >
-                  0
-                </span>
-                <span className="text-[2rem] sm:text-[3rem] align-center">
-                  +
-                </span>
-              </h2>
-            </div>
-            <div className="text-center">
-              <p className="font-neue-montreal text-[12px] sm:text-[15px] mb-4 sm:mb-10 ">
-                Satisfied Patients
-              </p>
-              <h2 className="font-neue-montreal text-[5rem] sm:text-[6rem] md:text-[7rem] font-light flex items-center gap-1 sm:gap-2">
-                <span
-                  data-target="25"
-                  ref={(el) => (statRefs.current[1] = el)}
-                  className="flex pointer-events-none"
-                >
-                  0
-                </span>
-                <span className="text-[2rem] sm:text-[3rem]">k</span>
-              </h2>
-            </div>
-            <div className="text-center">
-              <p className="font-neue-montreal text-[12px] sm:text-[15px] mb-4 sm:mb-10">
-                Locations
-              </p>
-              <h2 className="font-neue-montreal text-[5rem] sm:text-[6rem] md:text-[7rem] font-light">
-                <span
-                  data-target="4"
-                  ref={(el) => (statRefs.current[2] = el)}
-                  className="pointer-events-none"
-                >
-                  0
-                </span>
-              </h2>
-            </div>
-          </div>
-        </div>
-      </section>
-    </section>
-  );
-};
-
 class FluidSimulation {
   constructor(canvas, { image, background = "#f5f5f5" }) {
     this.canvas = canvas;
@@ -3850,8 +3105,8 @@ class FluidSimulation {
       uTexelSize: { value: new THREE.Vector2() },
       uDt: { value: 0.016 },
       uDissipation: { value: 1 },
+      uDrift: { value: new THREE.Vector2(0, 0) },
     });
-
     const placeholder = new THREE.DataTexture(
       new Uint8Array([245, 245, 245, 255]),
       1,
@@ -4085,7 +3340,7 @@ class FluidSimulation {
         this.dye,
         point,
         { x: 0.45, y: 0.45, z: 0.45 },
-        splat.radius * 1.15,
+        splat.radius * 1.5,
       );
     }
 
@@ -4132,6 +3387,8 @@ class FluidSimulation {
       dt * 60,
     );
 
+    this.advectionMaterial.uniforms.uDrift.value.set(0.08, 0.12);
+
     this.renderMaterial(this.advectionMaterial, this.velocity.write);
 
     this.velocity.swap();
@@ -4146,6 +3403,9 @@ class FluidSimulation {
       0.991,
       dt * 60,
     );
+
+    // Drift toward the upper right.
+    this.advectionMaterial.uniforms.uDrift.value.set(0.035, 0.055);
 
     this.renderMaterial(this.advectionMaterial, this.dye.write);
 
@@ -4252,27 +3512,15 @@ function GooeyReveal({
       const rawDx = (x - pointer.x) / elapsed;
       const rawDy = (y - pointer.y) / elapsed;
 
-      const smoothing = 1 - Math.exp(-elapsed * 12);
+      const smoothing = 1 - Math.exp(-elapsed * 24);
 
       pointer.vx += (rawDx - pointer.vx) * smoothing;
       pointer.vy += (rawDy - pointer.vy) * smoothing;
 
       const dx = pointer.vx;
       const dy = pointer.vy;
-      const distance = Math.hypot(x - pointer.x, y - pointer.y);
 
-      const steps = Math.min(4, Math.max(1, Math.ceil(distance / 0.12)));
-
-      for (let i = 1; i <= steps; i++) {
-        const t = i / steps;
-
-        simulation.addPointer(
-          pointer.x + (x - pointer.x) * t,
-          pointer.y + (y - pointer.y) * t,
-          dx / steps,
-          dy / steps,
-        );
-      }
+      simulation.addPointer(x, y, dx * 0.08, dy * 0.08);
 
       pointer.x = x;
       pointer.y = y;
@@ -4346,12 +3594,196 @@ function GooeyReveal({
   );
 }
 const NewSection = () => {
-  const containerRef = useRef();
+  const containerRef = useRef(null);
+  const awardsHeadingRef = useRef(null);
   const lineRefs = useRef([]);
   const textRefs = useRef([]);
 
   const addToLineRefs = (el) => el && lineRefs.current.push(el);
   const addToTextRefs = (el) => el && textRefs.current.push(el);
+
+  const squareSlotRef = useRef(null);
+  const shapeRef = useRef(null);
+
+  const testimonialContentRef = useRef(null);
+  const testimonialCardsRef = useRef([]);
+  const testimonialsSectionRef = useRef(null);
+
+  const [logoPhysicsActive, setLogoPhysicsActive] = useState(false);
+  const [physicsGeometry, setPhysicsGeometry] = useState(null);
+
+  useLayoutEffect(() => {
+    const heading = awardsHeadingRef.current;
+    const starPath = shapeRef.current;
+    const circleSlot = squareSlotRef.current;
+    const revealLayer = testimonialContentRef.current;
+
+    if (!heading || !starPath || !circleSlot || !revealLayer) return;
+
+    const circleSVG = starPath.ownerSVGElement;
+    if (!circleSVG) return;
+
+    const circlePath =
+      "M80.5 2.5 C123.6 2.5 158.5 37.4 158.5 80.5 C158.5 123.6 123.6 158.5 80.5 158.5 C37.4 158.5 2.5 123.6 2.5 80.5 C2.5 37.4 37.4 2.5 80.5 2.5 Z";
+
+    const expansion = { progress: 0 };
+
+    const getGeometry = () => {
+      const slotRect = circleSlot.getBoundingClientRect();
+      const layerRect = revealLayer.getBoundingClientRect();
+
+      const centerX = slotRect.left + slotRect.width / 2 - layerRect.left;
+
+      const centerY = slotRect.top + slotRect.height / 2 - layerRect.top;
+
+      const initialRadius = (slotRect.width * 78) / 161;
+
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const isMobile = window.innerWidth <= 768;
+
+      const finalRadius = isMobile
+        ? Math.min(viewportWidth * 0.46, viewportHeight * 0.38)
+        : viewportHeight * 0.52;
+
+      return {
+        centerX,
+        centerY,
+        initialRadius,
+        finalRadius,
+      };
+    };
+
+    const updatePhysicsGeometry = () => {
+      const { centerX, centerY, finalRadius } = getGeometry();
+
+      const next = {
+        centerX,
+        centerY,
+        radius: finalRadius,
+        viewportHeight: window.innerHeight,
+      };
+
+      setPhysicsGeometry((previous) => {
+        if (
+          previous &&
+          previous.centerX === next.centerX &&
+          previous.centerY === next.centerY &&
+          previous.radius === next.radius &&
+          previous.viewportHeight === next.viewportHeight
+        ) {
+          return previous;
+        }
+
+        return next;
+      });
+    };
+
+    const renderExpansion = () => {
+      const { centerX, centerY, initialRadius, finalRadius } = getGeometry();
+
+      const progress = expansion.progress;
+
+      const radius = initialRadius + (finalRadius - initialRadius) * progress;
+
+      const svgOpacity = 1 - gsap.utils.clamp(0, 1, progress / 0.12);
+
+      gsap.set(circleSVG, {
+        scale: radius / initialRadius,
+        transformOrigin: "50% 50%",
+        opacity: svgOpacity,
+      });
+
+      gsap.set(revealLayer, {
+        clipPath: `circle(${
+          progress <= 0 ? 0 : radius
+        }px at ${centerX}px ${centerY}px)`,
+      });
+    };
+
+    const ctx = gsap.context(() => {
+      let physicsStarted = false;
+
+      const timeline = gsap.timeline({
+        defaults: { ease: "none" },
+
+        onUpdate: () => {
+          renderExpansion();
+
+          if (!physicsStarted && expansion.progress > 0.05) {
+            physicsStarted = true;
+            updatePhysicsGeometry();
+            setLogoPhysicsActive(true);
+          }
+        },
+
+        scrollTrigger: {
+          trigger: heading,
+          start: "top 85%",
+          end: "top 50%",
+          scrub: true,
+          invalidateOnRefresh: true,
+
+          onLeaveBack: () => {
+            physicsStarted = false;
+            setLogoPhysicsActive(false);
+          },
+        },
+      });
+
+      // 1. STAR → CIRCLE
+      timeline.to(
+        starPath,
+        {
+          morphSVG: {
+            shape: circlePath,
+            type: "rotational",
+          },
+          duration: 0.35,
+        },
+        0,
+      );
+
+      // 2. ROTATE
+      timeline.fromTo(
+        circleSVG,
+        { rotation: 0 },
+        {
+          rotation: 180,
+          transformOrigin: "50% 50%",
+          duration: 0.35,
+        },
+        0,
+      );
+
+      // 3. EXPAND TO VIEWPORT-SIZED CIRCLE
+      timeline.to(
+        expansion,
+        {
+          progress: 1,
+          duration: 0.65,
+        },
+        0.35,
+      );
+
+      updatePhysicsGeometry();
+      renderExpansion();
+    }, heading);
+
+    const handleResize = () => {
+      ScrollTrigger.refresh();
+      updatePhysicsGeometry();
+      renderExpansion();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      ctx.revert();
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -4377,8 +3809,6 @@ const NewSection = () => {
           toggleActions: "play none none none",
         },
       });
-
-      // ROW DIVIDERS
       tl.to(lines, {
         scaleX: 1,
         duration: 1.9,
@@ -4405,60 +3835,52 @@ const NewSection = () => {
     return () => ctx.revert();
   }, []);
 
-  const statRefs = useRef([]);
+  useLayoutEffect(() => {
+    const section = testimonialsSectionRef.current;
+    const cards = testimonialCardsRef.current.filter(Boolean);
 
-  useEffect(() => {
-    statRefs.current.forEach((ref) => {
-      if (!ref) return;
+    if (!section || !cards.length) return;
 
-      const targetValue = parseInt(ref.dataset.target, 10);
-      const digits = targetValue.toString().split("");
+    const startingHeights = [140, 95, 70, 45];
 
-      ref.innerHTML = "";
-      const containers = [];
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        cards,
+        {
+          clipPath: (index, target) => {
+            const fullHeight = target.offsetHeight;
+            const visibleHeight = startingHeights[index] ?? 45;
 
-      digits.forEach((digit) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.overflow = "hidden";
-        wrapper.style.height = "1em";
-        wrapper.style.display = "inline-block";
+            const hiddenHeight = Math.max(0, fullHeight - visibleHeight);
 
-        const digitContainer = document.createElement("div");
-        digitContainer.style.position = "relative";
-        digitContainer.style.transform = "translateY(0)";
-        digitContainer.style.transition = "transform 0.5s ease-out";
-
-        for (let i = 0; i <= 9; i++) {
-          const digitElement = document.createElement("div");
-          digitElement.innerText = i;
-          digitElement.style.height = "1em";
-          digitElement.style.lineHeight = "1em";
-          digitElement.style.textAlign = "center";
-          digitContainer.appendChild(digitElement);
-        }
-        wrapper.appendChild(digitContainer);
-        ref.appendChild(wrapper);
-        containers.push({ container: digitContainer, value: digit });
-      });
-
-      containers.forEach(({ container, value }, index) => {
-        gsap.to(container, {
-          y: -value * 1 + "em",
-          duration: 4,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ref,
-            start: "top 85%",
-            toggleActions: "play none none none",
+            return `inset(${hiddenHeight}px 0px 0px 0px)`;
           },
-        });
-      });
-    });
+        },
+        {
+          clipPath: "inset(0px 0px 0px 0px)",
+          duration: 1,
+          stagger: 0.12,
+          ease: "none",
+          immediateRender: false,
+
+          scrollTrigger: {
+            trigger: section,
+            start: "top 75%",
+            end: "top 20%",
+            scrub: true,
+            invalidateOnRefresh: true,
+            // markers: true,
+          },
+        },
+      );
+    }, section);
+
+    return () => ctx.revert();
   }, []);
 
   return (
     <>
-      <div className="relative isolate bg-[#f5f5f5]">
+      <div className="relative w-full min-h-[150vh] isolate bg-[#f5f5f5]">
         <GooeyReveal
           image="/images/ajomockupchairupdated.png"
           background="#f5f5f5"
@@ -4524,27 +3946,144 @@ const NewSection = () => {
                     </div>
                   </div>
                 ))}
-
-                <div className="pointer-events-none absolute left-full -top-[70px] ml-6 hidden md:block">
-                  <div className="flex flex-col items-end">
-                    <span className="font-neueroman text-[#C5C6C7] text-[36px] font-[600] uppercase tracking-[0.08em]">
-                      Awards
-                    </span>
-                    <span
-                      className="mt-2 ml-auto translate-x-[10px] font-neueroman text-[#C5C6C7] text-[36px] font-[600] uppercase tracking-[0.08em]"
-                      style={{
-                        writingMode: "vertical-rl",
-                        textOrientation: "mixed",
-                      }}
-                    >
-                      Recognitions
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
-          {/* <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
+
+          <div
+            ref={awardsHeadingRef}
+            className="relative mt-20 w-full pb-12 md:mt-32 md:pb-20"
+          >
+            <h2 className="flex flex-col font-neueroman text-[clamp(3.825rem,10.2vw,11.05rem)] font-[800] leading-[0.78] tracking-[-0.015em] text-black">
+              {/* AWARDS + STAR */}
+              <span className="flex items-center gap-[0.12em] pl-[23%]">
+                <span>Awards</span>
+
+                <span
+                  ref={squareSlotRef}
+                  className="relative inline-block h-[0.65em] w-[0.65em] shrink-0"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 161 161"
+                    className="pointer-events-none block h-full w-full overflow-visible text-black"
+                    aria-hidden="true"
+                  >
+                    <path
+                      ref={shapeRef}
+                      fill="currentColor"
+                      d="M108 88.7c-10.8 0-19.7 8.8-19.7 19.7v47.4c0 1.9-1.5 3.4-3.4 3.4h-8.6c-1.9 0-3.4-1.5-3.4-3.4v-47.4c0-10.8-8.8-19.7-19.7-19.7H6.4c-1.9 0-3.4-1.5-3.4-3.4v-8c0-1.9 1.5-3.4 3.4-3.4h46.9c10.8 0 19.7-8.8 19.7-19.7V6.4c0-1.9 1.5-3.4 3.4-3.4H85c1.9 0 3.4 1.5 3.4 3.4v47.8c0 10.8 8.8 19.7 19.7 19.7h46.6c1.9 0 3.4 1.5 3.4 3.4v8c0 1.9-1.5 3.4-3.4 3.4H108z"
+                    />
+                  </svg>
+                </span>
+              </span>
+
+              {/* SECOND LINE */}
+              <span className="block pl-[3%]">&amp; Recog-</span>
+
+              {/* THIRD LINE */}
+              <span className="block pl-[43%]">nitions</span>
+            </h2>
+          </div>
+        </section>
+        {/* CIRCLE EXPANSION + TESTIMONIALS */}
+
+        <div
+          ref={testimonialContentRef}
+          className="pointer-events-none absolute z-40 overflow-visible bg-black"
+          style={{
+            top: "-50vh",
+            bottom: "-50vh",
+            left: "-50vw",
+            right: "-50vw",
+            clipPath: "circle(0px at 0px 0px)",
+          }}
+        >
+          <div className="pointer-events-auto absolute inset-0 z-10">
+            <LogoGrid
+              active={logoPhysicsActive}
+              circleGeometry={physicsGeometry}
+            />
+          </div>
+        </div>
+
+        <section
+          ref={testimonialsSectionRef}
+          className="relative z-10 min-h-screen w-full overflow-hidden bg-black px-8 pt-[15vh] text-white lg:px-16"
+        >
+          <div className="relative z-10">
+            <p className="mb-4 font-neueroman text-[13px] uppercase tracking-wide">
+              What our patients say
+            </p>
+
+            <h3 className="max-w-[900px] font-neueroman text-[14px] leading-[1.05]">
+              Our greatest award is the success of our patients
+            </h3>
+          </div>
+
+          {/* FOUR TESTIMONIAL CARDS */}
+          <div className="relative z-20 mt-24 w-full pb-8">
+            <div className="relative grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
+              {[
+                {
+                  number: "01",
+                  quote:
+                    "Dr. Frey treated both me (as an adult with a complex bite issue) and my son, and we couldn’t be happier with the results. He is knowledgeable, thoughtful, and truly cares about achieving the best outcome for his patients. The entire staff is friendly and supportive. I highly recommend him.",
+                  name: "Michele",
+                },
+                {
+                  number: "02",
+                  quote:
+                    "Dr Frey and his team are amazing! They explain everything all the way through the process at every visit. Their Growth and Guidance program caught 2 significant issues my youngest had and we were able to address them early. They also work with you on finances. Highly recommend!",
+                  name: "Mary Ost",
+                },
+                {
+                  number: "03",
+                  quote:
+                    "Excellent service. I always get called in early to my appointments, they are very organized and put together, and they are always quick. Did great with my teeth - they look amazing.",
+                  name: "Meadow Phillips",
+                },
+                {
+                  number: "04",
+                  quote:
+                    "Absolutely love the team at FreySmiles in Lehighton. From day one they have been amazing and so sweet to my teen thru her braces and Invisalign journey. Dr Frey is wonderful to chat with and I highly recommend especially if you’re the nervous type.",
+                  name: "Christina Seo",
+                },
+              ].map((testimonial, index) => (
+                <div
+                  key={testimonial.number}
+                  ref={(el) => {
+                    testimonialCardsRef.current[index] = el;
+                  }}
+                  className="
+            relative flex h-[380px] flex-col justify-between
+            overflow-hidden bg-white/[0.20] p-5 text-white
+            backdrop-blur-[15px] backdrop-saturate-[140%]
+            lg:h-[560px] lg:p-6
+          "
+                >
+                  <span className="font-ibmplex text-[12px] tracking-widest text-white/50">
+                    {testimonial.number}
+                  </span>
+
+                  <div>
+                    <p className="mb-6 max-w-[300px] font-neuehaas45 text-[clamp(13px,1vw,14px)] leading-[1.15] text-white/50">
+                      “{testimonial.quote}”
+                    </p>
+
+                    <span className="font-ibmplex text-[12px] uppercase tracking-wider text-white/50">
+                      {testimonial.name}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <TestimonialHills />
+          </div>
+        </section>
+
+        {/* <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
 
           <div className="p-8 md:p-16 rounded-md flex flex-col justify-between">
             <svg
@@ -4580,81 +4119,6 @@ const NewSection = () => {
 
 
         </div> */}
-        </section>
-
-        {/* Awards / Recognition typography */}
-        <div className="pointer-events-none absolute left-full top-0 ml-6 hidden md:block">
-          <div className="flex flex-col items-start">
-            <span className="font-neueroman text-[12px] font-[600] uppercase tracking-[0.08em]">
-              Awards
-            </span>
-
-            <span
-              className="mt-2 font-neueroman text-[12px] font-[600] uppercase tracking-[0.08em]"
-              style={{
-                writingMode: "vertical-rl",
-                textOrientation: "mixed",
-              }}
-            >
-              Recognition
-            </span>
-          </div>
-        </div>
-        {/* Stats — directly beneath awards */}
-        <div className="mx-auto mt-16 flex w-[94%] flex-wrap items-center justify-center gap-10 sm:gap-16 md:mt-20 md:w-[85%] md:gap-24">
-          {/* Years of Experience */}
-          <div className="flex flex-col items-center text-center">
-            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
-              Years of Experience
-            </p>
-
-            <h2 className="flex items-center gap-1 font-neue-montreal text-[5rem] font-neueroman text-[#C5C6C7] leading-none sm:text-[6rem] md:text-[7rem]">
-              <span
-                data-target="60"
-                ref={(el) => (statRefs.current[0] = el)}
-                className="pointer-events-none"
-              >
-                0
-              </span>
-              <span className="text-[2rem] sm:text-[3rem]">+</span>
-            </h2>
-          </div>
-
-          {/* Satisfied Patients */}
-          <div className="flex flex-col items-center text-center">
-            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
-              Satisfied Patients
-            </p>
-
-            <h2 className="flex items-center gap-1 font-neueroman text-[#C5C6C7] text-[5rem] leading-none sm:text-[6rem] md:text-[7rem]">
-              <span
-                data-target="25"
-                ref={(el) => (statRefs.current[1] = el)}
-                className="pointer-events-none"
-              >
-                0
-              </span>
-              <span className="text-[2rem] sm:text-[3rem]">k</span>
-            </h2>
-          </div>
-
-          {/* Locations */}
-          <div className="flex flex-col items-center text-center">
-            <p className="mb-4 font-neueroman text-[#C5C6C7] text-[12px] sm:text-[15px]">
-              Locations
-            </p>
-
-            <h2 className="font-neueroman text-[#C5C6C7] text-[5rem] leading-none sm:text-[6rem] md:text-[7rem]">
-              <span
-                data-target="4"
-                ref={(el) => (statRefs.current[2] = el)}
-                className="pointer-events-none"
-              >
-                0
-              </span>
-            </h2>
-          </div>
-        </div>
       </div>
     </>
   );
@@ -4717,20 +4181,13 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
     const height = container.clientHeight;
 
     if (!width || !height) return;
-
-    // -----------------------------------
-    // SHARED CIRCLE GEOMETRY
-    // -----------------------------------
-
     const { centerX, centerY, radius: circleRadius } = circleGeometry;
 
     const viewportHeight = circleGeometry.viewportHeight ?? window.innerHeight;
 
-    const isMobile = width <= 768;
+    const isMobile = window.innerWidth <= 768;
 
-    const ballRadius = isMobile
-      ? Math.min(55, Math.max(30, width * 0.105))
-      : 100;
+    const ballRadius = isMobile ? Math.min(44, circleRadius * 0.21) : 80;
 
     const ballDiameter = ballRadius * 2;
 
@@ -4738,7 +4195,7 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     engine.gravity.x = 0;
     engine.gravity.y = 1;
-    engine.gravity.scale = 0.0015;
+    engine.gravity.scale = 0.00065;
 
     const runner = Runner.create();
 
@@ -4792,34 +4249,31 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     Composite.add(engine.world, walls);
 
+    const entryAngle = -Math.PI / 6;
+    const entryRadius = circleRadius - ballRadius - 6;
+
+    const entryX = centerX + Math.cos(entryAngle) * entryRadius;
+    const entryY = centerY + Math.sin(entryAngle) * entryRadius;
+
     const balls = LOGO_SOURCES.map((_, index) => {
-      // All balls enter from the RIGHT side.
+      const count = LOGO_SOURCES.length;
 
-      const horizontalOffset = circleRadius * (0.55 + (index % 4) * 0.06);
+      // Spread balls along the upper-right circumference.
+      const t = index / Math.max(1, count - 1);
 
-      const x = centerX + horizontalOffset;
+      const angle = -1.35 + t * 1.1;
 
-      const upperBoundaryY =
-        centerY -
-        Math.sqrt(
-          Math.max(
-            0,
-            circleRadius * circleRadius - horizontalOffset * horizontalOffset,
-          ),
-        );
+      const placementRadius = circleRadius - ballRadius - 8;
 
-      const y =
-        upperBoundaryY +
-        ballRadius * 2.5 +
-        Math.floor(index / 4) * ballDiameter * 1.2;
+      const x = centerX + Math.cos(angle) * placementRadius;
+      const y = centerY + Math.sin(angle) * placementRadius;
 
       return Bodies.circle(x, y, ballRadius, {
-        restitution: 0.28,
-        friction: 0.35,
-        frictionStatic: 0.55,
-        frictionAir: 0.012,
+        restitution: 0.04,
+        friction: 0.4,
+        frictionStatic: 0.6,
+        frictionAir: 0.025,
         density: 0.001,
-
         render: {
           fillStyle: "#1e90ff",
           strokeStyle: "#1e90ff",
@@ -4984,6 +4438,8 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     if (active) {
       Runner.run(runner, engine);
+
+      let nextBall = 0;
     }
 
     return () => {
@@ -5011,6 +4467,9 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
     <div
       ref={containerRef}
       className="relative h-full w-full overflow-hidden"
+      style={{
+        opacity: active ? 1 : 0,
+      }}
       aria-label="Interactive orthodontic award logos"
     />
   );

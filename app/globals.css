@@ -8722,3 +8722,10 @@ background: #1F42E3;
 }
 
 
+.testimonial-wagon {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+
+}
