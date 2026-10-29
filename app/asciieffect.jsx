@@ -250,7 +250,7 @@ loadGlyphAtlas(
           uAtlasGrid: { value: atlas.grid },
           uAtlasPad: { value: atlas.pad },
           uAtlasInner: { value: atlas.inner },
-          uColor: { value: new Color("#a2cffe") },
+          uColor: { value: new Color("#345BEB") },
         });
 
         const frame = new Scene();

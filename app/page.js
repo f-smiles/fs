@@ -59,6 +59,7 @@ import {
 
 import { Disclosure, Transition } from "@headlessui/react";
 import { gsap } from "gsap";
+import { Observer } from "gsap/Observer";
 import { CustomEase } from "gsap/CustomEase";
 import { useGSAP } from "@gsap/react";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
@@ -106,6 +107,7 @@ if (typeof window !== "undefined") {
     CustomEase,
     MotionPathPlugin,
     MorphSVGPlugin,
+    Observer,
   );
   CustomEase.create("hop", "0.6, 0, 0.2, 1");
 }
@@ -1195,156 +1197,181 @@ function FSMark({ x, y, size = 80, rotation = 0 }) {
     </svg>
   );
 }
-function TestimonialSoccerBall() {
+
+function FloatingBookButton() {
   return (
-    <svg
-      className="testimonial-soccer-ball"
-      viewBox="0 0 100 100"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <circle
-        cx="50"
-        cy="50"
-        r="48"
-        fill="none"
-        stroke="white"
-        strokeWidth="1"
-      />
-    </svg>
+    <div className="fixed right-6 top-6 z-[100] md:right-[4vw] md:top-[34px]">
+      <Link
+        href="/book-now"
+        className="frey-orbit-button"
+        aria-label="Book Now"
+      >
+        <span className="frey-orbit-button__loader" aria-hidden="true">
+          {Array.from({ length: 10 }, (_, index) => (
+            <span
+              key={index}
+              className="frey-orbit-button__ball"
+              style={{
+                animationDelay: `${index * -0.25}s`,
+              }}
+            />
+          ))}
+        </span>
+
+        <span className="frey-orbit-button__label">Book Now</span>
+      </Link>
+    </div>
   );
 }
-function TestimonialHills() {
-  const hillPathRef = useRef(null);
-  const bikeRef = useRef(null);
-  const sceneRef = useRef(null);
-  const rawId = useId();
-  const clipId = `testimonial-hills-${rawId.replace(/:/g, "")}`;
+const COLORS = [
+  ["0%", "#D596F0"],
+  ["18.27%", "#D19DE8"],
+  ["28.37%", "#CEA4DF"],
+  ["41.35%", "#CBA8D9"],
+  ["58.66%", "#C6ACD4"],
+  ["68.27%", "#C6B0CE"],
+  ["80.29%", "#C1B6C3"],
+  ["100%", "#BCBCBC"],
+];
 
-  const width = 1200;
-  const height = 560;
+function TestimonialSpectrum() {
+  const containerRef = useRef(null);
+  const spectrumRef = useRef(null);
 
-  const path = useMemo(() => {
-    const points = [];
-
-    const curve = (x) => {
-      const baseY = height * 0.48;
-      const amplitude = 95;
-
-      return (
-        baseY -
-        amplitude *
-          Math.sin((x * Math.PI) / 600) *
-          Math.cos((x * Math.PI) / 2400) *
-          Math.cos((x * Math.PI) / 450)
-      );
-    };
-
-    for (let x = 0; x <= width; x += 3) {
-      points.push(`${x === 0 ? "M" : "L"} ${x} ${curve(x)}`);
-    }
-
-    return points.join(" ");
-  }, []);
+  const rawId = useId().replace(/:/g, "");
+  const blurId = `spectrum-blur-${rawId}`;
 
   useLayoutEffect(() => {
-    const scene = sceneRef.current;
-    const bike = bikeRef.current;
-    const hill = hillPathRef.current;
+    const container = containerRef.current;
+    const spectrum = spectrumRef.current;
 
-    if (!scene || !bike || !hill) return;
-
-    const progress = { value: 0 };
-
-    const updateBike = () => {
-      const length = hill.getTotalLength();
-
-      const distance = length * progress.value;
-
-      const point = hill.getPointAtLength(distance);
-
-      const nextPoint = hill.getPointAtLength(Math.min(length, distance + 2));
-
-      const svg = hill.ownerSVGElement;
-      const matrix = svg.getScreenCTM();
-
-      if (!matrix) return;
-
-      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(
-        matrix,
-      );
-
-      const screenNext = new DOMPoint(nextPoint.x, nextPoint.y).matrixTransform(
-        matrix,
-      );
-
-      const sceneRect = scene.getBoundingClientRect();
-
-      const x = screenPoint.x - sceneRect.left;
-      const y = screenPoint.y - sceneRect.top;
-
-      const angle =
-        Math.atan2(screenNext.y - screenPoint.y, screenNext.x - screenPoint.x) *
-        (180 / Math.PI);
-
-      gsap.set(bike, {
-        x,
-        y,
-        rotation: angle,
-        xPercent: -50,
-        yPercent: -100,
-        transformOrigin: "50% 100%",
-      });
-    };
+    if (!container || !spectrum) return;
 
     const ctx = gsap.context(() => {
-      gsap.to(progress, {
-        value: 1,
-        duration: 10,
-        ease: "none",
-        repeat: -1,
-        onUpdate: updateBike,
-      });
+      gsap.fromTo(
+        spectrum,
+        {
+          scaleY: 0.05,
+          opacity: 0,
+          transformOrigin: "bottom center",
+        },
+        {
+          scaleY: 1,
+          opacity: 1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: container,
+            start: "top 85%",
+            end: "bottom 70%",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+    }, container);
 
-      updateBike();
-    }, scene);
-
-    window.addEventListener("resize", updateBike);
-
-    return () => {
-      window.removeEventListener("resize", updateBike);
-      ctx.revert();
-    };
+    return () => ctx.revert();
   }, []);
 
+  // Original reference uses nine staggered columns.
+  const heights = [290, 400, 480, 530, 584, 530, 480, 400, 290];
+
   return (
-    <div ref={sceneRef} className="pointer-events-none absolute inset-0 z-30">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full overflow-visible"
-        aria-hidden="true"
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      aria-hidden="true"
+    >
+      {/* Clip the spectrum to the four card rectangles */}
+      <div
+        className="
+          absolute inset-0
+          grid grid-cols-1 gap-4
+          md:grid-cols-2
+          lg:grid-cols-4
+        "
       >
-        <path
-          ref={hillPathRef}
-          d={path}
-          fill="none"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="relative overflow-hidden">
+            <div
+              ref={index === 0 ? spectrumRef : undefined}
+              className="absolute inset-0"
+            >
+              {/* The shared SVG is positioned below */}
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div
-        ref={bikeRef}
-        className="pointer-events-none absolute left-0 top-0 h-[84px] w-[132px]"
+        ref={spectrumRef}
+        className="absolute inset-0"
+        style={{
+          maskImage: "linear-gradient(#000, #000)",
+        }}
       >
-        <TestimonialSoccerBall />
+        <svg
+          viewBox="0 0 1567 584"
+          preserveAspectRatio="none"
+          className="h-full w-full"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <filter
+              id={blurId}
+              x="-10%"
+              y="-10%"
+              width="120%"
+              height="120%"
+              colorInterpolationFilters="sRGB"
+            >
+              <feGaussianBlur stdDeviation="15" />
+            </filter>
+
+            {heights.map((height, index) => (
+              <linearGradient
+                key={index}
+                id={`spectrum-gradient-${rawId}-${index}`}
+                x1="0"
+                y1="584"
+                x2="0"
+                y2={584 - height}
+                gradientUnits="userSpaceOnUse"
+              >
+                {COLORS.map(([offset, color], i) => (
+                  <stop
+                    key={offset}
+                    offset={offset}
+                    stopColor={color}
+                    stopOpacity={i === COLORS.length - 1 ? 0 : 1}
+                  />
+                ))}
+              </linearGradient>
+            ))}
+          </defs>
+
+          <g filter={`url(#${blurId})`}>
+            {heights.map((height, index) => {
+              const columnWidth = 1567 / 9;
+              const x = index * columnWidth;
+
+              return (
+                <rect
+                  key={index}
+                  x={x}
+                  y={584 - height}
+                  width={columnWidth + 1}
+                  height={height}
+                  fill={`url(#spectrum-gradient-${rawId}-${index})`}
+                />
+              );
+            })}
+          </g>
+        </svg>
       </div>
     </div>
   );
 }
-
 const Hero = () => {
   const transitionRef = useRef(null);
   const videoStepRef = useRef(null);
@@ -1694,26 +1721,6 @@ const Hero = () => {
                   take shape
                 </LocationCharacterReveal>
               </h2>
-
-              <a
-                ref={videoButtonRef}
-                href="/book-now"
-                className="
-                frey-video-button
-                inline-flex min-h-[56px] items-center justify-center
-                rounded-full border border-white/25
-                bg-white/25 px-12
-                font-neuehaas45 text-[14px] text-white
-                backdrop-blur-[24px] backdrop-saturate-[140%]
-                shadow-[0_4px_24px_rgba(0,0,0,0.08)]
-                transition-colors duration-300
-                hover:bg-white/40 hover:border-white/40
-              "
-              >
-                <span className="frey-video-button-label whitespace-nowrap">
-                  Book Now
-                </span>
-              </a>
             </div>
           </div>
 
@@ -1837,6 +1844,7 @@ const Hero = () => {
             aria-hidden="true"
           >
             <defs>
+              {/* EXISTING ANIMATED CLIP */}
               <clipPath
                 id="moving-fluted-clip"
                 clipPathUnits="objectBoundingBox"
@@ -1844,25 +1852,47 @@ const Hero = () => {
               >
                 <path ref={notchPathRef} />
               </clipPath>
+
+              {/* NEW TOP INDENTATION */}
+              <clipPath id="videoClip" clipPathUnits="objectBoundingBox">
+                <path
+                  d="
+          M0 0
+          L0.156 0
+          Q0.167 0.002 0.183 0.018
+          Q0.194 0.022 0.806 0.022
+          Q0.817 0.018 0.833 0.004
+          Q0.844 0 1 0
+          L1 1
+          L0 1
+          Z
+        "
+                />
+              </clipPath>
             </defs>
           </svg>
-
           <div className="relative flex h-full w-full items-center justify-center">
             <div
-              className="relative aspect-video w-[75vw] overflow-hidden"
+              className="relative aspect-video w-[75vw]"
               style={{
-                clipPath: "url(#moving-fluted-clip)",
+                clipPath: "url(#videoClip)",
               }}
             >
-              <FlutedGlassEffect
-                className="h-full w-full"
-                src="/videos/invisman.mp4"
-              />
+              <div
+                className="relative h-full w-full overflow-hidden"
+                style={{
+                  clipPath: "url(#moving-fluted-clip)",
+                }}
+              >
+                <FlutedGlassEffect
+                  className="h-full w-full"
+                  src="/videos/invisman.mp4"
+                />
+              </div>
             </div>
 
-            {/* EDITORIAL COPY — OVERLAID ON RIGHT */}
             <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-end">
-              <div className="w-[42%] pr-[14%]">
+              <div className="w-[50%] pr-[18%]">
                 <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
                   <h2 className="font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em] text-black">
                     Our doctors are fully invested in treatment planning your
@@ -2206,172 +2236,51 @@ function TransitionAnimatedCopy({
       </div> */
 }
 
+const LOCATIONS = [
+  {
+    name: "Allentown",
+    lat: 40.56587,
+    lng: -75.516663,
+    angle: 0,
+  },
+  {
+    name: "Bethlehem",
+    lat: 40.6639457,
+    lng: -75.2956125,
+    angle: Math.PI / 2,
+  },
+  {
+    name: "Schnecksville",
+    lat: 40.6608497,
+    lng: -75.599212,
+    angle: Math.PI,
+  },
+  {
+    name: "Lehighton",
+    lat: 40.817125,
+    lng: -75.730209,
+    angle: (Math.PI * 3) / 2,
+  },
+];
+
 export default function LandingComponent() {
   const shapeRef = useRef(null);
   return (
     <div style={{ overflowX: "clip" }}>
       <div className="MainContainer">
+        <FloatingBookButton />
         <Hero shapeRef={shapeRef} />
       </div>
 
       <NewSection />
+      {/* <HeroMinimapIntro /> */}
+      <CTA />
       {/* <Locations /> */}
       {/* <GiftCards /> */}
     </div>
   );
 }
 
-const PATH_SUB =
-  "M-10 913H634C645.046 913 654 904.046 654 893V482.5C654 471.454 662.954 462.5 674 462.5H935C946.046 462.5 955 453.546 955 442.5V227.5C955 216.454 963.954 207.5 975 207.5H1573.5C1584.55 207.5 1593.5 216.454 1593.5 227.5V325.5C1593.5 336.546 1602.45 345.5 1613.5 345.5H1734.5C1745.55 345.5 1754.5 336.546 1754.5 325.5V20.5C1754.5 9.4543 1763.45 0.5 1774.5 0.5H2092.5";
-
-const PATH_MAIN =
-  "M-40 913.5H604C615.046 913.5 624 904.546 624 893.5V483C624 471.954 632.954 463 644 463H905C916.046 463 925 454.046 925 443V228C925 216.954 933.954 208 945 208H1543.5C1554.55 208 1563.5 216.954 1563.5 228V326C1563.5 337.046 1572.45 346 1583.5 346H1704.5C1715.55 346 1724.5 337.046 1724.5 326V21C1724.5 9.9543 1733.45 1 1744.5 1H2062.5";
-
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-function ShrimpFlow({ className = "", statHighlightRefs }) {
-  const containerRef = useRef(null);
-  const mainRef = useRef(null);
-
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-
-  useGSAP(
-    () => {
-      const container = containerRef.current;
-      const main = mainRef.current;
-
-      if (!container || !main) return;
-
-      const trigger = container.parentElement;
-
-      if (!trigger) return;
-
-      gsap.set([main, glowRef.current], {
-        strokeDashoffset: -1000,
-        opacity: 1,
-      });
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      });
-      tl.to(
-        [main, glowRef.current],
-        {
-          strokeDashoffset: 0,
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
-      const stats = statHighlightRefs?.current || [];
-
-      gsap.set(stats, {
-        opacity: 0.35,
-      });
-
-      [
-        { index: 0, at: 0.18 }, // 60+ Years
-        { index: 1, at: 0.48 }, // 25k Patients
-        { index: 2, at: 0.75 }, // 4 Locations
-      ].forEach(({ index, at }) => {
-        const stat = stats[index];
-
-        if (!stat) return;
-
-        tl.to(
-          stat,
-          {
-            opacity: 1,
-            duration: 0.08,
-            ease: "none",
-          },
-          at,
-        );
-      });
-      tl.to(
-        [main, glowRef.current],
-        {
-          opacity: 0,
-          ease: "none",
-          duration: 0.18,
-        },
-        0.82,
-      );
-    },
-    { scope: containerRef },
-  );
-  const glowRef = useRef(null);
-
-  return (
-    <div
-      ref={containerRef}
-      className={`shrimp-flow ${className}`}
-      aria-hidden="true"
-    >
-      <svg
-        className="shrimp-svg shrimp-svg--main"
-        viewBox="0 0 1920 915"
-        preserveAspectRatio="xMidYMid meet"
-        fill="none"
-      >
-        <defs>
-          <filter
-            id={`shrimpGlow-${uid}`}
-            x="-50%"
-            y="-50%"
-            width="200%"
-            height="200%"
-          >
-            <feGaussianBlur stdDeviation="5" />
-          </filter>
-        </defs>
-
-        {/* ORIGINAL STATIC PATH — SUBTLE GRAY */}
-        <path
-          d={PATH_MAIN}
-          stroke="#A3A3A3"
-          strokeOpacity="0.35"
-          strokeWidth="1"
-          fill="none"
-        />
-
-        {/* SOFT LILAC GLOW */}
-        <path
-          ref={glowRef}
-          d={PATH_MAIN}
-          stroke="#B9A7FF"
-          strokeOpacity="0.65"
-          strokeWidth="3"
-          fill="none"
-          pathLength="1000"
-          strokeDasharray="120 880"
-          strokeDashoffset="-1000"
-          filter={`url(#shrimpGlow-${uid})`}
-        />
-
-        {/* SHARP LILAC PULSE */}
-        <path
-          ref={mainRef}
-          d={PATH_MAIN}
-          className="shrimp-pulse"
-          stroke="#C4B5FD"
-          strokeOpacity="1"
-          strokeWidth="1.5"
-          fill="none"
-          pathLength="1000"
-          strokeDasharray="120 880"
-          strokeDashoffset="-1000"
-        />
-      </svg>
-    </div>
-  );
-}
 function Tooth() {
   const group = useRef();
   const { scene } = useGLTF("/models/maxillary_first_molar_right_centered.glb");
@@ -2578,7 +2487,11 @@ function HeroMinimapIntro({ onComplete }) {
   }, [onComplete]);
 
   return (
-    <div className="hero-minimap">
+    <div className="h-screen grid grid-cols-2 bg-[#f5f5f5]">
+      {/* <LocationsOrbit /> */}
+      <ToothScene />
+
+      {/* <div className="hero-minimap">
       <div className="hero-minimap-left">
         <div className="flex items-center gap-[2px]" aria-label="01">
           {[0, 1, 2].map((i) => (
@@ -2636,6 +2549,7 @@ function HeroMinimapIntro({ onComplete }) {
         <span>ORTHODONTICS</span>
         <span>2026</span>
       </div>
+    </div> */}
     </div>
   );
 }
@@ -3222,12 +3136,10 @@ class FluidSimulation {
 
     const aspect = this.width / this.height;
 
-    // Low-resolution fluid simulation.
     this.simWidth = Math.max(32, Math.round(128 * Math.max(aspect, 1)));
 
     this.simHeight = Math.max(32, Math.round(128 / Math.max(aspect, 1)));
 
-    // Higher-resolution reveal mask.
     const dyeWidth = Math.max(128, Math.round(512 * Math.max(aspect, 1)));
 
     const dyeHeight = Math.max(128, Math.round(512 / Math.max(aspect, 1)));
@@ -3258,10 +3170,6 @@ class FluidSimulation {
 
     this.pendingSplats.length = 0;
   }
-
-  // --------------------------------------------------
-  // MOUSE INPUT
-  // --------------------------------------------------
 
   addPointer(x, y, dx, dy) {
     const forceX = THREE.MathUtils.clamp(dx * 1.5, -0.6, 0.6);
@@ -3310,11 +3218,6 @@ class FluidSimulation {
 
     target.swap();
   }
-
-  // --------------------------------------------------
-  // SIMULATION
-  // --------------------------------------------------
-
   update(delta, elapsed) {
     if (this.disposed) return;
 
@@ -3322,7 +3225,6 @@ class FluidSimulation {
 
     this.time = elapsed;
 
-    // 1. Inject mouse movement into velocity and dye.
     for (const splat of this.pendingSplats) {
       const point = {
         x: splat.x,
@@ -3411,7 +3313,6 @@ class FluidSimulation {
 
     this.dye.swap();
 
-    // 7. Display sharp photograph through fluid mask.
     this.displayMaterial.uniforms.uDye.value = this.dye.read.texture;
 
     this.displayMaterial.uniforms.uTime.value = elapsed;
@@ -3593,6 +3494,102 @@ function GooeyReveal({
     />
   );
 }
+
+const ITEMS = [
+  "Patient Stories",
+  "Beautiful Smiles",
+  "Real Experiences",
+  "Our Community",
+  "Patient Stories",
+  "Beautiful Smiles",
+  "Real Experiences",
+  "Our Community",
+];
+
+function TestimonialMarquee() {
+  const id = useId().replace(/:/g, "");
+  const staticPathId = `testimonial-static-${id}`;
+  const animatedPathId = `testimonial-animated-${id}`;
+
+  const size = 1000;
+  const center = size / 2;
+  const radius = 470;
+
+  const circlePath = `
+    M ${center},${center}
+    m -${radius},0
+    a ${radius},${radius} 0 1,1 ${radius * 2},0
+    a ${radius},${radius} 0 1,1 -${radius * 2},0
+  `;
+
+  const repeatingText = Array.from({ length: 3 }, () => ITEMS).flat();
+
+  return (
+    <div className="testimonial-marquee relative aspect-square w-full">
+      <div className="testimonial-marquee-text-mask absolute inset-0 z-0">
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          className="testimonial-marquee-rotate absolute inset-0 z-0 h-full w-full overflow-visible"
+          aria-hidden="true"
+        >
+          <defs>
+            <path id={animatedPathId} d={circlePath} />
+          </defs>
+
+          <text
+            fill="black"
+            className="font-neuehaas45"
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            <textPath
+              href={`#${animatedPathId}`}
+              textLength={2 * Math.PI * radius}
+              lengthAdjust="spacing"
+            >
+              {repeatingText.map((item, index) => (
+                <tspan key={index}>
+                  {item}
+                  <tspan fill="rgba(0,0,0,0.25)">{" •••• "}</tspan>
+                </tspan>
+              ))}
+            </textPath>
+          </text>
+        </svg>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="testimonial-marquee-static relative z-20 w-full overflow-visible"
+        aria-label="Testimonials"
+        role="img"
+      >
+        <defs>
+          <path id={staticPathId} d={circlePath} />
+        </defs>
+
+        <text
+          fill="black"
+          className="font-canelathin"
+          style={{
+            fontSize: 20,
+          }}
+        >
+          <textPath
+            href={`#${staticPathId}`}
+            startOffset="50%"
+            textAnchor="middle"
+          >
+            Testimonials
+          </textPath>
+        </text>
+      </svg>
+    </div>
+  );
+}
 const NewSection = () => {
   const containerRef = useRef(null);
   const awardsHeadingRef = useRef(null);
@@ -3732,7 +3729,7 @@ const NewSection = () => {
         },
       });
 
-      // 1. STAR → CIRCLE
+      // 1. STAR TO CIRCLE
       timeline.to(
         starPath,
         {
@@ -3880,7 +3877,7 @@ const NewSection = () => {
 
   return (
     <>
-      <div className="relative w-full min-h-[150vh] isolate bg-[#f5f5f5]">
+      <div className="relative w-full isolate bg-[#f5f5f5]">
         <GooeyReveal
           image="/images/ajomockupchairupdated.png"
           background="#f5f5f5"
@@ -3978,10 +3975,8 @@ const NewSection = () => {
                 </span>
               </span>
 
-              {/* SECOND LINE */}
               <span className="block pl-[3%]">&amp; Recog-</span>
 
-              {/* THIRD LINE */}
               <span className="block pl-[43%]">nitions</span>
             </h2>
           </div>
@@ -4009,21 +4004,22 @@ const NewSection = () => {
 
         <section
           ref={testimonialsSectionRef}
-          className="relative z-10 min-h-screen w-full overflow-hidden bg-black px-8 pt-[15vh] text-white lg:px-16"
+          className="relative z-10 min-h-screen w-full bg-transparent px-8 pt-[15vh] lg:px-16"
         >
-          <div className="relative z-10">
-            <p className="mb-4 font-neueroman text-[13px] uppercase tracking-wide">
-              What our patients say
-            </p>
+          <div className="relative isolate z-20 mt-24 w-full">
+            {/* SPECTRUM — MASKED TO THE FOUR CARD COLUMNS */}
+            <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0">
+              <TestimonialSpectrum />
+            </div>
 
-            <h3 className="max-w-[900px] font-neueroman text-[14px] leading-[1.05]">
-              Our greatest award is the success of our patients
-            </h3>
-          </div>
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-visible">
+              <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
+                <TestimonialMarquee />
+              </div>
+            </div>
 
-          {/* FOUR TESTIMONIAL CARDS */}
-          <div className="relative z-20 mt-24 w-full pb-8">
-            <div className="relative grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
+            {/* TESTIMONIAL CARDS */}
+            <div className="relative z-30 grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
               {[
                 {
                   number: "01",
@@ -4056,30 +4052,30 @@ const NewSection = () => {
                     testimonialCardsRef.current[index] = el;
                   }}
                   className="
-            relative flex h-[380px] flex-col justify-between
-            overflow-hidden bg-white/[0.20] p-5 text-white
-            backdrop-blur-[15px] backdrop-saturate-[140%]
-            lg:h-[560px] lg:p-6
-          "
+    testimonial-glass
+    relative flex h-[380px] flex-col justify-between
+    overflow-hidden
+    p-5 text-[#201509]
+    lg:h-[560px] lg:p-6
+  "
                 >
-                  <span className="font-ibmplex text-[12px] tracking-widest text-white/50">
+                  {/* Card content */}
+                  <span className="relative z-10 font-ibmplex text-[12px] tracking-widest">
                     {testimonial.number}
                   </span>
 
-                  <div>
-                    <p className="mb-6 max-w-[300px] font-neuehaas45 text-[clamp(13px,1vw,14px)] leading-[1.15] text-white/50">
+                  <div className="relative z-10">
+                    <p className="mb-2 max-w-[320px] font-ibmplex text-[clamp(13px,1.1vw,14px)] uppercase leading-[1.15]">
                       “{testimonial.quote}”
                     </p>
 
-                    <span className="font-ibmplex text-[12px] uppercase tracking-wider text-white/50">
+                    <span className="font-ibmplex text-[12px] uppercase tracking-wider">
                       {testimonial.name}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-
-            <TestimonialHills />
           </div>
         </section>
 
@@ -4474,517 +4470,1850 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
     />
   );
 };
-
-function Locations() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: false });
-  const [scope, animate] = useAnimate();
-  const [selectedLocation, setSelectedLocation] = useState("All");
-  const [activeDisclosurePanel, setActiveDisclosurePanel] = useState(null);
-
-  function toggleDisclosurePanels(newPanel) {
-    if (activeDisclosurePanel) {
-      if (
-        activeDisclosurePanel.key !== newPanel.key &&
-        activeDisclosurePanel.open
-      ) {
-        activeDisclosurePanel.close();
-      }
-    }
-    setActiveDisclosurePanel({
-      ...newPanel,
-      open: !newPanel.open,
-    });
-  }
-
-  const locations = [
-    {
-      location: "Allentown",
-      addressLine1: "1251 S Cedar Crest Blvd",
-      addressLine2: "Suite 210 Allentown, PA 18103",
-      mapbox_map_title: "FreySmiles Allentown [w/ Colors]",
-      mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_ALLENTOWN,
-      hours: [
-        { Mon: "11:00 AM - 7:00 PM" },
-        { Tue: "11:00 AM - 7:00 PM" },
-        { Wed: "8:00 AM - 5:30 PM" },
-        { Thu: "7:00 AM - 4:30 PM" },
-      ],
-    },
-    {
-      location: "Bethlehem",
-      addressLine1: "2901 Emrick Boulevard",
-      addressLine2: "Bethlehem, PA 18020",
-      mapbox_map_title: "FreySmiles Bethlehem [w/ Colors]",
-      mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_BETHLEHEM,
-      hours: [{ Tue: "11:00 AM - 7:00 PM" }, { Thu: "7:00 AM - 4:30 PM" }],
-    },
-    {
-      location: "Schnecksville",
-      addressLine1: "4155 Independence Drive",
-      addressLine2: "Schnecksville, PA 18078",
-      mapbox_map_title: "FreySmiles Schnecksville [w/ Colors]",
-      mapbox_iframe_url:
-        process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_SCHNECKSVILLE,
-      hours: [
-        { Mon: "11:00 AM - 7:00 PM" },
-        { Tue: "11:00 AM - 7:00 PM" },
-        { Thu: "7:00 AM - 4:30 PM" },
-      ],
-    },
-    {
-      location: "Lehighton",
-      addressLine1: "1080 Blakeslee Blvd Dr E",
-      addressLine2: "Lehighton, PA 18235",
-      mapbox_map_title: "FreySmiles Lehighton [w/ Colors]",
-      mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_LEHIGHTON,
-      hours: [{ Mon: "11:00 AM - 7:00 PM" }, { Thu: "7:00 AM - 4:30 PM" }],
-    },
-  ];
-
-  const handleShowAllLocations = () => {
-    activeDisclosurePanel.close();
-    setSelectedLocation("All");
+const DynamicBackground = ({ logoPath = "/images/fspetallogo.png" }) => {
+  const canvasRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const programRef = useRef(null);
+  const glRef = useRef(null);
+  const geometryRef = useRef(null);
+  const particleGridRef = useRef([]);
+  const posArrayRef = useRef(null);
+  const colorArrayRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const execCountRef = useRef(0);
+  const isCleanedUpRef = useRef(false);
+  const isMobileRef = useRef(false);
+  const CONFIG = {
+    logoSize: 800,
+    logoColor: "#000000",
+    distortionRadius: 144,
+    forceStrength: 2.4,
+    maxDisplacement: 56,
+    returnForce: 0.045,
   };
 
   useEffect(() => {
-    animate(
-      "div",
-      isInView
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const checkMobile = () => window.innerWidth < 1000;
+    isMobileRef.current = checkMobile();
+
+    if (isMobileRef.current) {
+      return;
+    }
+
+    isCleanedUpRef.current = false;
+    const container = canvas.parentElement;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const rect = container.getBoundingClientRect();
+
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+
+    const gl = canvas.getContext("webgl", {
+      alpha: true,
+      depth: false,
+      stencil: false,
+      antialias: true,
+      powerPreference: "high-performance",
+      premultipliedAlpha: false,
+    });
+
+    if (!gl) {
+      console.error("WebGL not supported");
+      return;
+    }
+
+    glRef.current = gl;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result
         ? {
-            opacity: 1,
-            transform: "translateX(0px)",
-            scale: 1,
-            filter: "blur(0px)",
+            r: parseInt(result[1], 16) / 255,
+            g: parseInt(result[2], 16) / 255,
+            b: parseInt(result[3], 16) / 255,
           }
-        : {
-            opacity: 0,
-            transform: "translateX(-50px)",
-            scale: 0.3,
-            filter: "blur(2px)",
-          },
-      {
-        duration: 0.2,
-        delay: isInView ? stagger(0.1, { startDelay: 0.15 }) : 0,
-      },
-    );
-  }, [isInView]);
-
-  const DrawEllipse = (props) => {
-    useGSAP(() => {
-      gsap.from(".draw", {
-        drawSVG: "0%",
-        ease: "expo.out",
-        scrollTrigger: {
-          trigger: "#locations-section",
-          start: "clamp(top center)",
-          scrub: true,
-          pinSpacing: false,
-          markers: false,
-        },
-      });
-    });
-
-    return (
-      <svg
-        width="508"
-        height="122"
-        viewBox="0 0 508 122"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        {...props}
-      >
-        <path
-          className="draw"
-          d="M2 23.2421C28.9079 14.5835 113.098 -1.63994 234.594 2.73493C386.464 8.20351 515.075 37.5458 505.497 77.9274C503.774 85.1946 491.815 127.145 271.535 118.942C51.2552 110.739 32.8106 78.7919 45.7824 58.053C59.4644 36.1787 112.824 27.9758 193.548 27.9758"
-          stroke="#ff6432"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      </svg>
-    );
-  };
-
-  const BezierCurve = () => {
-    const container = useRef(null);
-    const path = useRef(null);
-    let progress = 0;
-    let time = Math.PI / 2; // want the initial time value to be 1; in sine graph y = 1 when x = pi / 2
-    let reqId = null; // everytime mouse enters and leaves line's bounding box, animation gets called causing simultaneous chains of it being called (this is bad), only want one request animation running at the same time
-    let x = 0.5; // middle point is 1/2
-
-    useEffect(() => {
-      setPath(progress);
-      window.addEventListener("resize", () => {
-        setPath(progress);
-      });
-    }, []);
-
-    {
-      /*
-      use svg container's width to get control point (center point) of quadratic bezier curve; control point = svg container's width / 2
-      30 ==> svg height(60) divided by 2 to align the path within the center of the svg
-    */
+        : { r: 1, g: 1, b: 1 };
     }
-    const setPath = (progress) => {
-      if (container.current) {
-        const width = container.current.offsetWidth;
-        path.current.setAttributeNS(
-          null,
-          "d",
-          `M 0 30 Q${width * x} ${30 + progress} ${width} 30`,
+
+    const vertexShaderSource = `
+      precision highp float;
+      uniform vec2 u_resolution;
+      attribute vec2 a_position;
+      attribute vec4 a_color;
+      varying vec4 v_color;
+      void main() {
+         vec2 zeroToOne = a_position / u_resolution;
+         vec2 clipSpace = (zeroToOne * 2.0 - 1.0);
+         v_color = a_color;
+         gl_Position = vec4(clipSpace * vec2(1.0, -1.0), 0.0, 1.0);
+         gl_PointSize = 3.5;
+     }
+    `;
+
+    const fragmentShaderSource = `
+      precision highp float;
+      varying vec4 v_color;
+      void main() {
+          if (v_color.a < 0.01) discard;
+          
+          vec2 coord = gl_PointCoord - vec2(0.5);
+          float dist = length(coord);
+          float alpha = 1.0 - smoothstep(0.46, 0.5, dist);
+          
+          gl_FragColor = vec4(v_color.rgb, v_color.a * alpha);
+      }
+    `;
+
+    function createShader(gl, type, source) {
+      if (!gl || isCleanedUpRef.current) return null;
+
+      const shader = gl.createShader(type);
+      if (!shader) return null;
+
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error("Error compiling shader:", gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      if (!gl || !vertexShader || !fragmentShader || isCleanedUpRef.current)
+        return null;
+
+      const program = gl.createProgram();
+      if (!program) return null;
+
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Error linking program:", gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+
+      return program;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      fragmentShaderSource,
+    );
+
+    if (!vertexShader || !fragmentShader) return;
+
+    const program = createProgram(gl, vertexShader, fragmentShader);
+    if (!program) return;
+
+    programRef.current = program;
+
+    const positionAttributeLocation = gl.getAttribLocation(
+      program,
+      "a_position",
+    );
+    const colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+    const resolutionUniformLocation = gl.getUniformLocation(
+      program,
+      "u_resolution",
+    );
+
+    const loadLogo = () => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+
+      image.onload = () => {
+        if (isCleanedUpRef.current) return;
+
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCanvas.width = CONFIG.logoSize;
+        tempCanvas.height = CONFIG.logoSize;
+
+        tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+
+        const scale = 0.9;
+        const scaledSize = CONFIG.logoSize * scale;
+        const offset = (CONFIG.logoSize - scaledSize) / 2;
+
+        tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
+        const imageData = tempCtx.getImageData(
+          0,
+          0,
+          CONFIG.logoSize,
+          CONFIG.logoSize,
         );
-      }
+
+        initParticleSystem(imageData.data, CONFIG.logoSize);
+      };
+
+      image.onerror = () => {
+        console.error("Failed to load logo image:", logoPath);
+      };
+
+      image.src = logoPath;
     };
 
-    const manageMouseEnter = () => {
-      if (reqId) {
-        window.cancelAnimationFrame(reqId);
-        resetAnimation();
-      }
-    };
+    function initParticleSystem(pixels, dim) {
+      if (isCleanedUpRef.current) return;
 
-    const manageMouseMove = (e) => {
-      const { movementY, clientX } = e;
-      const { left, width } = path.current.getBoundingClientRect();
-      // get value of x depending on where mouse is on the x-axis of the line
-      x = (clientX - left) / width;
-      progress += movementY;
-      setPath(progress);
-    };
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
 
-    const manageMouseLeave = () => {
-      animateOut();
-    };
+      particleGridRef.current = [];
+      const validParticles = [];
+      const validPositions = [];
+      const validColors = [];
 
-    {
-      /*
-      linear interpolation
-      x: The value we want to interpolate from (start) => 10
-      y: The target value we want to interpolate to (end) => 0
-      a: The amount by which we want x to be closer to y => 10% or 0.1
-      ex: value = lerp(value, 0, 0.1)
-      if value = 10, bring that value close to 0 by 10% which will give 9
-    */
-    }
-    const lerp = (x, y, a) => x * (1 - a) + y * a;
+      const logoTint = hexToRgb(CONFIG.logoColor);
 
-    // sine function, linear interpolation, recursivity
-    const animateOut = () => {
-      // sine function creates the "wobbly" line animation when mouse leaves the line
-      const newProgress = progress * Math.sin(time);
-      time += 0.25; // speed of bounce animation
-      setPath(newProgress);
-      progress = lerp(progress, 0, 0.05); // change 3rd lerp argument to change curve's bounce exaggeration
+      for (let i = 0; i < dim; i++) {
+        for (let j = 0; j < dim; j++) {
+          const pixelIndex = (i * dim + j) * 4;
+          const alpha = pixels[pixelIndex + 3];
 
-      // exit condition
-      if (Math.abs(progress) > 0.75) {
-        reqId = window.requestAnimationFrame(animateOut);
-      } else {
-        resetAnimation();
-      }
-    };
+          if (alpha > 10) {
+            const x = centerX + (j - dim / 2) * 1.0;
+            const y = centerY + (i - dim / 2) * 1.0;
 
-    const resetAnimation = () => {
-      time = Math.PI / 2;
-      progress = 0;
-    };
+            validPositions.push(x, y);
 
-    return (
-      <>
-        {/* line */}
-        <div
-          ref={container}
-          className="mb-[30px] col-span-12 row-start-2 h-[1px] w-full relative"
-        >
-          {/* box for event listeners overlays the svg element */}
-          <div
-            onMouseEnter={manageMouseEnter}
-            onMouseMove={(e) => {
-              manageMouseMove(e);
-            }}
-            onMouseLeave={manageMouseLeave}
-            className="h-[30px] relative -top-[15px] z-10 hover:h-[60px] hover:-top-[30px]"
-          />
-          <svg className="w-full h-[60px] -top-[30px] absolute">
-            <path ref={path} strokeWidth={1} stroke="#000" fill="none" />
-          </svg>
-        </div>
-      </>
-    );
-  };
+            const originalR = pixels[pixelIndex] / 255;
+            const originalG = pixels[pixelIndex + 1] / 255;
+            const originalB = pixels[pixelIndex + 2] / 255;
+            const originalA = pixels[pixelIndex + 3] / 255;
 
-  useEffect(() => {
-    const title = document.querySelector(".content__title");
-    const split = new SplitText(title, { type: "chars" });
-    const chars = split.chars;
+            validColors.push(logoTint.r, logoTint.g, logoTint.b, 1);
 
-    gsap.fromTo(
-      chars,
-      {
-        "will-change": "opacity, transform",
-        transformOrigin: "50% 100%",
-        opacity: 0,
-        rotationX: 90,
-      },
-      {
-        ease: "power4",
-        opacity: 1,
-        stagger: 0.03,
-        rotationX: 0,
-        scrollTrigger: {
-          trigger: title,
-          start: "center bottom",
-          end: "bottom top+=20%",
-          scrub: true,
-        },
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    gsap.to(".marquee-track.r h1", {
-      scrollTrigger: {
-        trigger: ".marquee-track.r h1",
-        start: "top bottom",
-        end: "400% top",
-        scrub: 0.6,
-      },
-      xPercent: 25,
-      duration: 3,
-      ease: "linear",
-    });
-  }, []);
-
-  const targetRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const childSplit = new SplitText(".text-heading h1", {
-            type: "lines",
-            linesClass: "split-child",
-          });
-
-          gsap.from(childSplit.lines, {
-            duration: 2,
-            xPercent: 25,
-            autoAlpha: 0,
-            ease: "Expo.easeOut",
-            stagger: 0.12,
-            repeat: -1,
-          });
-
-          observer.unobserve(entry.target);
+            validParticles.push({
+              ox: x,
+              oy: y,
+              vx: 0,
+              vy: 0,
+            });
+          }
         }
-      });
-    });
+      }
 
-    if (targetRef.current) {
-      observer.observe(targetRef.current);
+      particleGridRef.current = validParticles;
+      posArrayRef.current = new Float32Array(validPositions);
+      colorArrayRef.current = new Float32Array(validColors);
+
+      const positionBuffer = gl.createBuffer();
+      const colorBuffer = gl.createBuffer();
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, posArrayRef.current, gl.DYNAMIC_DRAW);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, colorArrayRef.current, gl.STATIC_DRAW);
+
+      geometryRef.current = {
+        positionBuffer,
+        colorBuffer,
+        vertexCount: validParticles.length,
+      };
+
+      console.log(`Created ${validParticles.length} particles`);
+      startAnimation();
     }
+
+    function startAnimation() {
+      function animate() {
+        if (
+          isCleanedUpRef.current ||
+          !gl ||
+          !programRef.current ||
+          !geometryRef.current
+        ) {
+          return;
+        }
+
+        if (execCountRef.current > 0) {
+          execCountRef.current -= 1;
+
+          const mx = mouseRef.current.x;
+          const my = mouseRef.current.y;
+
+          for (let i = 0, len = particleGridRef.current.length; i < len; i++) {
+            const x = posArrayRef.current[i * 2];
+            const y = posArrayRef.current[i * 2 + 1];
+            const d = particleGridRef.current[i];
+
+            const dx = x - mx;
+            const dy = y - my;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            const radius =
+              CONFIG.distortionRadius *
+              Math.min(window.devicePixelRatio || 1, 2);
+
+            if (distance > 0.001 && distance < radius) {
+              const influence = 1 - distance / radius;
+              const force = influence * CONFIG.forceStrength;
+
+              d.vx += (dx / distance) * force;
+              d.vy += (dy / distance) * force;
+            }
+
+            const newX = x + (d.vx *= 0.82) + (d.ox - x) * CONFIG.returnForce;
+            const newY = y + (d.vy *= 0.82) + (d.oy - y) * CONFIG.returnForce;
+
+            const dx_origin = newX - d.ox;
+            const dy_origin = newY - d.oy;
+            const distFromOrigin = Math.sqrt(
+              dx_origin * dx_origin + dy_origin * dy_origin,
+            );
+
+            if (distFromOrigin > CONFIG.maxDisplacement) {
+              const excess = distFromOrigin - CONFIG.maxDisplacement;
+              const scale = CONFIG.maxDisplacement / distFromOrigin;
+              const dampedScale =
+                scale + (1 - scale) * Math.exp(-excess * 0.02);
+
+              posArrayRef.current[i * 2] = d.ox + dx_origin * dampedScale;
+              posArrayRef.current[i * 2 + 1] = d.oy + dy_origin * dampedScale;
+
+              d.vx *= 0.7;
+              d.vy *= 0.7;
+            } else {
+              posArrayRef.current[i * 2] = newX;
+              posArrayRef.current[i * 2 + 1] = newY;
+            }
+          }
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.positionBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, posArrayRef.current);
+        }
+
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(programRef.current);
+
+        gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.positionBuffer);
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        gl.vertexAttribPointer(
+          positionAttributeLocation,
+          2,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.colorBuffer);
+        gl.enableVertexAttribArray(colorAttributeLocation);
+        gl.vertexAttribPointer(
+          colorAttributeLocation,
+          4,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+
+        gl.drawArrays(gl.POINTS, 0, geometryRef.current.vertexCount);
+
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+
+      animate();
+    }
+
+    const handleMouseMove = (event) => {
+      if (isCleanedUpRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      mouseRef.current.x = (event.clientX - rect.left) * dpr;
+      mouseRef.current.y = (event.clientY - rect.top) * dpr;
+      execCountRef.current = 300;
+    };
+
+    const handleResize = () => {
+      if (isCleanedUpRef.current) return;
+
+      const rect = container.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("resize", handleResize);
+
+    loadLogo();
 
     return () => {
-      observer.disconnect();
-    };
-  }, []);
+      isCleanedUpRef.current = true;
 
-  const pathRef = useRef(null);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      document.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("resize", handleResize);
+
+      if (gl && !gl.isContextLost()) {
+        try {
+          if (geometryRef.current) {
+            if (geometryRef.current.positionBuffer) {
+              gl.deleteBuffer(geometryRef.current.positionBuffer);
+            }
+            if (geometryRef.current.colorBuffer) {
+              gl.deleteBuffer(geometryRef.current.colorBuffer);
+            }
+            geometryRef.current = null;
+          }
+
+          if (programRef.current) {
+            const shaders = gl.getAttachedShaders(programRef.current);
+            if (shaders) {
+              shaders.forEach((shader) => {
+                gl.detachShader(programRef.current, shader);
+                gl.deleteShader(shader);
+              });
+            }
+            gl.deleteProgram(programRef.current);
+            programRef.current = null;
+          }
+        } catch (error) {
+          console.warn("Error during WebGL cleanup:", error);
+        }
+      }
+
+      particleGridRef.current = [];
+      posArrayRef.current = null;
+      colorArrayRef.current = null;
+      mouseRef.current = { x: 0, y: 0 };
+      execCountRef.current = 0;
+    };
+  }, [logoPath]);
+
+  return (
+    <div className="dynamic-background">
+      <canvas ref={canvasRef} />
+    </div>
+  );
+};
+
+function CTAParagraphReveal({
+  children,
+  ready = true,
+  delay = 0,
+  duration = 0.8,
+}) {
+  const containerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const ctx = gsap.context(() => {
+      gsap.set(container, {
+        autoAlpha: 0,
+        filter: "blur(8px)",
+      });
+
+      if (ready) {
+        gsap.to(container, {
+          autoAlpha: 1,
+          filter: "blur(0px)",
+          duration,
+          delay,
+          ease: "power2.out",
+        });
+      }
+    }, container);
+
+    return () => ctx.revert();
+  }, [ready, delay, duration]);
+
+  return (
+    <span ref={containerRef} className="cta-paragraph-reveal">
+      {children}
+    </span>
+  );
+}
+
+function CTA() {
+  const BLOCKS = [
+    {
+      title: "Beyond Board Standards",
+      content:
+        "We strive to attain finished results consistent with the American Board of Orthodontics (ABO) qualitative standards. Our doctors place great priority on the certification and recertification process, ensuring that all diagnostic records adhere to ABO standards.",
+    },
+    {
+      title: "Board Certification Process",
+      content:
+        "Currently, Dr. Gregg Frey is a certified orthodontist and is preparing cases for recertification. Dr. Daniel Frey is in the final stages of obtaining his initial certification.",
+    },
+    {
+      title: "Diagnostic Record Accuracy",
+      content:
+        "To complement our use of cutting-edge diagnostic technology, we uphold the highest standards for our records, ensuring accuracy and precision throughout the treatment process.",
+    },
+    {
+      title: "Trusted Expertise",
+      content:
+        "Our office holds the distinction of being the longest-standing, active board-certified orthodontic office in the area. With four offices in the Lehigh Valley, we have been providing unparalleled orthodontic care for over four decades.",
+    },
+  ];
+  const bookingContentRef = useRef(null);
+  const sectionRef = useRef(null);
+  const wheelRef = useRef(null);
+  const wheelEntranceRef = useRef(null);
+  const markerRefs = useRef([]);
+  const contentRefs = useRef([]);
+  const fourthPinRef = useRef(null);
+  const transitionRef = useRef(null);
+  const blueCircleRef = useRef(null);
+  const whiteCircleRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const bookingInnerRef = useRef(null);
 
   useEffect(() => {
-    const path = pathRef.current;
-    if (!path) return;
+    const section = sectionRef.current;
+    const wheel = wheelRef.current;
 
-    const pathLength = path.getTotalLength();
-    path.style.strokeDasharray = pathLength;
-    path.style.strokeDashoffset = pathLength;
-    path.style.transition = "stroke-dashoffset 2s ease-out";
+    if (!section || !wheel) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          path.style.strokeDashoffset = "0";
-        } else {
-          path.style.strokeDashoffset = pathLength;
+    const ctx = gsap.context(() => {
+      gsap.set(wheel, { rotation: 0 });
+
+      gsap.fromTo(
+        wheelEntranceRef.current,
+        {
+          scale: 0.5,
+        },
+        {
+          scale: 1,
+          duration: 1.2,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 85%",
+            toggleActions: "play none none reverse",
+          },
+        },
+      );
+
+      gsap.set(contentRefs.current, {
+        autoAlpha: 0,
+        y: 16,
+      });
+
+      gsap.set(contentRefs.current[0], {
+        autoAlpha: 1,
+        y: 0,
+      });
+
+      let currentIndex = 0;
+      let animating = false;
+      let expanded = false;
+
+      let transition;
+      let expansion;
+      let observer;
+      let scrollTrigger;
+
+      const handleBookingWheel = (event) => {
+        if (!expanded || animating) return;
+
+        const content = bookingContentRef.current;
+        if (!content) return;
+
+        if (event.deltaY < 0 && content.scrollTop <= 2) {
+          event.preventDefault();
+
+          content.scrollTop = 0;
+
+          closeBookingSection();
         }
-      },
-      { threshold: 0.5 },
-    );
+      };
 
-    observer.observe(path);
-    return () => observer.disconnect();
+      let touchStartY = null;
+      let touchStartX = null;
+      let touchTriggered = false;
+
+      const handleBookingTouchStart = (event) => {
+        if (!expanded || animating) return;
+        if (event.touches.length !== 1) return;
+
+        touchStartY = event.touches[0].clientY;
+        touchStartX = event.touches[0].clientX;
+        touchTriggered = false;
+      };
+
+      const handleBookingTouchMove = (event) => {
+        if (!expanded || animating || touchTriggered) return;
+        if (touchStartY === null || touchStartX === null) return;
+        if (event.touches.length !== 1) return;
+
+        const content = bookingContentRef.current;
+        if (!content) return;
+
+        const deltaY = event.touches[0].clientY - touchStartY;
+        const deltaX = event.touches[0].clientX - touchStartX;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
+
+        // A downward finger swipe at the very top
+        // means the user wants to return to the CTA.
+        if (content.scrollTop <= 1 && deltaY > 45) {
+          event.preventDefault();
+
+          touchTriggered = true;
+          touchStartY = null;
+          touchStartX = null;
+
+          closeBookingSection();
+        }
+      };
+
+      const handleBookingTouchEnd = () => {
+        touchStartY = null;
+        touchStartX = null;
+        touchTriggered = false;
+      };
+      const releaseScroll = (direction) => {
+        observer.disable();
+
+        const destination =
+          direction > 0 ? scrollTrigger.end + 2 : scrollTrigger.start - 2;
+
+        window.scrollTo({
+          top: destination,
+          behavior: "instant",
+        });
+      };
+      const openBookingSection = () => {
+        if (animating || expanded || !fourthPinRef.current) return;
+
+        animating = true;
+
+        const rect = fourthPinRef.current.getBoundingClientRect();
+
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const x = (centerX / window.innerWidth) * 100;
+        const y = (centerY / window.innerHeight) * 100;
+
+        const maxRadius = Math.hypot(
+          Math.max(centerX, window.innerWidth - centerX),
+          Math.max(centerY, window.innerHeight - centerY),
+        );
+
+        const initialClip = `circle(0px at ${x}% ${y}%)`;
+        const finalClip = `circle(${maxRadius + 10}px at ${x}% ${y}%)`;
+
+        gsap.set(transitionRef.current, {
+          autoAlpha: 1,
+        });
+
+        gsap.set([blueCircleRef.current, whiteCircleRef.current], {
+          clipPath: initialClip,
+        });
+
+        expansion?.kill();
+
+        expansion = gsap.timeline({
+          onComplete: () => {
+            expanded = true;
+            animating = false;
+
+            observer.disable();
+          },
+
+          onReverseComplete: () => {
+            expanded = false;
+            animating = false;
+
+            gsap.set(transitionRef.current, {
+              autoAlpha: 0,
+            });
+
+            observer.enable();
+          },
+        });
+        expansion.to(
+          blueCircleRef.current,
+          {
+            clipPath: finalClip,
+            duration: 1.35,
+            ease: "power3.inOut",
+          },
+          0,
+        );
+
+        expansion.to(
+          whiteCircleRef.current,
+          {
+            clipPath: finalClip,
+            duration: 1.2,
+            ease: "power3.inOut",
+          },
+          0.6,
+        );
+        expansion.to(
+          blueCircleRef.current,
+          {
+            clipPath: finalClip,
+            duration: 1.35,
+            ease: "power3.inOut",
+          },
+          0,
+        );
+
+        expansion.to(
+          whiteCircleRef.current,
+          {
+            clipPath: finalClip,
+            duration: 1.2,
+            ease: "power3.inOut",
+          },
+          0.6,
+        );
+
+        expansion.to(
+          bookingContentRef.current,
+          {
+            autoAlpha: 1,
+            duration: 0.2,
+            ease: "power2.out",
+          },
+          1.85,
+        );
+        const revealItems =
+          bookingInnerRef.current.querySelectorAll(".locations-reveal");
+
+        gsap.set(revealItems, {
+          autoAlpha: 0,
+          y: 20,
+        });
+
+        expansion.to(
+          revealItems,
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 1.2,
+            stagger: 0.12,
+            ease: "power3.out",
+          },
+          1.95,
+        );
+        expansion.call(
+          () => {
+            window.dispatchEvent(new Event("frey-pixel-reveal"));
+          },
+          [],
+          2.19,
+        );
+      };
+      const closeBookingSection = () => {
+        if (animating || !expanded || !expansion) return;
+
+        animating = true;
+
+        if (bookingContentRef.current) {
+          bookingContentRef.current.scrollTop = 0;
+        }
+
+        expansion.timeScale(1.8).reverse();
+      };
+      const showStep = (direction) => {
+        if (animating) return;
+
+        if (expanded) {
+          if (direction < 0) {
+            closeBookingSection();
+          }
+
+          return;
+        }
+
+        const nextIndex = currentIndex + direction;
+
+        if (nextIndex >= BLOCKS.length) {
+          openBookingSection();
+          return;
+        }
+
+        // Allow the user to scroll backward before pin 1.
+        if (nextIndex < 0) {
+          releaseScroll(-1);
+          return;
+        }
+
+        animating = true;
+        currentIndex = nextIndex;
+
+        const outgoing = contentRefs.current[nextIndex - direction];
+        const incoming = contentRefs.current[nextIndex];
+
+        transition?.kill();
+
+        transition = gsap.timeline({
+          onComplete: () => {
+            animating = false;
+          },
+        });
+
+        // Hide the previous content.
+        transition.to(
+          outgoing,
+          {
+            autoAlpha: 0,
+            y: -12,
+            duration: 0.2,
+            ease: "power2.in",
+          },
+          0,
+        );
+
+        // Rotate exactly 90 degrees.
+        transition.to(
+          wheel,
+          {
+            rotation: -90 * nextIndex,
+            duration: 0.85,
+            ease: "power3.inOut",
+          },
+          0,
+        );
+
+        // Start the character reveals as the pin arrives.
+        transition.call(
+          () => {
+            setActiveIndex(nextIndex);
+          },
+          [],
+          0.75,
+        );
+
+        // Reveal the incoming text.
+        transition.fromTo(
+          incoming,
+          {
+            autoAlpha: 0,
+            y: 12,
+          },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.45,
+            ease: "power3.out",
+          },
+          0.75,
+        );
+      };
+      const bookingContent = bookingContentRef.current;
+
+      if (bookingContent) {
+        bookingContent.addEventListener("wheel", handleBookingWheel, {
+          passive: false,
+        });
+
+        bookingContent.addEventListener("touchstart", handleBookingTouchStart, {
+          passive: true,
+        });
+
+        bookingContent.addEventListener("touchmove", handleBookingTouchMove, {
+          passive: false,
+        });
+
+        bookingContent.addEventListener("touchend", handleBookingTouchEnd);
+
+        bookingContent.addEventListener("touchcancel", handleBookingTouchEnd);
+      }
+      observer = Observer.create({
+        target: window,
+        type: "wheel,touch",
+        preventDefault: true,
+        tolerance: 18,
+
+        onDown: () => showStep(1),
+        onUp: () => showStep(-1),
+      });
+
+      observer.disable();
+
+      scrollTrigger = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "+=350%",
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+
+        onEnter: () => observer.enable(),
+        onEnterBack: () => observer.enable(),
+
+        onLeave: () => observer.disable(),
+        onLeaveBack: () => observer.disable(),
+      });
+
+      return () => {
+        if (bookingContent) {
+          bookingContent.removeEventListener("wheel", handleBookingWheel);
+
+          bookingContent.removeEventListener(
+            "touchstart",
+            handleBookingTouchStart,
+          );
+
+          bookingContent.removeEventListener(
+            "touchmove",
+            handleBookingTouchMove,
+          );
+
+          bookingContent.removeEventListener("touchend", handleBookingTouchEnd);
+
+          bookingContent.removeEventListener(
+            "touchcancel",
+            handleBookingTouchEnd,
+          );
+        }
+
+        observer.kill();
+        transition?.kill();
+        expansion?.kill();
+      };
+    }, section);
+
+    return () => ctx.revert();
   }, []);
 
   return (
     <>
-      <section id="flex locations-section" className="relative ">
-        <div
-          id="locations-heading"
-          className="relative block max-w-2xl px-4 py-16 mx-auto sm:px-6 sm:py-24 lg:max-w-[100rem] lg:px-8 lg:py-32"
-        >
-          <h1 className="font-helvetica-neue-light lg:text-5xl">
-            Come see us at any of our{" "}
-            <span className="relative inline-block my-8 leading-tight lowercase font-editorial-new underline-offset-8">
-              four convenient locations
-              {/* <img className="absolute w-full h-auto -ml-2 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" src="/../../images/ellipse.svg" /> */}
-              <DrawEllipse className="absolute w-full h-auto -ml-2 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" />
-            </span>{" "}
-            or opt for a{" "}
-            <span className=" relative leading-tight lowercase font-editorial-new decoration-wavy underline-offset-8 decoration-[#000] underline inline-block">
-              virtual consultation
-            </span>
-          </h1>
+      <div ref={transitionRef} className="cta-expansion">
+        <div ref={blueCircleRef} className="cta-expansion__blue" />
 
-          <svg
-            className="hidden lg:block absolute bottom-0 translate-y-1/2 left-0 translate-x-64 w-36 h-36 rotate-[120deg] text-[#ff6432]"
-            viewBox="0 0 77 85"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              ref={pathRef}
-              d="M1.33755 84.3973C0.297616 62.7119 2.93494 39.8181 19.4192 23.8736C28.2211 15.3599 42.4944 12.5723 47.6281 26.2359C51.1245 35.5419 51.542 51.9945 41.0605 57.0865C29.486 62.7095 40.2945 35.2221 41.9942 32.4952C49.9497 19.7313 59.7772 11.6122 72.2699 3.78281C76.9496 0.849879 73.7108 0.477284 70.0947 1.13476C66.9572 1.7052 63.4035 2.43717 60.5291 3.81975C59.6524 4.24143 65.7349 2.73236 66.6827 2.44768C70.7471 1.22705 75.4874 -0.0219285 75.9527 5.60812C76.0274 6.5127 75.9956 14.9844 74.7481 15.2963C74.099 15.4586 71.0438 10.27 70.4642 9.65288C66.6996 5.64506 63.5835 4.42393 58.2726 5.11792"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
+        <div ref={whiteCircleRef} className="cta-expansion__white" />
+        {/* <div className="mb-12 flex flex-col items-center text-center">
 
-        <div className="font-neue-montreal text-[#171616]" ref={ref}>
-          <motion.div
-            id="locations-map"
-            className="h-[60vh] overflow-hidden lg:absolute lg:right-0 lg:h-full lg:w-1/2"
-            style={{
-              opacity: isInView ? 1 : 0,
-              filter: isInView ? "blur(0px)" : "blur(16px)",
-              transition: "all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) 0.5s",
-            }}
-          >
-            <iframe
-              className="w-full h-full rounded-lg"
-              width="100%"
-              height="100%"
-              src={
-                selectedLocation === "All"
-                  ? process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_ALL_LOCATIONS
-                  : locations.find((l) => l.location === selectedLocation)
-                      .mapbox_iframe_url
-              }
-              title={
-                selectedLocation === "All"
-                  ? "FreySmiles All Locations [w/ Colors]"
-                  : locations.find((l) => l.location === selectedLocation)
-                      .mapbox_map_title
-              }
-            />
-          </motion.div>
+<div className="relative h-[400px] w-full">
+  <DynamicBackground logoPath="/images/fspetallogo.png" />
+</div>
 
+
+      </div> */}
+        <div ref={bookingContentRef} className="cta-expansion__content">
           <div
-            className="font-neue-montreal text-[#171616]"
-            id="locations-details"
+            ref={bookingInnerRef}
+            className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col justify-center px-[5vw] py-20"
           >
-            <div className="max-w-2xl px-4 py-16 mx-auto sm:px-6 sm:py-24 lg:mt-0 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8 xl:gap-x-24">
-              {/* LOCATIONS LIST */}
-              <motion.div
-                className="flex flex-col mt-10"
+            <Locations scrollContainerRef={bookingContentRef} />
+          </div>
+        </div>
+      </div>
+      <section
+        ref={sectionRef}
+        className="cta-orbit relative h-screen w-full overflow-hidden bg-black text-white"
+      >
+        <div className="absolute left-[3vw] top-[9vh] z-20 w-[94vw]">
+          <h2 className="flex flex-col font-neueroman text-[clamp(2.625rem,6vw,6.75rem)] font-[800] leading-[0.82] tracking-[-0.035em] text-white">
+            <span className="block pl-[0%]">Excellence</span>
+
+            <span className="block pl-[15%]">Is in the</span>
+
+            <span className="block pl-[.6%]">Details.</span>
+          </h2>
+        </div>
+        <div className="pointer-events-none absolute right-[3vw] top-[7vh] z-10">
+          <ToothScene />
+        </div>
+        <div ref={wheelEntranceRef} className="cta-orbit__viewport">
+          <div ref={wheelRef} className="cta-orbit__wheel">
+            <div className="cta-orbit__ring" />
+
+            {BLOCKS.map((block, index) => (
+              <div
+                key={block.title}
+                className="cta-orbit__marker"
                 style={{
-                  transform: isInView ? "none" : "translateX(-50px)",
-                  opacity: isInView ? 1 : 0,
-                  transition: "all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) 0.5s",
+                  transform: `
+            translate(-50%, -50%)
+            rotate(${index * 90}deg)
+            translateY(calc(var(--orbit-radius) * -1))
+          `,
                 }}
               >
-                <button
-                  className={`${
-                    selectedLocation === "All" ? "" : ""
-                  } self-end transition-all duration-300 ease-linear w-max mr-6 mb-6 underline-offset-4 `}
-                  onClick={handleShowAllLocations}
-                >
-                  {selectedLocation === "All"
-                    ? "Showing All Locations"
-                    : "Show All Locations"}
-                </button>
+                <span
+                  ref={index === BLOCKS.length - 1 ? fourthPinRef : null}
+                  className="cta-orbit__marker-dot"
+                />
+                <span className="cta-orbit__marker-stem" />
 
-                <dl ref={scope}>
-                  {locations.map((l, i) => (
-                    <Disclosure
-                      as="div"
-                      key={l.location}
-                      className={`${
-                        selectedLocation === l.location ? "" : ""
-                      } px-4 py-6 transition-all duration-300 ease-linear cursor-pointer hover:text-black group `}
-                    >
-                      {(panel) => {
-                        const { open, close } = panel;
-                        return (
-                          <>
-                            <BezierCurve />
-
-                            <Disclosure.Button
-                              className="grid w-full grid-cols-12 grid-rows-1 text-left sm:px-0"
-                              onClick={() => {
-                                if (!open) close();
-                                toggleDisclosurePanels({ ...panel, key: i });
-                                setSelectedLocation(l.location);
-                              }}
-                            >
-                              <dt className="col-span-5 row-start-1">
-                                <h6 className="text-xl font-neue-montreal">
-                                  {l.location}
-                                </h6>
-                              </dt>
-                              <dd className="col-span-7 row-start-1">
-                                <span className="flex items-center justify-between">
-                                  <p className="font-neue-montreal">
-                                    {l.addressLine1}
-                                    <br />
-                                    {l.addressLine2}
-                                  </p>
-                                  <ChevronRightIcon className="w-6 h-6 ui-open:rotate-90 ui-open:transform" />
-                                </span>
-                              </dd>
-                            </Disclosure.Button>
-                            <Transition
-                              show={open}
-                              enter="transition-transform ease-out duration-300"
-                              enterFrom="transform scale-y-0 opacity-0"
-                              enterTo="transform scale-y-100 opacity-100"
-                              leave="transition-transform ease-in duration-200"
-                              leaveFrom="transform scale-y-100 opacity-100"
-                              leaveTo="transform scale-y-0 opacity-0"
-                            >
-                              <Disclosure.Panel
-                                as="div"
-                                className="grid grid-cols-12"
-                              >
-                                <ul className="col-span-7 col-start-6 mt-4 mb-2 text-left">
-                                  <h6 className="font-medium uppercase">
-                                    Office Hours:
-                                  </h6>
-                                  {l.hours.map((hour, index) => (
-                                    <li key={index}>
-                                      {Object.keys(hour)[0]}:{" "}
-                                      {Object.values(hour)[0]}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </Disclosure.Panel>
-                            </Transition>
-                          </>
-                        );
-                      }}
-                    </Disclosure>
-                  ))}
-                </dl>
-              </motion.div>
-            </div>
+                <span className="cta-orbit__marker-number">{index + 1}</span>
+              </div>
+            ))}
           </div>
+        </div>
+
+        <div className="cta-orbit__content">
+          {BLOCKS.map((block, index) => (
+            <div
+              key={block.title}
+              ref={(el) => {
+                contentRefs.current[index] = el;
+              }}
+              className="cta-orbit__content-block"
+            >
+              <div className="mx-auto flex w-full max-w-[700px] flex-col items-center text-center">
+                <h3 className="w-full font-neuehaas45 uppercase text-[clamp(16px,1.25vw,16px)] font-normal leading-[1.3] tracking-[0.05em]">
+                  <CTAParagraphReveal
+                    ready={activeIndex === index}
+                    delay={0}
+                    stagger={0.004}
+                    duration={0.55}
+                  >
+                    {block.title}
+                  </CTAParagraphReveal>
+                </h3>
+
+                <p className="mt-6 w-full max-w-[600px] font-neuehaas45 text-[clamp(14px,0.85vw,16px)] leading-[1.45] tracking-[0.04em] text-white">
+                  <CTAParagraphReveal
+                    ready={activeIndex === index}
+                    delay={0}
+                    stagger={0.004}
+                    duration={0.55}
+                  >
+                    {block.content}
+                  </CTAParagraphReveal>
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* PROGRESS */}
+        <div className="cta-orbit__progress">
+          <span>0{activeIndex + 1}</span>
+          <span className="text-white/35">/</span>
+          <span>0{BLOCKS.length}</span>
         </div>
       </section>
     </>
   );
 }
+
+// function Locations() {
+//   const ref = useRef(null);
+//   const isInView = useInView(ref, { once: false });
+//   const [scope, animate] = useAnimate();
+//   const [selectedLocation, setSelectedLocation] = useState("All");
+//   const [activeDisclosurePanel, setActiveDisclosurePanel] = useState(null);
+
+//   function toggleDisclosurePanels(newPanel) {
+//     if (activeDisclosurePanel) {
+//       if (
+//         activeDisclosurePanel.key !== newPanel.key &&
+//         activeDisclosurePanel.open
+//       ) {
+//         activeDisclosurePanel.close();
+//       }
+//     }
+//     setActiveDisclosurePanel({
+//       ...newPanel,
+//       open: !newPanel.open,
+//     });
+//   }
+
+//   const locations = [
+//     {
+//       location: "Allentown",
+//       addressLine1: "1251 S Cedar Crest Blvd",
+//       addressLine2: "Suite 210 Allentown, PA 18103",
+//       mapbox_map_title: "FreySmiles Allentown [w/ Colors]",
+//       mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_ALLENTOWN,
+//       hours: [
+//         { Mon: "11:00 AM - 7:00 PM" },
+//         { Tue: "11:00 AM - 7:00 PM" },
+//         { Wed: "8:00 AM - 5:30 PM" },
+//         { Thu: "7:00 AM - 4:30 PM" },
+//       ],
+//     },
+//     {
+//       location: "Bethlehem",
+//       addressLine1: "2901 Emrick Boulevard",
+//       addressLine2: "Bethlehem, PA 18020",
+//       mapbox_map_title: "FreySmiles Bethlehem [w/ Colors]",
+//       mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_BETHLEHEM,
+//       hours: [{ Tue: "11:00 AM - 7:00 PM" }, { Thu: "7:00 AM - 4:30 PM" }],
+//     },
+//     {
+//       location: "Schnecksville",
+//       addressLine1: "4155 Independence Drive",
+//       addressLine2: "Schnecksville, PA 18078",
+//       mapbox_map_title: "FreySmiles Schnecksville [w/ Colors]",
+//       mapbox_iframe_url:
+//         process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_SCHNECKSVILLE,
+//       hours: [
+//         { Mon: "11:00 AM - 7:00 PM" },
+//         { Tue: "11:00 AM - 7:00 PM" },
+//         { Thu: "7:00 AM - 4:30 PM" },
+//       ],
+//     },
+//     {
+//       location: "Lehighton",
+//       addressLine1: "1080 Blakeslee Blvd Dr E",
+//       addressLine2: "Lehighton, PA 18235",
+//       mapbox_map_title: "FreySmiles Lehighton [w/ Colors]",
+//       mapbox_iframe_url: process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_LEHIGHTON,
+//       hours: [{ Mon: "11:00 AM - 7:00 PM" }, { Thu: "7:00 AM - 4:30 PM" }],
+//     },
+//   ];
+
+//   const handleShowAllLocations = () => {
+//     activeDisclosurePanel.close();
+//     setSelectedLocation("All");
+//   };
+
+//   useEffect(() => {
+//     animate(
+//       "div",
+//       isInView
+//         ? {
+//             opacity: 1,
+//             transform: "translateX(0px)",
+//             scale: 1,
+//             filter: "blur(0px)",
+//           }
+//         : {
+//             opacity: 0,
+//             transform: "translateX(-50px)",
+//             scale: 0.3,
+//             filter: "blur(2px)",
+//           },
+//       {
+//         duration: 0.2,
+//         delay: isInView ? stagger(0.1, { startDelay: 0.15 }) : 0,
+//       },
+//     );
+//   }, [isInView]);
+
+//   const DrawEllipse = (props) => {
+//     useGSAP(() => {
+//       gsap.from(".draw", {
+//         drawSVG: "0%",
+//         ease: "expo.out",
+//         scrollTrigger: {
+//           trigger: "#locations-section",
+//           start: "clamp(top center)",
+//           scrub: true,
+//           pinSpacing: false,
+//           markers: false,
+//         },
+//       });
+//     });
+
+//     return (
+//       <svg
+//         width="508"
+//         height="122"
+//         viewBox="0 0 508 122"
+//         fill="none"
+//         xmlns="http://www.w3.org/2000/svg"
+//         {...props}
+//       >
+//         <path
+//           className="draw"
+//           d="M2 23.2421C28.9079 14.5835 113.098 -1.63994 234.594 2.73493C386.464 8.20351 515.075 37.5458 505.497 77.9274C503.774 85.1946 491.815 127.145 271.535 118.942C51.2552 110.739 32.8106 78.7919 45.7824 58.053C59.4644 36.1787 112.824 27.9758 193.548 27.9758"
+//           stroke="#ff6432"
+//           strokeWidth="3"
+//           strokeLinecap="round"
+//         />
+//       </svg>
+//     );
+//   };
+
+//   const BezierCurve = () => {
+//     const container = useRef(null);
+//     const path = useRef(null);
+//     let progress = 0;
+//     let time = Math.PI / 2; // want the initial time value to be 1; in sine graph y = 1 when x = pi / 2
+//     let reqId = null; // everytime mouse enters and leaves line's bounding box, animation gets called causing simultaneous chains of it being called (this is bad), only want one request animation running at the same time
+//     let x = 0.5; // middle point is 1/2
+
+//     useEffect(() => {
+//       setPath(progress);
+//       window.addEventListener("resize", () => {
+//         setPath(progress);
+//       });
+//     }, []);
+
+//     {
+//       /*
+//       use svg container's width to get control point (center point) of quadratic bezier curve; control point = svg container's width / 2
+//       30 ==> svg height(60) divided by 2 to align the path within the center of the svg
+//     */
+//     }
+//     const setPath = (progress) => {
+//       if (container.current) {
+//         const width = container.current.offsetWidth;
+//         path.current.setAttributeNS(
+//           null,
+//           "d",
+//           `M 0 30 Q${width * x} ${30 + progress} ${width} 30`,
+//         );
+//       }
+//     };
+
+//     const manageMouseEnter = () => {
+//       if (reqId) {
+//         window.cancelAnimationFrame(reqId);
+//         resetAnimation();
+//       }
+//     };
+
+//     const manageMouseMove = (e) => {
+//       const { movementY, clientX } = e;
+//       const { left, width } = path.current.getBoundingClientRect();
+//       // get value of x depending on where mouse is on the x-axis of the line
+//       x = (clientX - left) / width;
+//       progress += movementY;
+//       setPath(progress);
+//     };
+
+//     const manageMouseLeave = () => {
+//       animateOut();
+//     };
+
+//     {
+//       /*
+//       linear interpolation
+//       x: The value we want to interpolate from (start) => 10
+//       y: The target value we want to interpolate to (end) => 0
+//       a: The amount by which we want x to be closer to y => 10% or 0.1
+//       ex: value = lerp(value, 0, 0.1)
+//       if value = 10, bring that value close to 0 by 10% which will give 9
+//     */
+//     }
+//     const lerp = (x, y, a) => x * (1 - a) + y * a;
+
+//     // sine function, linear interpolation, recursivity
+//     const animateOut = () => {
+//       // sine function creates the "wobbly" line animation when mouse leaves the line
+//       const newProgress = progress * Math.sin(time);
+//       time += 0.25; // speed of bounce animation
+//       setPath(newProgress);
+//       progress = lerp(progress, 0, 0.05); // change 3rd lerp argument to change curve's bounce exaggeration
+
+//       // exit condition
+//       if (Math.abs(progress) > 0.75) {
+//         reqId = window.requestAnimationFrame(animateOut);
+//       } else {
+//         resetAnimation();
+//       }
+//     };
+
+//     const resetAnimation = () => {
+//       time = Math.PI / 2;
+//       progress = 0;
+//     };
+
+//     return (
+//       <>
+//         {/* line */}
+//         <div
+//           ref={container}
+//           className="mb-[30px] col-span-12 row-start-2 h-[1px] w-full relative"
+//         >
+//           {/* box for event listeners overlays the svg element */}
+//           <div
+//             onMouseEnter={manageMouseEnter}
+//             onMouseMove={(e) => {
+//               manageMouseMove(e);
+//             }}
+//             onMouseLeave={manageMouseLeave}
+//             className="h-[30px] relative -top-[15px] z-10 hover:h-[60px] hover:-top-[30px]"
+//           />
+//           <svg className="w-full h-[60px] -top-[30px] absolute">
+//             <path ref={path} strokeWidth={1} stroke="#000" fill="none" />
+//           </svg>
+//         </div>
+//       </>
+//     );
+//   };
+
+//   useEffect(() => {
+//     const title = document.querySelector(".content__title");
+//     const split = new SplitText(title, { type: "chars" });
+//     const chars = split.chars;
+
+//     gsap.fromTo(
+//       chars,
+//       {
+//         "will-change": "opacity, transform",
+//         transformOrigin: "50% 100%",
+//         opacity: 0,
+//         rotationX: 90,
+//       },
+//       {
+//         ease: "power4",
+//         opacity: 1,
+//         stagger: 0.03,
+//         rotationX: 0,
+//         scrollTrigger: {
+//           trigger: title,
+//           start: "center bottom",
+//           end: "bottom top+=20%",
+//           scrub: true,
+//         },
+//       },
+//     );
+//   }, []);
+
+//   useEffect(() => {
+//     gsap.to(".marquee-track.r h1", {
+//       scrollTrigger: {
+//         trigger: ".marquee-track.r h1",
+//         start: "top bottom",
+//         end: "400% top",
+//         scrub: 0.6,
+//       },
+//       xPercent: 25,
+//       duration: 3,
+//       ease: "linear",
+//     });
+//   }, []);
+
+//   const targetRef = useRef(null);
+
+//   useEffect(() => {
+//     const observer = new IntersectionObserver((entries) => {
+//       entries.forEach((entry) => {
+//         if (entry.isIntersecting) {
+//           const childSplit = new SplitText(".text-heading h1", {
+//             type: "lines",
+//             linesClass: "split-child",
+//           });
+
+//           gsap.from(childSplit.lines, {
+//             duration: 2,
+//             xPercent: 25,
+//             autoAlpha: 0,
+//             ease: "Expo.easeOut",
+//             stagger: 0.12,
+//             repeat: -1,
+//           });
+
+//           observer.unobserve(entry.target);
+//         }
+//       });
+//     });
+
+//     if (targetRef.current) {
+//       observer.observe(targetRef.current);
+//     }
+
+//     return () => {
+//       observer.disconnect();
+//     };
+//   }, []);
+
+//   const pathRef = useRef(null);
+
+//   useEffect(() => {
+//     const path = pathRef.current;
+//     if (!path) return;
+
+//     const pathLength = path.getTotalLength();
+//     path.style.strokeDasharray = pathLength;
+//     path.style.strokeDashoffset = pathLength;
+//     path.style.transition = "stroke-dashoffset 2s ease-out";
+
+//     const observer = new IntersectionObserver(
+//       (entries) => {
+//         if (entries[0].isIntersecting) {
+//           path.style.strokeDashoffset = "0";
+//         } else {
+//           path.style.strokeDashoffset = pathLength;
+//         }
+//       },
+//       { threshold: 0.5 },
+//     );
+
+//     observer.observe(path);
+//     return () => observer.disconnect();
+//   }, []);
+
+//   return (
+//     <>
+
+//       <section id="flex locations-section" className="relative ">
+//         <div
+//           id="locations-heading"
+//           className="relative block max-w-2xl px-4 py-16 mx-auto sm:px-6 sm:py-24 lg:max-w-[100rem] lg:px-8 lg:py-32"
+//         >
+//           <h1 className="font-helvetica-neue-light lg:text-5xl">
+//             Come see us at any of our{" "}
+//             <span className="relative inline-block my-8 leading-tight lowercase font-editorial-new underline-offset-8">
+//               four convenient locations
+//               {/* <img className="absolute w-full h-auto -ml-2 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" src="/../../images/ellipse.svg" /> */}
+//               <DrawEllipse className="absolute w-full h-auto -ml-2 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" />
+//             </span>{" "}
+//             or opt for a{" "}
+//             <span className=" relative leading-tight lowercase font-editorial-new decoration-wavy underline-offset-8 decoration-[#000] underline inline-block">
+//               virtual consultation
+//             </span>
+//           </h1>
+
+//           <svg
+//             className="hidden lg:block absolute bottom-0 translate-y-1/2 left-0 translate-x-64 w-36 h-36 rotate-[120deg] text-[#ff6432]"
+//             viewBox="0 0 77 85"
+//             fill="none"
+//             xmlns="http://www.w3.org/2000/svg"
+//           >
+//             <path
+//               ref={pathRef}
+//               d="M1.33755 84.3973C0.297616 62.7119 2.93494 39.8181 19.4192 23.8736C28.2211 15.3599 42.4944 12.5723 47.6281 26.2359C51.1245 35.5419 51.542 51.9945 41.0605 57.0865C29.486 62.7095 40.2945 35.2221 41.9942 32.4952C49.9497 19.7313 59.7772 11.6122 72.2699 3.78281C76.9496 0.849879 73.7108 0.477284 70.0947 1.13476C66.9572 1.7052 63.4035 2.43717 60.5291 3.81975C59.6524 4.24143 65.7349 2.73236 66.6827 2.44768C70.7471 1.22705 75.4874 -0.0219285 75.9527 5.60812C76.0274 6.5127 75.9956 14.9844 74.7481 15.2963C74.099 15.4586 71.0438 10.27 70.4642 9.65288C66.6996 5.64506 63.5835 4.42393 58.2726 5.11792"
+//               stroke="currentColor"
+//               strokeWidth="2"
+//               strokeLinecap="round"
+//             />
+//           </svg>
+//         </div>
+
+//         <div className="font-neue-montreal text-[#171616]" ref={ref}>
+//           <motion.div
+//             id="locations-map"
+//             className="h-[60vh] overflow-hidden lg:absolute lg:right-0 lg:h-full lg:w-1/2"
+//             style={{
+//               opacity: isInView ? 1 : 0,
+//               filter: isInView ? "blur(0px)" : "blur(16px)",
+//               transition: "all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) 0.5s",
+//             }}
+//           >
+//             <iframe
+//               className="w-full h-full rounded-lg"
+//               width="100%"
+//               height="100%"
+//               src={
+//                 selectedLocation === "All"
+//                   ? process.env.NEXT_PUBLIC_MAPBOX_IFRAME_URL_ALL_LOCATIONS
+//                   : locations.find((l) => l.location === selectedLocation)
+//                       .mapbox_iframe_url
+//               }
+//               title={
+//                 selectedLocation === "All"
+//                   ? "FreySmiles All Locations [w/ Colors]"
+//                   : locations.find((l) => l.location === selectedLocation)
+//                       .mapbox_map_title
+//               }
+//             />
+//           </motion.div>
+
+//           <div
+//             className="font-neue-montreal text-[#171616]"
+//             id="locations-details"
+//           >
+//             <div className="max-w-2xl px-4 py-16 mx-auto sm:px-6 sm:py-24 lg:mt-0 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8 xl:gap-x-24">
+//               {/* LOCATIONS LIST */}
+//               <motion.div
+//                 className="flex flex-col mt-10"
+//                 style={{
+//                   transform: isInView ? "none" : "translateX(-50px)",
+//                   opacity: isInView ? 1 : 0,
+//                   transition: "all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) 0.5s",
+//                 }}
+//               >
+//                 <button
+//                   className={`${
+//                     selectedLocation === "All" ? "" : ""
+//                   } self-end transition-all duration-300 ease-linear w-max mr-6 mb-6 underline-offset-4 `}
+//                   onClick={handleShowAllLocations}
+//                 >
+//                   {selectedLocation === "All"
+//                     ? "Showing All Locations"
+//                     : "Show All Locations"}
+//                 </button>
+
+//                 <dl ref={scope}>
+//                   {locations.map((l, i) => (
+//                     <Disclosure
+//                       as="div"
+//                       key={l.location}
+//                       className={`${
+//                         selectedLocation === l.location ? "" : ""
+//                       } px-4 py-6 transition-all duration-300 ease-linear cursor-pointer hover:text-black group `}
+//                     >
+//                       {(panel) => {
+//                         const { open, close } = panel;
+//                         return (
+//                           <>
+//                             <BezierCurve />
+
+//                             <Disclosure.Button
+//                               className="grid w-full grid-cols-12 grid-rows-1 text-left sm:px-0"
+//                               onClick={() => {
+//                                 if (!open) close();
+//                                 toggleDisclosurePanels({ ...panel, key: i });
+//                                 setSelectedLocation(l.location);
+//                               }}
+//                             >
+//                               <dt className="col-span-5 row-start-1">
+//                                 <h6 className="text-xl font-neue-montreal">
+//                                   {l.location}
+//                                 </h6>
+//                               </dt>
+//                               <dd className="col-span-7 row-start-1">
+//                                 <span className="flex items-center justify-between">
+//                                   <p className="font-neue-montreal">
+//                                     {l.addressLine1}
+//                                     <br />
+//                                     {l.addressLine2}
+//                                   </p>
+//                                   <ChevronRightIcon className="w-6 h-6 ui-open:rotate-90 ui-open:transform" />
+//                                 </span>
+//                               </dd>
+//                             </Disclosure.Button>
+//                             <Transition
+//                               show={open}
+//                               enter="transition-transform ease-out duration-300"
+//                               enterFrom="transform scale-y-0 opacity-0"
+//                               enterTo="transform scale-y-100 opacity-100"
+//                               leave="transition-transform ease-in duration-200"
+//                               leaveFrom="transform scale-y-100 opacity-100"
+//                               leaveTo="transform scale-y-0 opacity-0"
+//                             >
+//                               <Disclosure.Panel
+//                                 as="div"
+//                                 className="grid grid-cols-12"
+//                               >
+//                                 <ul className="col-span-7 col-start-6 mt-4 mb-2 text-left">
+//                                   <h6 className="font-medium uppercase">
+//                                     Office Hours:
+//                                   </h6>
+//                                   {l.hours.map((hour, index) => (
+//                                     <li key={index}>
+//                                       {Object.keys(hour)[0]}:{" "}
+//                                       {Object.values(hour)[0]}
+//                                     </li>
+//                                   ))}
+//                                 </ul>
+//                               </Disclosure.Panel>
+//                             </Transition>
+//                           </>
+//                         );
+//                       }}
+//                     </Disclosure>
+//                   ))}
+//                 </dl>
+//               </motion.div>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+//     </>
+//   );
+// }
+
+function PixelRevealImage({ src, alt, className = "" }) {
+  const wrapperRef = useRef(null);
+  const imageRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const image = imageRef.current;
+    const canvas = canvasRef.current;
+
+    if (!wrapper || !image || !canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const buffer = document.createElement("canvas");
+    const bctx = buffer.getContext("2d");
+
+    if (!ctx || !bctx) return;
+
+    let tween;
+    let fadeTween;
+    let pending = false;
+    let cancelled = false;
+
+    let width = 0;
+    let height = 0;
+
+    const prepare = () => {
+      width = wrapper.clientWidth;
+      height = wrapper.clientHeight;
+
+      if (!width || !height || !image.naturalWidth) return false;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      return true;
+    };
+
+    const drawPixelated = (pixelSize) => {
+      const block = Math.max(1, pixelSize);
+
+      const columns = Math.max(1, Math.ceil(width / block));
+      const rows = Math.max(1, Math.ceil(height / block));
+
+      if (buffer.width !== columns) buffer.width = columns;
+      if (buffer.height !== rows) buffer.height = rows;
+
+      const scale = Math.max(
+        width / image.naturalWidth,
+        height / image.naturalHeight,
+      );
+
+      const drawWidth = image.naturalWidth * scale;
+      const drawHeight = image.naturalHeight * scale;
+
+      bctx.clearRect(0, 0, columns, rows);
+
+      bctx.drawImage(
+        image,
+        (width - drawWidth) / (2 * block),
+        (height - drawHeight) / (2 * block),
+        drawWidth / block,
+        drawHeight / block,
+      );
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(buffer, 0, 0, width, height);
+    };
+
+    const drawGlitch = (progress) => {
+      if (progress < 0.38 || progress > 0.46) return;
+
+      const bandY = height * 0.45;
+      const bandHeight = 12;
+      const offset = 12;
+
+      ctx.drawImage(
+        canvas,
+        0,
+        bandY,
+        width,
+        bandHeight,
+        offset,
+        bandY,
+        width,
+        bandHeight,
+      );
+    };
+
+    const render = (progress) => {
+      let pixelSize;
+
+      if (progress < 0.2) {
+        pixelSize = 50;
+      } else {
+        const t = (progress - 0.2) / 0.8;
+        const eased = 1 - Math.pow(1 - t, 3);
+
+        pixelSize = 50 - 49 * eased;
+      }
+
+      drawPixelated(pixelSize);
+      drawGlitch(progress);
+    };
+    const start = () => {
+      if (cancelled) return;
+
+      if (!image.complete || !image.naturalWidth) {
+        pending = true;
+        return;
+      }
+
+      tween?.kill();
+      fadeTween?.kill();
+
+      if (!prepare()) return;
+
+      pending = false;
+
+      gsap.set(image, { opacity: 0 });
+      gsap.set(canvas, { opacity: 1 });
+
+      const state = { progress: 0 };
+
+      render(0);
+
+      tween = gsap.to(state, {
+        progress: 1,
+        duration: 0.8,
+        ease: "none",
+        onUpdate: () => render(state.progress),
+        onComplete: () => {
+          fadeTween = gsap.timeline();
+
+          fadeTween.to(
+            image,
+            {
+              opacity: 1,
+              duration: 0.3,
+            },
+            0,
+          );
+
+          fadeTween.to(
+            canvas,
+            {
+              opacity: 0,
+              duration: 0.3,
+            },
+            0,
+          );
+        },
+      });
+    };
+
+    const onReveal = () => start();
+
+    const onLoad = () => {
+      if (pending) start();
+    };
+
+    window.addEventListener("frey-pixel-reveal", onReveal);
+    image.addEventListener("load", onLoad);
+
+    return () => {
+      cancelled = true;
+      tween?.kill();
+      fadeTween?.kill();
+
+      window.removeEventListener("frey-pixel-reveal", onReveal);
+      image.removeEventListener("load", onLoad);
+    };
+  }, [src]);
+
+  return (
+    <div ref={wrapperRef} className={className}>
+      <img
+        ref={imageRef}
+        src={src}
+        alt={alt}
+        className="absolute inset-0 h-full w-full object-cover opacity-0"
+      />
+
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
+function Locations() {
+  return (
+    <main className="min-h-screen w-full bg-white text-[#111]">
+      <div className="frey-consult-marquee locations-reveal">
+        <div className="frey-consult-marquee__content">
+          {[0, 1].map((group) => (
+            <div
+              key={group}
+              className="frey-consult-marquee__group"
+              aria-hidden={group === 1}
+            >
+              {[0, 1].map((i) => (
+                <div key={i} className="frey-consult-marquee__sentence-pair">
+                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
+                    No referral needed.
+                  </span>
+
+                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
+                    Your initial consultation is complimentary.
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <section className="px-[3vw] pt-5 pb-30">
+        <div className="grid min-h-screen grid-cols-1 gap-y-16 border-t border-[#999] pt-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-x-[3vw]">
+          {/* LEFT COLUMN */}
+          <div className="flex flex-col items-start">
+            <div className="locations-reveal flex flex-col items-start gap-8">
+              <h1 className="m-0 max-w-[420px] font-neueroman text-[12px] leading-[1.4] uppercase">
+                Find a FreySmiles location near you. We're proud to serve
+                patients throughout the Lehigh Valley and surrounding
+                communities.
+              </h1>
+
+              <Link
+                href="#locations-list"
+                className="font-neueroman text-[12px] uppercase underline underline-offset-4 transition-opacity duration-300 hover:opacity-50"
+              >
+                Explore Our Locations
+              </Link>
+            </div>
+
+            <PixelRevealImage
+              src="/images/signonmetalrack.png"
+              alt="FreySmiles orthodontics office"
+              className="locations-reveal relative mt-16 aspect-[4/5] w-full overflow-hidden md:mt-[40px] md:ml-[5%] md:w-[78%]"
+            />
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex w-full items-start">
+            <div className="w-full">
+              {/* <span className="mb-5 text-center font-neuehaas45 text-[12px] uppercase tracking-[0.14em] text-black">
+          Your smile starts here
+        </span> */}
+              <div className="locations-reveal relative h-[750px] w-full overflow-hidden rounded-2xl bg-white md:h-[850px]">
+                <iframe
+                  src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
+                  title="Schedule Appointment"
+                  className="block h-full w-full border-0"
+                  allow="payment"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+    </main>
+  );
+}
+const ease = (x) => x * x * (3 - 2 * x);
 
 function GiftCards() {
   return (
