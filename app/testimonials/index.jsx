@@ -1945,7 +1945,7 @@ useLayoutEffect(() => {
 
     updateRunwayHeight();
 
-    root.style.scrollSnapType = "y proximity";
+
 
     let lastIndex = activeIndexRef.current;
 

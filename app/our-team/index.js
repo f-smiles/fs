@@ -1,5 +1,5 @@
 "use client";
-import FlutedGlassEffect from "/utils/glass";
+
 import "../mouse-gooey-effect-5/css/style.css";
 import { Item } from "../../utils/Item";
 import Image from "next/image";

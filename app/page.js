@@ -1197,6 +1197,88 @@ function FSMark({ x, y, size = 80, rotation = 0 }) {
     </svg>
   );
 }
+function FreyMobileSkyMarquee() {
+  const skyRef = useRef(null);
+  const [maskReady, setMaskReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function createTextMask() {
+      await document.fonts.load('147px "OTF-Glusp"');
+
+      if (cancelled) return;
+
+    const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+if (!ctx) return;
+
+const fontSize = 147;
+const text = "FREY SMILES";
+const spacing = -10;
+
+ctx.font = `${fontSize}px "OTF-Glusp"`;
+ctx.textBaseline = "alphabetic";
+
+// Measure one complete wordmark
+const letterWidths = [...text].map(
+  (letter) => ctx.measureText(letter).width
+);
+
+const wordmarkWidth = Math.ceil(
+  letterWidths.reduce((sum, width) => sum + width + spacing, 0)
+);
+
+canvas.width = wordmarkWidth;
+canvas.height = 240;
+
+// Canvas resize resets the drawing settings
+ctx.font = `${fontSize}px "OTF-Glusp"`;
+ctx.textBaseline = "alphabetic";
+ctx.fillStyle = "#ffffff";
+
+let x = 0;
+
+[...text].forEach((letter, index) => {
+  ctx.fillText(letter, x, 205);
+  x += letterWidths[index] + spacing;
+});
+
+const maskURL = canvas.toDataURL("image/png");
+
+      if (cancelled || !skyRef.current) return;
+
+      skyRef.current.style.webkitMaskImage = `url("${maskURL}")`;
+      skyRef.current.style.maskImage = `url("${maskURL}")`;
+skyRef.current.style.webkitMaskSize = `${wordmarkWidth}px 240px`;
+skyRef.current.style.maskSize = `${wordmarkWidth}px 240px`;
+
+skyRef.current.style.setProperty(
+  "--wordmark-width",
+  `${wordmarkWidth}px`
+);
+      setMaskReady(true);
+    }
+
+    createTextMask().catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="frey-mobile-sky-marquee">
+      <div
+        ref={skyRef}
+        className="frey-mobile-sky-background"
+        style={{ opacity: maskReady ? 1 : 0 }}
+      >
+     <FreyCloudScene moonScale={0.8} />
+      </div>
+    </div>
+  );
+}
 
 function FloatingBookButton() {
   return (
@@ -1273,7 +1355,6 @@ function TestimonialSpectrum() {
     return () => ctx.revert();
   }, []);
 
-  // Original reference uses nine staggered columns.
   const heights = [290, 400, 480, 530, 584, 530, 480, 400, 290];
 
   return (
@@ -1372,6 +1453,7 @@ function TestimonialSpectrum() {
     </div>
   );
 }
+
 const Hero = () => {
   const transitionRef = useRef(null);
   const videoStepRef = useRef(null);
@@ -1386,6 +1468,8 @@ const Hero = () => {
   const notchPathRef = useRef(null);
   useEffect(() => {
     const handleResize = () => {
+      if (window.innerWidth < 768) return;
+
       ScrollTrigger.refresh();
     };
 
@@ -1512,6 +1596,12 @@ const Hero = () => {
     return () => ctx.revert();
   }, [videoReady]);
 
+  useEffect(() => {
+    ScrollTrigger.config({
+      ignoreMobileResize: true,
+    });
+  }, []);
+
   useLayoutEffect(() => {
     const container = transitionRef.current;
     const step = videoStepRef.current;
@@ -1520,81 +1610,99 @@ const Hero = () => {
     if (!container || !step || !section) return;
 
     const ctx = gsap.context(() => {
-      const timeline = gsap.timeline({
-        defaults: { ease: "none" },
+      const mm = gsap.matchMedia();
 
-        scrollTrigger: {
-          trigger: container,
-          start: "top top",
-          end: "+=250%",
-          scrub: true,
-          pin: true,
-          pinSpacing: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      // 1. VIDEO CLIP-PATH TRANSITION
-
-      timeline.fromTo(
-        step,
+      mm.add(
         {
-          clipPath:
-            "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)",
+          isMobile: "(max-width: 767px)",
+          isDesktop: "(min-width: 768px)",
         },
-        {
-          clipPath:
-            "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)",
-          duration: 1,
+        (context) => {
+          const { isMobile } = context.conditions;
+
+          const initialClip =
+            "polygon(0% 0%, 100% 0%, 100% 34%, 70% 34%, 70% 68%, 48% 68%, 48% 100%, 0% 100%)";
+
+          const finalClip =
+            "polygon(0% 0%, 100% 0%, 100% 34%, 100% 34%, 100% 68%, 100% 68%, 100% 100%, 0% 100%)";
+
+          const timeline = gsap.timeline({
+            defaults: { ease: "none" },
+            scrollTrigger: {
+              trigger: container,
+              start: "top top",
+              end: isMobile ? "+=100%" : "+=250%",
+             scrub: isMobile ? 0.35 : 1,
+
+              pin: !isMobile,
+              pinSpacing: !isMobile,
+
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+          });
+
+          // 1. Restore the video clip-path expansion
+          timeline.fromTo(
+            step,
+            { clipPath: initialClip },
+            { clipPath: finalClip, duration: 1 },
+            0,
+          );
+
+          // 2. Restore the vertical parallax transition
+          // timeline.fromTo(
+          //   section,
+          //   { yPercent: 100 },
+          //   {
+          //     yPercent: 0,
+          //     duration: 0.8,
+          //     immediateRender: true,
+          //     force3D: true,
+          //   },
+          //   isMobile ? 0.25 : 0.5,
+          // );// Keep the second section in place on mobile
+          if (isMobile) {
+            gsap.set(section, { yPercent: 0 });
+          } else {
+            timeline.fromTo(
+              section,
+              { yPercent: 100 },
+              {
+                yPercent: 0,
+                duration: 0.8,
+                immediateRender: true,
+                force3D: true,
+              },
+              0.5,
+            );
+          }
+          // 3. Restore the text color animation
+          const chars = statsTextCharsRef.current;
+
+          if (chars.length) {
+            timeline.to(
+              chars,
+              {
+                color: "#abff02",
+                duration: 0.12,
+                stagger: { each: 0.012 },
+              },
+              0.65,
+            );
+
+            timeline.to(
+              chars,
+              {
+                color: "#000000",
+                duration: 0.12,
+                stagger: { each: 0.012 },
+              },
+              0.85,
+            );
+          }
         },
-        0,
       );
-
-      // 2. EDITORIAL SECTION SLIDES INTO VIEW
-
-      timeline.fromTo(
-        section,
-        {
-          yPercent: 100,
-        },
-        {
-          yPercent: 0,
-          duration: 0.8,
-          immediateRender: true,
-          force3D: true,
-        },
-        0.5,
-      );
-
-      // 3. EDITORIAL TEXT COLOR ANIMATION
-
-      const chars = statsTextCharsRef.current;
-
-      if (chars.length) {
-        const stagger = 0.012;
-        const passDuration = 0.12;
-
-        timeline.to(
-          chars,
-          {
-            color: "#abff02",
-            duration: passDuration,
-            stagger: { each: stagger },
-          },
-          0.65,
-        );
-
-        timeline.to(
-          chars,
-          {
-            color: "#000000",
-            duration: passDuration,
-            stagger: { each: stagger },
-          },
-          0.85,
-        );
-      }
     }, container);
 
     return () => ctx.revert();
@@ -1605,15 +1713,11 @@ const Hero = () => {
     const path = notchPathRef.current;
 
     if (!section || !path) return;
-
-    // Original SVG dimensions: 728 × 470
     const H = 470;
 
-    // The original notch begins at approximately y = 74.57
     const notch = { y: 74.57 };
 
     const updatePath = () => {
-      // Keep the notch inside the SVG boundaries
       const shift = notch.y - 74.57;
 
       const d = `
@@ -1672,37 +1776,46 @@ const Hero = () => {
 
     return () => ctx.revert();
   }, []);
+  useEffect(() => {
+    if (window.innerWidth >= 768) return;
 
+    const onRefresh = () => {
+      console.log("GSAP REFRESH", {
+        scrollY: window.scrollY,
+        innerHeight: window.innerHeight,
+        visualHeight: window.visualViewport?.height,
+      });
+    };
+
+    ScrollTrigger.addEventListener("refresh", onRefresh);
+
+    return () => {
+      ScrollTrigger.removeEventListener("refresh", onRefresh);
+    };
+  }, []);
   return (
     <>
-      <div ref={transitionRef} className="relative h-screen w-full">
-        <section className="relative flex h-screen w-full flex-col justify-end overflow-hidden bg-[#0F0F0F]">
+      <div ref={transitionRef} className="relative h-auto w-full md:h-screen">
+        <section className="relative flex h-[100svh] w-full flex-col justify-end overflow-hidden bg-[#0F0F0F] md:h-screen">
           <div ref={videoStepRef} className="hero-main-video">
-            <div
-              className="hero-main-video-scene"
-              style={{
-                backgroundImage: "url('/images/boyholdingaligner-poster.png')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
+    
+            <div className="hero-main-video-scene bg-[#0F0F0F]">
               <video
                 ref={videoRef}
-                src="/videos/boyholdingaligner.mp4"
+                src="/videos/boyholdingaligner-test.mp4"
                 autoPlay
                 muted
                 loop
                 playsInline
                 preload="auto"
                 onLoadedData={() => setVideoReady(true)}
-                className={`h-full w-full object-cover transition-opacity duration-700 ease-out ${
-                  videoReady ? "opacity-100" : "opacity-0"
-                }`}
+                onCanPlay={() => setVideoReady(true)}
+                className="hero-mobile-video h-full w-full object-cover"
               />
             </div>
 
             <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-              <h2 className="frey-video-headline m-0 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
+              <h2 className="frey-video-headline -translate-x-20 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
                 <LocationCharacterReveal
                   ready={videoReady}
                   delay={0.35}
@@ -1726,37 +1839,54 @@ const Hero = () => {
 
           <div
             ref={editorialRef}
-            className="absolute bottom-[66%] left-[56%] right-[6%] z-[5] grid grid-cols-2 gap-10 text-[#111820] max-md:bottom-[55%] max-md:left-[53%] max-md:gap-4"
+            className="
+  absolute z-[5] hidden
+  md:grid md:bottom-[66%] md:left-[56%] md:right-[6%]
+  md:grid-cols-2 md:gap-10
+"
           >
             <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
-              <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
+              <span className="font-neuehaas45 text-[12px] uppercase leading-[1.35] tracking-[0.04em] md:text-[11px] md:tracking-[0.08em]">
                 (01) — OUR PHILOSOPHY
               </span>
 
-              <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em] text-[#f5f5f5]">
+              <p className="max-w-[320px] font-neuehaas45 text-[11px] leading-[1.4] tracking-[0.01em] text-[#f5f5f5] md:text-[clamp(0.75rem,0.95vw,0.95rem)] md:leading-[1.35] md:tracking-[0.02em]">
                 Every smile is a story. At our office, we guide you through
                 every step of your orthodontic journey
               </p>
             </div>
 
             <div className="frey-editorial-column flex flex-col gap-3 text-white">
-              <span className="font-neuehaas45 text-[11px] uppercase tracking-[0.08em]">
+              <span className="font-neuehaas45 text-[12px] uppercase leading-[1.35] tracking-[0.04em] md:text-[11px] md:tracking-[0.08em]">
                 (02) — OUR PRACTICE
               </span>
 
-              <p className="max-w-[320px] font-neuehaas45 text-[clamp(0.75rem,0.95vw,0.95rem)] leading-[1.35] tracking-[0.02em]">
+              <p className="max-w-[320px] font-neuehaas45 text-[11px] leading-[1.4] tracking-[0.01em] text-[#f5f5f5] md:text-[clamp(0.75rem,0.95vw,0.95rem)] md:leading-[1.35] md:tracking-[0.02em]">
                 with advanced treatment, personalized care, and results that go
                 beyond the ordinary.
               </p>
             </div>
           </div>
 
-          <div className="absolute bottom-[36%] left-[56%] right-[4%] z-[5] flex items-start gap-6 text-white max-md:bottom-[24%] max-md:left-[53%] max-md:gap-3">
-            <div className="mt-[5px] shrink-0">
+          <div
+            className="
+    absolute bottom-[36%] left-[56%] right-[4%] z-[5]
+    hidden items-start gap-6 text-white
+    md:flex
+  "
+          >
+            <div className="shrink-0 scale-125 origin-center md:mt-[5px] md:scale-100">
               <DotMatrix />
             </div>
 
-            <h1 className="m-0 font-neuehaas45 text-[clamp(1.25rem,2.1vw,2.75rem)] lowercase leading-[1.04] max-md:text-[clamp(0.7rem,2.5vw,1.25rem)]">
+            <h1
+              className="
+      m-0 font-neuehaas45 lowercase
+      text-[clamp(0.875rem,3.125vw,1.5625rem)]
+      leading-[1.04]
+      md:text-[clamp(1.25rem,2.1vw,2.75rem)]
+    "
+            >
               <div>
                 <LocationCharacterReveal
                   ready={videoReady}
@@ -1781,7 +1911,7 @@ const Hero = () => {
 
           <div
             ref={marqueeRef}
-            className="frey-hero-bottom-marquee pointer-events-none absolute inset-x-0 bottom-0 z-10 w-full"
+            className="frey-hero-bottom-marquee pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden w-full md:block"
           >
             <div className="frey-sky-marquee">
               <div className="frey-sky-background">
@@ -1831,11 +1961,14 @@ const Hero = () => {
               </svg>
             </div>
           </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 md:hidden">
+            <FreyMobileSkyMarquee />
+          </div>
         </section>
 
         <section
           ref={sectionRef}
-          className="absolute inset-x-0 top-0 z-30 h-screen w-full overflow-visible bg-[#F5F5F5]"
+          className="relative z-30 min-h-[100svh] md:h-screen w-full overflow-visible bg-[#F5F5F5] md:absolute md:inset-x-0 md:top-0 md:h-screen"
         >
           <svg
             width="0"
@@ -1844,7 +1977,6 @@ const Hero = () => {
             aria-hidden="true"
           >
             <defs>
-              {/* EXISTING ANIMATED CLIP */}
               <clipPath
                 id="moving-fluted-clip"
                 clipPathUnits="objectBoundingBox"
@@ -1871,9 +2003,50 @@ const Hero = () => {
               </clipPath>
             </defs>
           </svg>
-          <div className="relative flex h-full w-full items-center justify-center">
+
+          {/* MOBILE EDITORIAL CONTENT */}
+          <div className="relative z-20 flex w-full flex-col gap-10 px-7 pt-12 pb-8 text-black md:hidden">
+            {/* MAIN STATEMENT */}
+            <div className="flex items-start gap-4">
+              <div className="mt-1 shrink-0">
+                <DotMatrix color="black" />
+              </div>
+
+              <h2 className="font-neuehaas45 text-[clamp(20px,5.5vw,28px)] font-normal lowercase leading-[1.1] tracking-[-0.025em]">
+                We understand the art
+                <br />
+                behind the smile.
+              </h2>
+            </div>
+
+            {/* EDITORIAL COLUMNS */}
+            <div className="grid grid-cols-2 gap-6 border-t border-black/15 pt-6">
+              <div className="flex flex-col gap-3">
+                <span className="font-neuehaas45 text-[10px] uppercase leading-[1.35] tracking-[0.04em]">
+                  (01) — OUR PHILOSOPHY
+                </span>
+
+                <p className="font-neuehaas45 text-[12px] leading-[1.5]">
+                  Every smile is a story. At our office, we guide you through
+                  every step of your orthodontic journey.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <span className="font-neuehaas45 text-[10px] uppercase leading-[1.35] tracking-[0.04em]">
+                  (02) — OUR PRACTICE
+                </span>
+
+                <p className="font-neuehaas45 text-[12px] leading-[1.5]">
+                  With advanced treatment, personalized care, and results that
+                  go beyond the ordinary.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="relative flex h-auto w-full flex-col items-center justify-center gap-8 py-8 md:h-full md:flex-row md:gap-0 md:py-0">
             <div
-              className="relative aspect-video w-[75vw]"
+              className="relative aspect-video w-[94vw] md:w-[75vw]"
               style={{
                 clipPath: "url(#videoClip)",
               }}
@@ -1891,10 +2064,10 @@ const Hero = () => {
               </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-end">
-              <div className="w-[50%] pr-[18%]">
+            <div className="pointer-events-none relative z-20 w-full px-7 md:absolute md:inset-0 md:flex md:items-center md:justify-end md:px-0">
+              <div className="w-full md:w-[50%] md:pr-[18%]">
                 <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
-                  <h2 className="font-neueroman text-[15px] font-[550] leading-[1.5] tracking-[-0.01em] text-black">
+                  <h2 className="font-neueroman text-[14px] font-[550] leading-[1.4] tracking-[-0.01em] text-black md:text-[15px] md:leading-[1.5]">
                     Our doctors are fully invested in treatment planning your
                     case correctly. Guided by board-certified standards and
                     decades of clinical practice, we approach every case with
@@ -1910,7 +2083,7 @@ const Hero = () => {
   );
 };
 
-function DotMatrix() {
+function DotMatrix({ color = "white" }) {
   const svgRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -1968,7 +2141,7 @@ function DotMatrix() {
       ref={svgRef}
       viewBox="0 0 100 100"
       className="block h-[44px] w-[44px] overflow-hidden"
-      fill="white"
+      fill={color}
       aria-hidden="true"
     >
       <defs>
@@ -2273,8 +2446,9 @@ export default function LandingComponent() {
       </div>
 
       <NewSection />
+            <CTA />
       {/* <HeroMinimapIntro /> */}
-      <CTA />
+
       {/* <Locations /> */}
       {/* <GiftCards /> */}
     </div>
@@ -2575,8 +2749,7 @@ const SKY_PRESETS = {
     colors: ["#B97883", "#987B91", "#D58B88", "#F3BC91", "#AA7888", "#E9A59A"],
   },
 };
-
-function RealisticMoon() {
+function RealisticMoon({ scale = 1.7 }) {
   const moonRef = useRef();
   const { viewport } = useThree();
 
@@ -2610,7 +2783,7 @@ function RealisticMoon() {
 
   return (
     <group position={[viewport.width * 0.18, viewport.height * 0.05, -10]}>
-      <group scale={1.7}>
+    <group scale={scale}>
         <sprite scale={[42, 42, 1]}>
           <spriteMaterial
             map={glowTexture}
@@ -2712,7 +2885,7 @@ function getPennsylvaniaSkyMode() {
   return "day";
 }
 
-function FreyCloudScene({ skyMode }) {
+function FreyCloudScene({ skyMode, moonScale = 1.7 }) {
   const [autoSkyMode, setAutoSkyMode] = useState("day");
 
   useEffect(() => {
@@ -2761,7 +2934,7 @@ function FreyCloudScene({ skyMode }) {
               speed={0.65}
             />
 
-            <RealisticMoon />
+          <RealisticMoon scale={moonScale} />
           </>
         ) : (
           <MovingClouds skyMode={activeMode} />
@@ -3590,6 +3763,530 @@ function TestimonialMarquee() {
     </div>
   );
 }
+function GooeyFlowerSVG() {
+  return (
+    <div className="pointer-events-none absolute right-0 top-0 z-0 w-[58vw] max-w-[300px] md:hidden">
+      <svg
+        viewBox="0 0 300 500"
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-auto w-full overflow-visible"
+        aria-hidden="true"
+      >
+        <defs>
+          <filter
+            id="flower-goo"
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="160%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="
+                1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 24 -11
+              "
+            />
+          </filter>
+
+          {/* The organic silhouette becomes an image mask */}
+          <mask
+            id="flower-mask"
+            maskUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width="300"
+            height="500"
+          >
+            <g filter="url(#flower-goo)" fill="white">
+              <ellipse cx="160" cy="110" rx="65" ry="90" />
+              <ellipse cx="115" cy="185" rx="55" ry="90" />
+              <ellipse cx="195" cy="240" rx="85" ry="95" />
+              <ellipse cx="165" cy="330" rx="70" ry="90" />
+              <ellipse cx="235" cy="385" rx="60" ry="65" />
+
+              {/* Smaller connected shapes */}
+              <circle cx="100" cy="70" r="25" />
+              <ellipse cx="245" cy="155" rx="35" ry="55" />
+
+              {/* Detached droplets */}
+              <ellipse
+                cx="65"
+                cy="35"
+                rx="13"
+                ry="22"
+                transform="rotate(-35 65 35)"
+              />
+              <ellipse
+                cx="130"
+                cy="25"
+                rx="27"
+                ry="12"
+                transform="rotate(-20 130 25)"
+              />
+              <circle cx="75" cy="260" r="7" />
+            </g>
+          </mask>
+        </defs>
+
+        {/* Flower image appears only inside the gooey shape */}
+        <image
+          href="/images/flower.jpeg"
+          x="0"
+          y="0"
+          width="300"
+          height="500"
+          preserveAspectRatio="xMidYMid slice"
+          mask="url(#flower-mask)"
+        />
+      </svg>
+    </div>
+  );
+}
+
+const GRID_ROWS = [
+  ["#009E83", "#FF6156", "#E8E1D7", "#FFBE53", "#F0EEE8", "#B8BAA7", "#85C9E8"],
+  ["#EAE4DA", "#F5F3EF", "#F5F3EF", "#F5F3EF", "#F5F3EF", "#F5F3EF"],
+  ["#4EA6E8", "#8C9FD7", "#FF3055", "#E5D8C8", "#FF922E", "#FFDB62", "#161616"],
+  ["#F4F1EC", "#F4F1EC", "#F4F1EC", "#F4F1EC", "#009E83", "#F4F1EC"],
+  ["#E8E4DB", "#D6B98F", "#AEBB9B", "#008DC0", "#50A8DC", "#EAE2D9","#FF9463","#FF5053"],
+  ["#F2EFEB", "#F2EFEB", "#FF941C", "#F2EFEB", "#F2EFEB", "#F2EFEB"],
+  ["#FF9945", "#ED74A2", "#E5E2DC", "#FFCD00", "#E5CE80", "#F1EAE0", "#FFE18A"],
+  ["#F0EDE8", "#FF6A57", "#F0EDE8", "#FFDB19", "#FF9B42", "#F0EDE8"],
+  ["#E5DED4", "#F4EFE9", "#A6B8A5", "#69B6E0", "#F0E8DB", "#FFAF73", "#FF5759"],
+];
+
+const OFFICE_COPY = [
+  "A DIFFERENT KIND OF ORTHODONTIC EXPERIENCE",
+  "ALLENTOWN / BETHLEHEM / SCHNECKSVILLE / LEHIGHTON",
+  "GET IN THE KNOW",
+];
+
+function OfficeColorGrid() {
+  const sectionRef = useRef(null);
+  const cellsRef = useRef([]);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const ctx = gsap.context(() => {
+      const rows = gsap.utils.toArray(".office-color-grid__row", section);
+
+      // Each row starts above its final position
+      gsap.set(rows, {
+        y: -180,
+        autoAlpha: 0,
+      });
+
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top 80%",
+          once: true,
+        },
+      });
+
+      // Bottom row lands first, then the next row stacks above it
+      [...rows].reverse().forEach((row) => {
+        timeline.to(row, {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.32,
+          ease: "power3.in",
+        });
+
+        // Small impact / settling motion
+        timeline.to(row, {
+          y: -7,
+          duration: 0.09,
+          ease: "power2.out",
+        });
+
+        timeline.to(row, {
+          y: 0,
+          duration: 0.13,
+          ease: "power2.in",
+        });
+      });
+
+      // Typography appears after construction
+      timeline.from(
+        ".office-color-grid__overlay",
+        {
+          autoAlpha: 0,
+          y: 15,
+          duration: 0.35,
+          ease: "power2.out",
+        },
+        "-=0.25",
+      );
+    }, section);
+
+    return () => ctx.revert();
+  }, []);
+
+  let cellIndex = 0;
+
+  return (
+    <section
+      ref={sectionRef}
+      className="office-color-grid relative w-full overflow-hidden lg:hidden"
+      aria-label="About the FreySmiles experience"
+    >
+      <div className="office-color-grid__rows">
+        {GRID_ROWS.map((row, rowIndex) => (
+          <div key={rowIndex} className="office-color-grid__row">
+            {row.map((color, blockIndex) => {
+              const index = cellIndex++;
+
+              return (
+                <div
+                  key={blockIndex}
+                  ref={(el) => {
+                    cellsRef.current[index] = el;
+                  }}
+                  className="office-color-grid__cell"
+                  style={{
+                    backgroundColor: [
+                      "#F5F3EF",
+                      "#F4F1EC",
+                      "#F2EFEB",
+                      "#F0EDE8",
+                    ].includes(color.toUpperCase())
+                      ? "transparent"
+                      : color,
+                    flex: blockIndex % 3 === 0 ? 1.3 : 1,
+                  }}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div className="office-color-grid__overlay">
+        <span className="office-color-grid__eyebrow">
+          FREYSMILES / EST. 2004
+        </span>
+
+        <h2 className="office-color-grid__heading uppercase">
+          Intentional
+          <br />
+          smiles
+        </h2>
+
+        <div className="office-color-grid__details">
+          {OFFICE_COPY.map((line, index) => (
+            <p key={index}>{line}</p>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+const TESTIMONIALS = [
+  {
+    number: "01",
+    quote:
+      "Dr. Frey treated both me (as an adult with a complex bite issue) and my son, and we couldn’t be happier with the results. He is knowledgeable, thoughtful, and truly cares about achieving the best outcome for his patients. The entire staff is friendly and supportive. I highly recommend him.",
+    name: "Michele",
+  },
+  {
+    number: "02",
+    quote:
+      "Dr Frey and his team are amazing! They explain everything all the way through the process at every visit. Their Growth and Guidance program caught 2 significant issues my youngest had and we were able to address them early. They also work with you on finances. Highly recommend!",
+    name: "Mary Ost",
+  },
+  {
+    number: "03",
+    quote:
+      "Excellent service. I always get called in early to my appointments, they are very organized and put together, and they are always quick. Did great with my teeth - they look amazing.",
+    name: "Meadow Phillips",
+  },
+  {
+    number: "04",
+    quote:
+      "Absolutely love the team at FreySmiles in Lehighton. From day one they have been amazing and so sweet to my teen thru her braces and Invisalign journey. Dr Frey is wonderful to chat with and I highly recommend especially if you’re the nervous type.",
+    name: "Christina Seo",
+  },
+];
+
+function TestimonialCard({
+  testimonial,
+  index,
+  activeTestimonial,
+  cardRef,
+    flipMode = false,
+}) {
+  return (
+   <div
+  ref={cardRef}
+className={`
+  testimonial-glass--flip
+  relative flex
+  shrink-0
+  flex-col items-center
+  overflow-hidden
+  p-6 text-[#201509]
+  ${
+    flipMode
+      ? "h-full w-full"
+      : "h-[440px] w-[82vw] snap-start lg:h-[560px] lg:w-auto lg:shrink lg:snap-none lg:items-stretch lg:justify-between lg:p-6"
+  }
+`}
+>
+      {/* MOBILE — EXISTING DESIGN */}
+      <div className="flex h-full w-full flex-col items-center lg:hidden">
+        <div className="testimonial-holo-casing">
+          <div
+            className={`testimonial-holo-layer ${
+              activeTestimonial === index ? "is-active" : ""
+            }`}
+          >
+            <span className="testimonial-holo-initials">
+              {testimonial.name
+                .trim()
+                .split(/\s+/)
+                .map((part) => part[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className="
+            flex min-h-0 flex-1
+            flex-col items-center justify-center
+            text-center
+          "
+        >
+          <span className="mb-3 font-ibmplex text-[10px] tracking-[0.18em]">
+            {testimonial.number} / PATIENT EXPERIENCE
+          </span>
+
+          <p
+            className="
+              mb-4 max-w-[320px]
+              font-ibmplex text-[12px]
+              uppercase leading-[1.35]
+            "
+          >
+            “{testimonial.quote}”
+          </p>
+
+          <span className="font-ibmplex text-[11px] uppercase tracking-wider">
+            {testimonial.name}
+          </span>
+        </div>
+      </div>
+
+      {/* DESKTOP — ORIGINAL DESIGN */}
+      <span
+        className="
+          relative z-10 hidden
+          font-ibmplex text-[12px] tracking-widest
+          lg:block
+        "
+      >
+        {testimonial.number}
+      </span>
+
+      <div className="relative z-10 hidden lg:block">
+        <p
+          className="
+            mb-2 max-w-[320px]
+            font-ibmplex
+            text-[clamp(13px,1.1vw,14px)]
+            uppercase leading-[1.15]
+          "
+        >
+          “{testimonial.quote}”
+        </p>
+
+        <span className="font-ibmplex text-[12px] uppercase tracking-wider">
+          {testimonial.name}
+        </span>
+      </div>
+    </div>
+  );
+}
+const IMAGE =
+  "/images/iphone-duo-mockup.jpg";
+
+
+  
+function MobileTestimonialFlip() {
+  const sectionRef = useRef(null);
+  const trackRef = useRef(null);
+  const cardRefs = useRef([]);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const track = trackRef.current;
+    if (!section || !track) return;
+
+    const mm = gsap.matchMedia();
+
+    mm.add("(max-width: 1023px)", () => {
+      const cards = cardRefs.current.filter(Boolean);
+      const fronts = cards.map((card) =>
+        card.querySelector(".mobile-flip__front")
+      );
+      const backs = cards.map((card) =>
+        card.querySelector(".mobile-flip__back")
+      );
+
+      const gap = 16;
+      const finalWidth = window.innerWidth * 0.82;
+      const initialWidth = Math.min(window.innerWidth - 40, 360);
+      const sliceWidth = initialWidth / cards.length;
+
+      gsap.set(track, {
+        width: initialWidth,
+        gap: 0,
+        x: 0,
+      });
+
+      gsap.set(cards, {
+        width: sliceWidth,
+        flexBasis: sliceWidth,
+        rotationY: 0,
+        borderRadius: 0,
+      });
+
+      gsap.set(fronts, { autoAlpha: 1 });
+      gsap.set(backs, { autoAlpha: 1 });
+
+
+const timeline = gsap.timeline({
+scrollTrigger: {
+  trigger: section,
+  start: "top top",
+  end: () => `+=${window.innerHeight * 2.2}`,
+
+  pin: true,
+  pinSpacing: true,
+  pinReparent: true, // TEST THIS
+  anticipatePin: 0,
+  scrub: true,
+  invalidateOnRefresh: true,
+  refreshPriority: 10,
+
+  onUpdate(self) {
+    const ready = self.progress >= 0.95;
+
+    track.style.overflowX = ready ? "auto" : "hidden";
+    track.style.touchAction = ready ? "pan-x" : "pan-y";
+  },
+},
+});
+
+
+      // First, reveal that the image consists of four slices.
+      timeline.to(track, {
+        gap: 8,
+        duration: 0.7,
+        ease: "none",
+      }, 0.15);
+
+      timeline.to(cards, {
+        borderRadius: 12,
+        duration: 0.7,
+        ease: "none",
+      }, 0.15);
+
+      // Expand the cards WHILE they flip.
+      timeline.to(track, {
+        width: window.innerWidth,
+        duration: 1.3,
+        ease: "none",
+      }, 1);
+
+      timeline.to(cards, {
+        width: finalWidth,
+        flexBasis: finalWidth,
+        rotationY: 180,
+        duration: 1.3,
+        stagger: 0.08,
+        ease: "none",
+      }, 1);
+
+      timeline.to(track, {
+        gap,
+        duration: 1.3,
+        ease: "none",
+      }, 1);
+
+      // Settle the cards into the swipeable track.
+      timeline.to(cards, {
+        rotationY: 180,
+        duration: 0.4,
+        ease: "none",
+      }, 2.4);
+
+      return () => {
+        track.style.overflowX = "";
+        track.style.touchAction = "";
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
+  return (
+
+<section
+  ref={sectionRef}
+  className="mobile-flip-section lg:hidden"
+>
+  <div className="mobile-flip__stage">
+    <div ref={trackRef} className="mobile-flip__track">
+      {TESTIMONIALS.map((testimonial, index) => (
+        <div
+          key={testimonial.number}
+          ref={(el) => {
+            cardRefs.current[index] = el;
+          }}
+          className="mobile-flip__card"
+        >
+          {/* FRONT — ONE SLICE OF THE PHOTOGRAPH */}
+          <div className="mobile-flip__front">
+            <div
+              className="mobile-flip__image"
+              style={{
+                backgroundImage: `url(${IMAGE})`,
+                backgroundPosition: `${
+                  (index / (TESTIMONIALS.length - 1)) * 100
+                }% center`,
+              }}
+            />
+          </div>
+
+          {/* BACK — OUR EXISTING TESTIMONIAL DESIGN */}
+          <div className="mobile-flip__back">
+            <TestimonialCard
+              testimonial={testimonial}
+              index={index}
+              activeTestimonial={0}
+              flipMode
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+  );
+}
 const NewSection = () => {
   const containerRef = useRef(null);
   const awardsHeadingRef = useRef(null);
@@ -3608,13 +4305,66 @@ const NewSection = () => {
 
   const [logoPhysicsActive, setLogoPhysicsActive] = useState(false);
   const [physicsGeometry, setPhysicsGeometry] = useState(null);
+  const physicsWrapperRef = useRef(null);
+
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const mobileCarouselRef = useRef(null);
+  const [testimonialsVisible, setTestimonialsVisible] = useState(false);
+  useEffect(() => {
+    const section = testimonialsSectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setTestimonialsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15 },
+    );
+
+    observer.observe(section);
+
+    return () => observer.disconnect();
+  }, []);
+  const handleTestimonialScroll = () => {
+    const carousel = mobileCarouselRef.current;
+    if (!carousel || window.innerWidth >= 1024) return;
+
+    const cards = Array.from(carousel.children);
+
+    const carouselLeft = carousel.getBoundingClientRect().left;
+
+    let closestIndex = 0;
+    let closestDistance = Infinity;
+
+    cards.forEach((card, index) => {
+      const distance = Math.abs(
+        card.getBoundingClientRect().left - carouselLeft,
+      );
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    setActiveTestimonial((previous) =>
+      previous === closestIndex ? previous : closestIndex,
+    );
+  };
 
   useLayoutEffect(() => {
     const heading = awardsHeadingRef.current;
     const starPath = shapeRef.current;
     const circleSlot = squareSlotRef.current;
     const revealLayer = testimonialContentRef.current;
+    const isMobile = window.innerWidth <= 768;
 
+    const mobileViewportHeight = isMobile
+      ? document.documentElement.clientHeight
+      : null;
+
+    const getViewportHeight = () =>
+      isMobile ? mobileViewportHeight : window.innerHeight;
     if (!heading || !starPath || !circleSlot || !revealLayer) return;
 
     const circleSVG = starPath.ownerSVGElement;
@@ -3624,6 +4374,10 @@ const NewSection = () => {
       "M80.5 2.5 C123.6 2.5 158.5 37.4 158.5 80.5 C158.5 123.6 123.6 158.5 80.5 158.5 C37.4 158.5 2.5 123.6 2.5 80.5 C2.5 37.4 37.4 2.5 80.5 2.5 Z";
 
     const expansion = { progress: 0 };
+    const circleMovement = {
+      x: 0,
+      rotation: 0,
+    };
 
     const getGeometry = () => {
       const slotRect = circleSlot.getBoundingClientRect();
@@ -3636,12 +4390,11 @@ const NewSection = () => {
       const initialRadius = (slotRect.width * 78) / 161;
 
       const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
+      const viewportHeight = getViewportHeight();
       const isMobile = window.innerWidth <= 768;
 
       const finalRadius = isMobile
-        ? Math.min(viewportWidth * 0.46, viewportHeight * 0.38)
+        ? Math.min(viewportWidth * 0.6, viewportHeight * 0.49)
         : viewportHeight * 0.52;
 
       return {
@@ -3652,14 +4405,15 @@ const NewSection = () => {
       };
     };
 
+    let cachedGeometry = getGeometry();
     const updatePhysicsGeometry = () => {
-      const { centerX, centerY, finalRadius } = getGeometry();
+    const { centerX, centerY, finalRadius } = cachedGeometry;
 
       const next = {
         centerX,
         centerY,
         radius: finalRadius,
-        viewportHeight: window.innerHeight,
+        viewportHeight: getViewportHeight(),
       };
 
       setPhysicsGeometry((previous) => {
@@ -3678,7 +4432,7 @@ const NewSection = () => {
     };
 
     const renderExpansion = () => {
-      const { centerX, centerY, initialRadius, finalRadius } = getGeometry();
+    const { centerX, centerY, initialRadius, finalRadius } = cachedGeometry;
 
       const progress = expansion.progress;
 
@@ -3695,8 +4449,15 @@ const NewSection = () => {
       gsap.set(revealLayer, {
         clipPath: `circle(${
           progress <= 0 ? 0 : radius
-        }px at ${centerX}px ${centerY}px)`,
+        }px at ${centerX + circleMovement.x}px ${centerY}px)`,
       });
+    if (isMobile && physicsWrapperRef.current) {
+        gsap.set(physicsWrapperRef.current, {
+          x: circleMovement.x,
+          rotation: circleMovement.rotation,
+          transformOrigin: `${centerX}px ${centerY}px`,
+        });
+      }
     };
 
     const ctx = gsap.context(() => {
@@ -3707,25 +4468,36 @@ const NewSection = () => {
 
         onUpdate: () => {
           renderExpansion();
+const shouldRun = isMobile
+  ? expansion.progress >= 0.85
+  : expansion.progress > 0.05;
+          if (shouldRun !== physicsStarted) {
+            physicsStarted = shouldRun;
 
-          if (!physicsStarted && expansion.progress > 0.05) {
-            physicsStarted = true;
-            updatePhysicsGeometry();
-            setLogoPhysicsActive(true);
+            if (shouldRun) {
+              updatePhysicsGeometry();
+            }
+
+            setLogoPhysicsActive(shouldRun);
           }
         },
 
         scrollTrigger: {
           trigger: heading,
-          start: "top 85%",
-          end: "top 50%",
+
+          start: () => (isMobile ? "top bottom" : "top 85%"),
+
+          end: () => (isMobile ? `+=${getViewportHeight() * 0.8}` : "top 50%"),
+
           scrub: true,
           invalidateOnRefresh: true,
-
           onLeaveBack: () => {
             physicsStarted = false;
             setLogoPhysicsActive(false);
           },
+          onRefresh: () => {
+  cachedGeometry = getGeometry();
+},
         },
       });
 
@@ -3755,24 +4527,60 @@ const NewSection = () => {
       );
 
       // 3. EXPAND TO VIEWPORT-SIZED CIRCLE
+
       timeline.to(
         expansion,
         {
           progress: 1,
-          duration: 0.65,
+          duration: isMobile ? 0.35 : 0.45,
         },
-        0.35,
+        isMobile ? 0.15 : 0.2,
       );
+      if (isMobile) {
+        timeline.to(
+          circleMovement,
+          {
+            x: () => {
+              const slotRect = circleSlot.getBoundingClientRect();
+              const starCenterX = slotRect.left + slotRect.width / 2;
+
+              return window.innerWidth / 2 - starCenterX;
+            },
+
+            rotation: () => {
+              const slotRect = circleSlot.getBoundingClientRect();
+              const starCenterX = slotRect.left + slotRect.width / 2;
+
+              const distance = window.innerWidth / 2 - starCenterX;
+
+              const { finalRadius } = getGeometry();
+
+              // Rolling angle = distance / radius, converted to degrees.
+              return (distance / finalRadius) * (180 / Math.PI);
+            },
+
+            duration: 0.45,
+            ease: "none",
+          },
+          0.55,
+        );
+      }
+      if (isMobile) {
+        timeline.set({}, {}, 1);
+      }
 
       updatePhysicsGeometry();
       renderExpansion();
     }, heading);
 
-    const handleResize = () => {
-      ScrollTrigger.refresh();
-      updatePhysicsGeometry();
-      renderExpansion();
-    };
+const handleResize = () => {
+  if (isMobile) return;
+
+  cachedGeometry = getGeometry();
+  ScrollTrigger.refresh();
+  updatePhysicsGeometry();
+  renderExpansion();
+};
 
     window.addEventListener("resize", handleResize);
 
@@ -3838,106 +4646,134 @@ const NewSection = () => {
 
     if (!section || !cards.length) return;
 
-    const startingHeights = [140, 95, 70, 45];
+    const mm = gsap.matchMedia();
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        cards,
-        {
-          clipPath: (index, target) => {
-            const fullHeight = target.offsetHeight;
-            const visibleHeight = startingHeights[index] ?? 45;
+    mm.add("(min-width: 1024px)", () => {
+      const startingHeights = [140, 95, 70, 45];
 
-            const hiddenHeight = Math.max(0, fullHeight - visibleHeight);
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          cards,
+          {
+            clipPath: (index, target) => {
+              const fullHeight = target.offsetHeight;
+              const visibleHeight = startingHeights[index] ?? 45;
 
-            return `inset(${hiddenHeight}px 0px 0px 0px)`;
+              const hiddenHeight = Math.max(0, fullHeight - visibleHeight);
+
+              return `inset(${hiddenHeight}px 0px 0px 0px)`;
+            },
           },
-        },
-        {
-          clipPath: "inset(0px 0px 0px 0px)",
-          duration: 1,
-          stagger: 0.12,
-          ease: "none",
-          immediateRender: false,
+          {
+            clipPath: "inset(0px 0px 0px 0px)",
+            duration: 1,
+            stagger: 0.12,
+            ease: "none",
+            immediateRender: false,
 
-          scrollTrigger: {
-            trigger: section,
-            start: "top 75%",
-            end: "top 20%",
-            scrub: true,
-            invalidateOnRefresh: true,
-            // markers: true,
+            scrollTrigger: {
+              trigger: section,
+              start: "top 75%",
+              end: "top 20%",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
           },
-        },
-      );
-    }, section);
+        );
+      }, section);
 
-    return () => ctx.revert();
+      return () => ctx.revert();
+    });
+
+    return () => mm.revert();
   }, []);
+  const awards = [
+    ["2026", "6× Winner Best Orthodontist", "Best of the Valley"],
+    ["2026", "5× Winner Best Orthodontist", "Readers' Choice The Morning Call"],
+    [
+      "2026",
+      "10× Cover Feature",
+      "American Journal of Orthodontics & Dentofacial Orthopedics",
+    ],
+    ["2026", "Nationally Recognized Top Orthodontist", "Top Dentists"],
+    ["2026", "Invisalign", "25+ Years of Experience"],
+    ["2026", "Invisalign Teen", "5000+ Cases Treated"],
+    ["2026", "Diamond Plus", "Top 1% of All Providers"],
+  ];
 
+  const mobileAwardGroups = [
+    { year: "2026", awards: awards.slice(0, 2) },
+    { year: "2025", awards: awards.slice(2, 3) },
+    { year: "2024", awards: awards.slice(3, 4) },
+    { year: "2023", awards: awards.slice(4, 6) },
+    { year: "2022", awards: awards.slice(6, 7) },
+  ];
   return (
     <>
       <div className="relative w-full isolate bg-[#f5f5f5]">
-        <GooeyReveal
-          image="/images/ajomockupchairupdated.png"
-          background="#f5f5f5"
-        />
-        <section className="relative z-10 flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
+        <section className="relative isolate flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
+         <div className="hidden md:block">
+  <GooeyReveal image="/images/flower.jpeg" background="#f5f5f5" />
+</div>
           <div
             ref={containerRef}
-            className="relative w-full max-w-7xl mx-auto text-[11px]"
+            className="relative mx-auto w-full max-w-7xl text-[11px]"
           >
-            <div className="relative z-10 mx-auto w-[94%] md:w-[85%] font-neueroman font-[800] tracking-wide flex flex-col text-[1.15em]">
+            {/* MOBILE — grouped awards */}
+            <div className="relative z-10 mx-auto w-[94%] font-neueroman md:hidden">
+              {mobileAwardGroups.map((group) => (
+                <div
+                  key={group.year}
+                  className="grid grid-cols-[42px_minmax(0,1fr)] gap-x-5"
+                >
+                  {/* Year */}
+                  <div className="pt-3 pb-2 text-[17px] font-[800] leading-none">
+                    '{group.year.slice(-2)}
+                  </div>
+
+                  {/* Awards */}
+                  <div className="min-w-0">
+                    {group.awards.map(([, achievement, distinction], i) => (
+                      <div
+                        key={`${group.year}-${i}`}
+                        className="grid grid-cols-2 items-start gap-x-4 border-b border-[#DEDEDE] py-3"
+                      >
+                        <div className="min-w-0 text-[12px] font-[800] leading-[1.25]">
+                          {achievement}
+                        </div>
+
+                        <div className="min-w-0 text-[12px] font-[800] leading-[1.25]">
+                          {distinction}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP  */}
+            <div className="relative z-10 mx-auto hidden w-[85%] flex-col font-neueroman text-[1.15em] font-[800] tracking-wide md:flex">
               <div className="relative">
-                {[
-                  ["2026", "6× Winner Best Orthodontist", "Best of the Valley"],
-                  [
-                    "2026",
-                    "5× Winner Best Orthodontist",
-                    "Readers' Choice The Morning Call",
-                  ],
-                  [
-                    "2026",
-                    "10× Cover Feature",
-                    "American Journal of Orthodontics & Dentofacial Orthopedics",
-                  ],
-                  [
-                    "2026",
-                    "Nationally Recognized Top Orthodontist",
-                    "Top Dentists",
-                  ],
-                  ["2026", "Invisalign", "25+ Years of Experience"],
-                  ["2026", "Invisalign Teen", "5000+ Cases Treated"],
-                  ["2026", "Diamond Plus", "Top 1% of All Providers"],
-                ].map(([date, achievement, distinction], i) => (
+                {awards.map(([date, achievement, distinction], i) => (
                   <div
                     key={i}
-                    className="
-    relative grid
-    grid-cols-[1fr_1.5fr_1.5fr]
-    items-center
-    gap-x-3 md:gap-x-6
-    px-2 md:px-3
-    py-1 md:py-1
-  "
+                    className="relative grid grid-cols-[1fr_1.5fr_1.5fr] items-center gap-x-6 px-3 py-1"
                   >
                     <div
                       ref={addToLineRefs}
-                      className="absolute inset-x-0 bottom-0 h-[.5px] bg-[#DEDEDE] origin-center"
+                      className="absolute inset-x-0 bottom-0 h-[.5px] origin-center bg-[#DEDEDE]"
                       style={{ transform: "scaleX(0)" }}
                     />
 
-                    {/* Column 1 — Date */}
                     <div className="min-w-0 overflow-hidden">
                       <div ref={addToTextRefs}>{date}</div>
                     </div>
 
-                    {/* Column 2 — Achievement */}
                     <div className="min-w-0 overflow-hidden">
                       <div ref={addToTextRefs}>{achievement}</div>
                     </div>
 
-                    {/* Column 3 — Distinction */}
                     <div className="min-w-0 overflow-hidden">
                       <div ref={addToTextRefs}>{distinction}</div>
                     </div>
@@ -3949,7 +4785,7 @@ const NewSection = () => {
 
           <div
             ref={awardsHeadingRef}
-            className="relative mt-20 w-full pb-12 md:mt-32 md:pb-20"
+            className="relative mt-20 w-full -translate-x-3 pb-12 md:mt-32 md:translate-x-0 md:pb-20"
           >
             <h2 className="flex flex-col font-neueroman text-[clamp(3.825rem,10.2vw,11.05rem)] font-[800] leading-[0.78] tracking-[-0.015em] text-black">
               {/* AWARDS + STAR */}
@@ -3983,101 +4819,53 @@ const NewSection = () => {
         </section>
         {/* CIRCLE EXPANSION + TESTIMONIALS */}
 
-        <div
-          ref={testimonialContentRef}
-          className="pointer-events-none absolute z-40 overflow-visible bg-black"
-          style={{
-            top: "-50vh",
-            bottom: "-50vh",
-            left: "-50vw",
-            right: "-50vw",
-            clipPath: "circle(0px at 0px 0px)",
-          }}
-        >
-          <div className="pointer-events-auto absolute inset-0 z-10">
+     <div
+  ref={testimonialContentRef}
+  className="pointer-events-none absolute z-40 overflow-visible bg-black"
+  style={{
+    top: "-50vh",
+    bottom: "-50vh",
+    left: "-50vw",
+    right: "-50vw",
+    clipPath: "circle(0px at 0px 0px)",
+    willChange: "clip-path",
+  }}
+>
+          <div
+            ref={physicsWrapperRef}
+            className="pointer-events-auto absolute inset-0 z-10"
+          >
             <LogoGrid
               active={logoPhysicsActive}
               circleGeometry={physicsGeometry}
             />
           </div>
         </div>
+        <OfficeColorGrid />
+        {/* <MobileTestimonialFlip /> */}
 
-        <section
-          ref={testimonialsSectionRef}
-          className="relative z-10 min-h-screen w-full bg-transparent px-8 pt-[15vh] lg:px-16"
-        >
-          <div className="relative isolate z-20 mt-24 w-full">
-            {/* SPECTRUM — MASKED TO THE FOUR CARD COLUMNS */}
-            <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0">
-              <TestimonialSpectrum />
-            </div>
+<section
+  ref={testimonialsSectionRef}
+  className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[15vh] lg:px-16"
+>
+  <div className="relative isolate z-20 mt-24 w-full">
 
-            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-visible">
-              <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
-                <TestimonialMarquee />
-              </div>
-            </div>
+    {/* DESKTOP — SPECTRUM BACKGROUND */}
+    <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0 hidden lg:block">
+      <TestimonialSpectrum />
+    </div>
 
-            {/* TESTIMONIAL CARDS */}
-            <div className="relative z-30 grid w-full grid-cols-2 items-end gap-3 lg:grid-cols-4 lg:gap-4">
-              {[
-                {
-                  number: "01",
-                  quote:
-                    "Dr. Frey treated both me (as an adult with a complex bite issue) and my son, and we couldn’t be happier with the results. He is knowledgeable, thoughtful, and truly cares about achieving the best outcome for his patients. The entire staff is friendly and supportive. I highly recommend him.",
-                  name: "Michele",
-                },
-                {
-                  number: "02",
-                  quote:
-                    "Dr Frey and his team are amazing! They explain everything all the way through the process at every visit. Their Growth and Guidance program caught 2 significant issues my youngest had and we were able to address them early. They also work with you on finances. Highly recommend!",
-                  name: "Mary Ost",
-                },
-                {
-                  number: "03",
-                  quote:
-                    "Excellent service. I always get called in early to my appointments, they are very organized and put together, and they are always quick. Did great with my teeth - they look amazing.",
-                  name: "Meadow Phillips",
-                },
-                {
-                  number: "04",
-                  quote:
-                    "Absolutely love the team at FreySmiles in Lehighton. From day one they have been amazing and so sweet to my teen thru her braces and Invisalign journey. Dr Frey is wonderful to chat with and I highly recommend especially if you’re the nervous type.",
-                  name: "Christina Seo",
-                },
-              ].map((testimonial, index) => (
-                <div
-                  key={testimonial.number}
-                  ref={(el) => {
-                    testimonialCardsRef.current[index] = el;
-                  }}
-                  className="
-    testimonial-glass
-    relative flex h-[380px] flex-col justify-between
-    overflow-hidden
-    p-5 text-[#201509]
-    lg:h-[560px] lg:p-6
-  "
-                >
-                  {/* Card content */}
-                  <span className="relative z-10 font-ibmplex text-[12px] tracking-widest">
-                    {testimonial.number}
-                  </span>
+    {/* DESKTOP — CIRCULAR MARQUEE */}
+    <div className="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center overflow-visible lg:flex">
+      <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
+        <TestimonialMarquee />
+      </div>
+    </div>
 
-                  <div className="relative z-10">
-                    <p className="mb-2 max-w-[320px] font-ibmplex text-[clamp(13px,1.1vw,14px)] uppercase leading-[1.15]">
-                      “{testimonial.quote}”
-                    </p>
 
-                    <span className="font-ibmplex text-[12px] uppercase tracking-wider">
-                      {testimonial.name}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+  </div>
+</section>
+
 
         {/* <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
 
@@ -4136,16 +4924,32 @@ const LOGO_SOURCES = [
 
 const LogoGrid = ({ active = false, circleGeometry }) => {
   const containerRef = useRef(null);
-
+  const runnerRef = useRef(null);
+  const engineRef = useRef(null);
+  const renderRef = useRef(null);
+const rendererRunningRef = useRef(false);
+  const activeRef = useRef(active);
+  const runnerRunningRef = useRef(false);
+  activeRef.current = active;
   const [viewportSize, setViewportSize] = useState({
     width: 0,
     height: 0,
   });
   useEffect(() => {
     const updateSize = () => {
-      setViewportSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
+      setViewportSize((prev) => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        if (width <= 768 && prev.width === width) {
+          return prev;
+        }
+
+        if (prev.width === width && prev.height === height) {
+          return prev;
+        }
+
+        return { width, height };
       });
     };
 
@@ -4157,6 +4961,7 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       window.removeEventListener("resize", updateSize);
     };
   }, []);
+
   useEffect(() => {
     const container = containerRef.current;
 
@@ -4183,7 +4988,7 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     const isMobile = window.innerWidth <= 768;
 
-    const ballRadius = isMobile ? Math.min(44, circleRadius * 0.21) : 80;
+    const ballRadius = isMobile ? Math.min(62, circleRadius * 0.2) : 80;
 
     const ballDiameter = ballRadius * 2;
 
@@ -4195,17 +5000,24 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     const runner = Runner.create();
 
+    engineRef.current = engine;
+    runnerRef.current = runner;
+    runnerRunningRef.current = false;
+
     const render = Render.create({
       element: container,
       engine,
       options: {
         width,
         height,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+       pixelRatio: isMobile
+  ? 1.5
+  : Math.min(window.devicePixelRatio || 1, 2),
         background: "transparent",
         wireframes: false,
       },
     });
+    renderRef.current = render;
 
     const segments = isMobile ? 160 : 240;
     const wallThickness = isMobile ? 35 : 70;
@@ -4265,9 +5077,9 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       const y = centerY + Math.sin(angle) * placementRadius;
 
       return Bodies.circle(x, y, ballRadius, {
-        restitution: 0.04,
-        friction: 0.4,
-        frictionStatic: 0.6,
+        restitution: isMobile ? 0.3 : 0.04,
+        friction: isMobile ? 0.15 : 0.4,
+        frictionStatic: isMobile ? 0.2 : 0.6,
         frictionAir: 0.025,
         density: 0.001,
         render: {
@@ -4280,10 +5092,17 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     Composite.add(engine.world, balls);
 
-    const images = LOGO_SOURCES.map((src) => {
+    const images = LOGO_SOURCES.map((src, index) => {
       const image = new Image();
 
-      image.decoding = "async";
+      image.onload = () => {
+        console.log(`Logo ${index} loaded:`, src);
+      };
+
+      image.onerror = () => {
+        console.error(`Logo ${index} failed to load:`, src);
+      };
+
       image.src = src;
 
       return image;
@@ -4304,7 +5123,7 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
         const aspect = image.naturalWidth / image.naturalHeight;
 
-        const maxSize = ballRadius * 1.6;
+        const maxSize = ballRadius * (isMobile ? 1.85 : 1.6);
 
         const imageWidth = aspect >= 1 ? maxSize : maxSize * aspect;
 
@@ -4342,7 +5161,9 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       },
     });
 
-    Composite.add(engine.world, mouseConstraint);
+    if (!isMobile) {
+      Composite.add(engine.world, mouseConstraint);
+    }
 
     render.mouse = mouse;
 
@@ -4350,6 +5171,11 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       x: 0,
       y: 0,
       inside: false,
+    };
+
+    const touchVelocity = {
+      x: 0,
+      y: 0,
     };
 
     const handleMouseMove = (event) => {
@@ -4364,64 +5190,108 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
       const y = (event.clientY - rect.top) * (height / rect.height);
 
+      if (event.pointerType === "touch" && cursor.inside) {
+        touchVelocity.x = x - cursor.x;
+        touchVelocity.y = y - cursor.y;
+      }
+
       cursor.x = x;
       cursor.y = y;
-      console.log("CURSOR", {
-        x: cursor.x,
-        y: cursor.y,
-        inside: cursor.inside,
-        active,
-      });
-      // Only apply repulsion when the pointer
-      // is within the actual physics canvas.
+
       cursor.inside = x >= 0 && x <= width && y >= 0 && y <= height;
     };
 
     const handleMouseLeave = () => {
       cursor.inside = false;
     };
+    const handleTouchEnd = () => {
+      touchVelocity.x = 0;
+      touchVelocity.y = 0;
+      cursor.inside = false;
+    };
 
     window.addEventListener("pointermove", handleMouseMove, { passive: true });
 
     window.addEventListener("blur", handleMouseLeave);
+    window.addEventListener("pointerup", handleTouchEnd);
+    window.addEventListener("pointercancel", handleTouchEnd);
 
     const repelNearbyBalls = () => {
-      if (!cursor.inside || !active) return;
+      if (!cursor.inside || !activeRef.current) return;
 
-      const hoveredBall = balls.find((ball) => {
-        if (mouseConstraint.body === ball) return false;
+      // Preserve the existing desktop behavior.
+      if (!isMobile) {
+        const hoveredBall = balls.find((ball) => {
+          if (mouseConstraint.body === ball) return false;
 
-        const dx = cursor.x - ball.position.x;
-        const dy = cursor.y - ball.position.y;
-        return Math.hypot(dx, dy) < ball.circleRadius;
+          const dx = cursor.x - ball.position.x;
+          const dy = cursor.y - ball.position.y;
+
+          return Math.hypot(dx, dy) < ball.circleRadius;
+        });
+
+        if (!hoveredBall) return;
+
+        const dx = hoveredBall.position.x - cursor.x;
+        const dy = hoveredBall.position.y - cursor.y;
+        const distance = Math.hypot(dx, dy);
+
+        const directionX = distance > 0.001 ? dx / distance : 1;
+        const directionY = distance > 0.001 ? dy / distance : 0;
+
+        const nextVX = hoveredBall.velocity.x + directionX * 2.8;
+        const nextVY = hoveredBall.velocity.y + directionY * 2.8;
+
+        const speed = Math.hypot(nextVX, nextVY);
+        const scale = speed > 14 ? 14 / speed : 1;
+
+        Matter.Body.setVelocity(hoveredBall, {
+          x: nextVX * scale,
+          y: nextVY * scale,
+        });
+
+        return;
+      }
+
+      // Mobile: spread the impulse across nearby balls.
+      const influenceRadius = ballRadius * 3.5;
+
+      const swipeX = touchVelocity.x;
+      const swipeY = touchVelocity.y;
+      const swipeSpeed = Math.hypot(swipeX, swipeY);
+
+      // Only apply a mobile impulse when a touch is actually moving.
+      if (swipeSpeed < 0.5) return;
+
+      balls.forEach((ball) => {
+        const dx = ball.position.x - cursor.x;
+        const dy = ball.position.y - cursor.y;
+
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > influenceRadius) return;
+
+        const falloff = Math.pow(1 - distance / influenceRadius, 0.65);
+
+        const impulseStrength = 1.8 * falloff;
+
+        const nextVX = ball.velocity.x + swipeX * impulseStrength;
+
+        const nextVY = ball.velocity.y + swipeY * impulseStrength;
+
+        const speed = Math.hypot(nextVX, nextVY);
+        const maxSpeed = 34;
+
+        const scale = speed > maxSpeed ? maxSpeed / speed : 1;
+
+        Matter.Body.setVelocity(ball, {
+          x: nextVX * scale,
+          y: nextVY * scale,
+        });
       });
 
-      if (!hoveredBall) return;
-
-      const dx = hoveredBall.position.x - cursor.x;
-      const dy = hoveredBall.position.y - cursor.y;
-
-      const distance = Math.hypot(dx, dy);
-
-      const directionX = distance > 0.001 ? dx / distance : 1;
-
-      const directionY = distance > 0.001 ? dy / distance : 0;
-
-      const pushStrength = 2.8;
-      const maxSpeed = 14;
-
-      const nextVX = hoveredBall.velocity.x + directionX * pushStrength;
-
-      const nextVY = hoveredBall.velocity.y + directionY * pushStrength;
-
-      const speed = Math.hypot(nextVX, nextVY);
-
-      const scale = speed > maxSpeed ? maxSpeed / speed : 1;
-
-      Matter.Body.setVelocity(hoveredBall, {
-        x: nextVX * scale,
-        y: nextVY * scale,
-      });
+      touchVelocity.x = 0;
+      touchVelocity.y = 0;
     };
 
     Events.on(engine, "beforeUpdate", repelNearbyBalls);
@@ -4430,13 +5300,15 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
     mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
 
-    Render.run(render);
+if (!isMobile || activeRef.current) {
+  Render.run(render);
+  rendererRunningRef.current = true;
+}
 
-    if (active) {
-      Runner.run(runner, engine);
-
-      let nextBall = 0;
-    }
+if (activeRef.current) {
+  Runner.run(runner, engine);
+  runnerRunningRef.current = true;
+}
 
     return () => {
       Events.off(engine, "beforeUpdate", repelNearbyBalls);
@@ -4444,11 +5316,25 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       window.removeEventListener("pointermove", handleMouseMove);
 
       window.removeEventListener("blur", handleMouseLeave);
+      window.removeEventListener("pointerup", handleTouchEnd);
+      window.removeEventListener("pointercancel", handleTouchEnd);
 
       Mouse.clearSourceEvents(mouse);
 
       Runner.stop(runner);
-      Render.stop(render);
+      runnerRunningRef.current = false;
+
+   Render.stop(render);
+rendererRunningRef.current = false;
+
+if (renderRef.current === render) {
+  renderRef.current = null;
+}
+
+if (runnerRef.current === runner) {
+  runnerRef.current = null;
+  engineRef.current = null;
+}
 
       Composite.clear(engine.world, false);
       Engine.clear(engine);
@@ -4457,8 +5343,38 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
       render.textures = {};
     };
-  }, [active, circleGeometry, viewportSize.width, viewportSize.height]);
+  }, [circleGeometry, viewportSize.width, viewportSize.height]);
+useEffect(() => {
+  const runner = runnerRef.current;
+  const engine = engineRef.current;
+  const render = renderRef.current;
 
+  if (!runner || !engine || !render) return;
+
+  const isMobile = window.innerWidth <= 768;
+
+  if (active) {
+    if (!rendererRunningRef.current) {
+      Matter.Render.run(render);
+      rendererRunningRef.current = true;
+    }
+
+    if (!runnerRunningRef.current) {
+      Matter.Runner.run(runner, engine);
+      runnerRunningRef.current = true;
+    }
+  } else {
+    if (runnerRunningRef.current) {
+      Matter.Runner.stop(runner);
+      runnerRunningRef.current = false;
+    }
+
+    if (isMobile && rendererRunningRef.current) {
+      Matter.Render.stop(render);
+      rendererRunningRef.current = false;
+    }
+  }
+}, [active]);
   return (
     <div
       ref={containerRef}
@@ -4963,8 +5879,9 @@ function CTAParagraphReveal({
     </span>
   );
 }
-
+  ScrollTrigger.config({ ignoreMobileResize: true }); 
 function CTA() {
+
   const BLOCKS = [
     {
       title: "Beyond Board Standards",
@@ -5086,8 +6003,6 @@ function CTA() {
 
         if (Math.abs(deltaX) > Math.abs(deltaY)) return;
 
-        // A downward finger swipe at the very top
-        // means the user wants to return to the CTA.
         if (content.scrollTop <= 1 && deltaY > 45) {
           event.preventDefault();
 
@@ -5105,7 +6020,7 @@ function CTA() {
         touchTriggered = false;
       };
       const releaseScroll = (direction) => {
-        observer.disable();
+        observer?.disable();
 
         const destination =
           direction > 0 ? scrollTrigger.end + 2 : scrollTrigger.start - 2;
@@ -5151,7 +6066,7 @@ function CTA() {
             expanded = true;
             animating = false;
 
-            observer.disable();
+            observer?.disable();
           },
 
           onReverseComplete: () => {
@@ -5162,7 +6077,7 @@ function CTA() {
               autoAlpha: 0,
             });
 
-            observer.enable();
+            observer?.enable();
           },
         });
         expansion.to(
@@ -5184,25 +6099,7 @@ function CTA() {
           },
           0.6,
         );
-        expansion.to(
-          blueCircleRef.current,
-          {
-            clipPath: finalClip,
-            duration: 1.35,
-            ease: "power3.inOut",
-          },
-          0,
-        );
 
-        expansion.to(
-          whiteCircleRef.current,
-          {
-            clipPath: finalClip,
-            duration: 1.2,
-            ease: "power3.inOut",
-          },
-          0.6,
-        );
 
         expansion.to(
           bookingContentRef.current,
@@ -5251,7 +6148,13 @@ function CTA() {
 
         expansion.timeScale(1.8).reverse();
       };
-      const showStep = (direction) => {
+const showStep = (direction) => {
+// alert(
+//   `direction: ${direction}
+//    index: ${currentIndex}
+//    animating: ${animating}
+//    expanded: ${expanded}`
+// );
         if (animating) return;
 
         if (expanded) {
@@ -5356,32 +6259,144 @@ function CTA() {
 
         bookingContent.addEventListener("touchcancel", handleBookingTouchEnd);
       }
-      observer = Observer.create({
-        target: window,
-        type: "wheel,touch",
-        preventDefault: true,
-        tolerance: 18,
+const mm = gsap.matchMedia();
 
-        onDown: () => showStep(1),
-        onUp: () => showStep(-1),
-      });
+mm.add("(min-width: 768px)", () => {
+  observer = Observer.create({
+    target: section,
+    type: "wheel,touch",
+    preventDefault: true,
+    tolerance: 10,
 
+    onDown: (self) => {
+      showStep(self.event?.type === "wheel" ? 1 : -1);
+    },
+
+    onUp: (self) => {
+      showStep(self.event?.type === "wheel" ? -1 : 1);
+    },
+  });
+
+  observer.disable();
+
+  const syncObserver = (self) => {
+    if (self.isActive && !expanded) {
+      observer.enable();
+    } else {
       observer.disable();
+    }
+  };
 
-      scrollTrigger = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=350%",
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
+  scrollTrigger = ScrollTrigger.create({
+    trigger: section,
+    start: "top top",
+    end: "+=350%",
+    pin: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
 
-        onEnter: () => observer.enable(),
-        onEnterBack: () => observer.enable(),
+    onToggle: syncObserver,
+    onRefresh: syncObserver,
+    onUpdate: syncObserver,
+  });
 
-        onLeave: () => observer.disable(),
-        onLeaveBack: () => observer.disable(),
-      });
+  return () => {
+    observer.kill();
+  };
+});
+
+mm.add("(max-width: 767px)", () => {
+  let displayedIndex = 0;
+
+const updateMobileStep = (progress) => {
+  if (expanded || animating) return;
+
+  const nextIndex = Math.min(
+    BLOCKS.length - 1,
+    Math.max(0, Math.floor(progress * BLOCKS.length)),
+  );
+
+  if (nextIndex === displayedIndex) return;
+
+  const previousIndex = displayedIndex;
+
+  displayedIndex = nextIndex;
+  currentIndex = nextIndex;
+  animating = true;
+
+  const outgoing = contentRefs.current[previousIndex];
+  const incoming = contentRefs.current[nextIndex];
+
+  transition?.kill();
+
+  transition = gsap.timeline({
+    onComplete: () => {
+      animating = false;
+    },
+  });
+
+  transition.to(
+    outgoing,
+    {
+      autoAlpha: 0,
+      y: -12,
+      duration: 0.2,
+      ease: "power2.in",
+    },
+    0,
+  );
+
+  transition.to(
+    wheel,
+    {
+      rotation: -90 * nextIndex,
+      duration: 0.85,
+      ease: "power3.inOut",
+    },
+    0,
+  );
+
+  transition.call(
+    () => {
+      setActiveIndex(nextIndex);
+    },
+    [],
+    0.75,
+  );
+
+  transition.fromTo(
+    incoming,
+    {
+      autoAlpha: 0,
+      y: 12,
+    },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.45,
+      ease: "power3.out",
+    },
+    0.75,
+  );
+};
+
+  scrollTrigger = ScrollTrigger.create({
+    trigger: section,
+    start: "top top",
+    end: "+=350%",
+    pin: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+onLeave: () => {
+  if (!expanded && !animating) {
+    openBookingSection();
+  }
+},
+    onUpdate: (self) => {
+      updateMobileStep(self.progress);
+    },
+  });
+});
 
       return () => {
         if (bookingContent) {
@@ -5403,11 +6418,12 @@ function CTA() {
             "touchcancel",
             handleBookingTouchEnd,
           );
+
         }
 
-        observer.kill();
-        transition?.kill();
-        expansion?.kill();
+mm.revert();
+transition?.kill();
+expansion?.kill();
       };
     }, section);
 
@@ -5416,6 +6432,7 @@ function CTA() {
 
   return (
     <>
+
       <div ref={transitionRef} className="cta-expansion">
         <div ref={blueCircleRef} className="cta-expansion__blue" />
 
@@ -5450,6 +6467,7 @@ function CTA() {
             <span className="block pl-[.6%]">Details.</span>
           </h2>
         </div>
+
         <div className="pointer-events-none absolute right-[3vw] top-[7vh] z-10">
           <ToothScene />
         </div>
@@ -6308,8 +7326,6 @@ function Locations() {
           </div>
         </div>
       </section>
-
-
     </main>
   );
 }
