@@ -1209,54 +1209,54 @@ function FreyMobileSkyMarquee() {
 
       if (cancelled) return;
 
-    const canvas = document.createElement("canvas");
-const ctx = canvas.getContext("2d");
-if (!ctx) return;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-const fontSize = 147;
-const text = "FREY SMILES";
-const spacing = -10;
+      const fontSize = 147;
+      const text = "FREY SMILES";
+      const spacing = -10;
 
-ctx.font = `${fontSize}px "OTF-Glusp"`;
-ctx.textBaseline = "alphabetic";
+      ctx.font = `${fontSize}px "OTF-Glusp"`;
+      ctx.textBaseline = "alphabetic";
 
-// Measure one complete wordmark
-const letterWidths = [...text].map(
-  (letter) => ctx.measureText(letter).width
-);
+      // Measure one complete wordmark
+      const letterWidths = [...text].map(
+        (letter) => ctx.measureText(letter).width,
+      );
 
-const wordmarkWidth = Math.ceil(
-  letterWidths.reduce((sum, width) => sum + width + spacing, 0)
-);
+      const wordmarkWidth = Math.ceil(
+        letterWidths.reduce((sum, width) => sum + width + spacing, 0),
+      );
 
-canvas.width = wordmarkWidth;
-canvas.height = 240;
+      canvas.width = wordmarkWidth;
+      canvas.height = 240;
 
-// Canvas resize resets the drawing settings
-ctx.font = `${fontSize}px "OTF-Glusp"`;
-ctx.textBaseline = "alphabetic";
-ctx.fillStyle = "#ffffff";
+      // Canvas resize resets the drawing settings
+      ctx.font = `${fontSize}px "OTF-Glusp"`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#ffffff";
 
-let x = 0;
+      let x = 0;
 
-[...text].forEach((letter, index) => {
-  ctx.fillText(letter, x, 205);
-  x += letterWidths[index] + spacing;
-});
+      [...text].forEach((letter, index) => {
+        ctx.fillText(letter, x, 205);
+        x += letterWidths[index] + spacing;
+      });
 
-const maskURL = canvas.toDataURL("image/png");
+      const maskURL = canvas.toDataURL("image/png");
 
       if (cancelled || !skyRef.current) return;
 
       skyRef.current.style.webkitMaskImage = `url("${maskURL}")`;
       skyRef.current.style.maskImage = `url("${maskURL}")`;
-skyRef.current.style.webkitMaskSize = `${wordmarkWidth}px 240px`;
-skyRef.current.style.maskSize = `${wordmarkWidth}px 240px`;
+      skyRef.current.style.webkitMaskSize = `${wordmarkWidth}px 240px`;
+      skyRef.current.style.maskSize = `${wordmarkWidth}px 240px`;
 
-skyRef.current.style.setProperty(
-  "--wordmark-width",
-  `${wordmarkWidth}px`
-);
+      skyRef.current.style.setProperty(
+        "--wordmark-width",
+        `${wordmarkWidth}px`,
+      );
       setMaskReady(true);
     }
 
@@ -1274,7 +1274,7 @@ skyRef.current.style.setProperty(
         className="frey-mobile-sky-background"
         style={{ opacity: maskReady ? 1 : 0 }}
       >
-     <FreyCloudScene moonScale={0.8} />
+        <FreyCloudScene moonScale={0.8} />
       </div>
     </div>
   );
@@ -1632,7 +1632,7 @@ const Hero = () => {
               trigger: container,
               start: "top top",
               end: isMobile ? "+=100%" : "+=250%",
-             scrub: isMobile ? 0.35 : 1,
+              scrub: isMobile ? 0.35 : 1,
 
               pin: !isMobile,
               pinSpacing: !isMobile,
@@ -1677,30 +1677,59 @@ const Hero = () => {
               0.5,
             );
           }
-          // 3. Restore the text color animation
-          const chars = statsTextCharsRef.current;
 
-          if (chars.length) {
-            timeline.to(
-              chars,
-              {
-                color: "#abff02",
-                duration: 0.12,
-                stagger: { each: 0.012 },
-              },
-              0.65,
-            );
+const chars = statsTextCharsRef.current;
 
-            timeline.to(
-              chars,
-              {
-                color: "#000000",
-                duration: 0.12,
-                stagger: { each: 0.012 },
-              },
-              0.85,
-            );
-          }
+if (chars.length) {
+  if (isMobile) {
+    const textTimeline = gsap.timeline({
+   scrollTrigger: {
+  trigger: chars[0].parentElement,
+  start: "top 70%",
+  end: "+=50%",
+  scrub: 0.35,
+  invalidateOnRefresh: true,
+},
+    });
+
+    textTimeline.to(chars, {
+      color: "#abff02",
+      duration: 0.12,
+      stagger: { each: 0.012 },
+    });
+
+    textTimeline.to(
+      chars,
+      {
+        color: "#000000",
+        duration: 0.12,
+        stagger: { each: 0.012 },
+      },
+      0.2,
+    );
+  } else {
+    timeline.to(
+      chars,
+      {
+        color: "#abff02",
+        duration: 0.12,
+        stagger: { each: 0.012 },
+      },
+      0.65,
+    );
+
+    timeline.to(
+      chars,
+      {
+        color: "#000000",
+        duration: 0.12,
+        stagger: { each: 0.012 },
+      },
+      0.85,
+    );
+  }
+}
+
         },
       );
     }, container);
@@ -1798,7 +1827,6 @@ const Hero = () => {
       <div ref={transitionRef} className="relative h-auto w-full md:h-screen">
         <section className="relative flex h-[100svh] w-full flex-col justify-end overflow-hidden bg-[#0F0F0F] md:h-screen">
           <div ref={videoStepRef} className="hero-main-video">
-    
             <div className="hero-main-video-scene bg-[#0F0F0F]">
               <video
                 ref={videoRef}
@@ -1815,7 +1843,7 @@ const Hero = () => {
             </div>
 
             <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-              <h2 className="frey-video-headline -translate-x-20 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
+              <h2 className="frey-video-headline -translate-x-16 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
                 <LocationCharacterReveal
                   ready={videoReady}
                   delay={0.35}
@@ -2059,13 +2087,13 @@ const Hero = () => {
               >
                 <FlutedGlassEffect
                   className="h-full w-full"
-                  src="/videos/invisman.mp4"
+                  src="/videos/Silhouettealigner.mp4"
                 />
               </div>
             </div>
 
             <div className="pointer-events-none relative z-20 w-full px-7 md:absolute md:inset-0 md:flex md:items-center md:justify-end md:px-0">
-              <div className="w-full md:w-[50%] md:pr-[18%]">
+              <div className="w-full md:w-[40%] md:pr-[13%]">
                 <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
                   <h2 className="font-neueroman text-[14px] font-[550] leading-[1.4] tracking-[-0.01em] text-black md:text-[15px] md:leading-[1.5]">
                     Our doctors are fully invested in treatment planning your
@@ -2446,7 +2474,7 @@ export default function LandingComponent() {
       </div>
 
       <NewSection />
-            <CTA />
+      <CTA />
       {/* <HeroMinimapIntro /> */}
 
       {/* <Locations /> */}
@@ -2575,7 +2603,7 @@ function FSScene() {
 }
 function ToothScene() {
   return (
-    <div className="relative h-[600px] w-full">
+    <div className="relative h-[500px] w-[500px] md:h-[600px] md:w-[600px]">
       <Canvas
         camera={{
           position: [0, 0, 5],
@@ -2783,7 +2811,7 @@ function RealisticMoon({ scale = 1.7 }) {
 
   return (
     <group position={[viewport.width * 0.18, viewport.height * 0.05, -10]}>
-    <group scale={scale}>
+      <group scale={scale}>
         <sprite scale={[42, 42, 1]}>
           <spriteMaterial
             map={glowTexture}
@@ -2934,7 +2962,7 @@ function FreyCloudScene({ skyMode, moonScale = 1.7 }) {
               speed={0.65}
             />
 
-          <RealisticMoon scale={moonScale} />
+            <RealisticMoon scale={moonScale} />
           </>
         ) : (
           <MovingClouds skyMode={activeMode} />
@@ -3854,7 +3882,16 @@ const GRID_ROWS = [
   ["#EAE4DA", "#F5F3EF", "#F5F3EF", "#F5F3EF", "#F5F3EF", "#F5F3EF"],
   ["#4EA6E8", "#8C9FD7", "#FF3055", "#E5D8C8", "#FF922E", "#FFDB62", "#161616"],
   ["#F4F1EC", "#F4F1EC", "#F4F1EC", "#F4F1EC", "#009E83", "#F4F1EC"],
-  ["#E8E4DB", "#D6B98F", "#AEBB9B", "#008DC0", "#50A8DC", "#EAE2D9","#FF9463","#FF5053"],
+  [
+    "#E8E4DB",
+    "#D6B98F",
+    "#AEBB9B",
+    "#008DC0",
+    "#50A8DC",
+    "#EAE2D9",
+    "#FF9463",
+    "#FF5053",
+  ],
   ["#F2EFEB", "#F2EFEB", "#FF941C", "#F2EFEB", "#F2EFEB", "#F2EFEB"],
   ["#FF9945", "#ED74A2", "#E5E2DC", "#FFCD00", "#E5CE80", "#F1EAE0", "#FFE18A"],
   ["#F0EDE8", "#FF6A57", "#F0EDE8", "#FFDB19", "#FF9B42", "#F0EDE8"],
@@ -3881,40 +3918,40 @@ function OfficeColorGrid() {
       // Each row starts above its final position
       gsap.set(rows, {
         y: -180,
-        autoAlpha: 0,
+        autoAlpha: 1,
+        force3D: true,
       });
 
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: section,
-          start: "top 80%",
+          start: "top 10%",
           once: true,
         },
       });
 
-      // Bottom row lands first, then the next row stacks above it
       [...rows].reverse().forEach((row) => {
         timeline.to(row, {
           y: 0,
-          autoAlpha: 1,
-          duration: 0.32,
-          ease: "power3.in",
+          duration: 0.45,
+          ease: "power2.inOut",
+          force3D: true,
         });
 
-        // Small impact / settling motion
+        // Gentle rebound
         timeline.to(row, {
-          y: -7,
-          duration: 0.09,
+          y: -3,
+          duration: 0.12,
           ease: "power2.out",
         });
 
+        // Soft settling
         timeline.to(row, {
           y: 0,
-          duration: 0.13,
-          ease: "power2.in",
+          duration: 0.2,
+          ease: "power2.out",
         });
       });
-
       // Typography appears after construction
       timeline.from(
         ".office-color-grid__overlay",
@@ -4022,12 +4059,12 @@ function TestimonialCard({
   index,
   activeTestimonial,
   cardRef,
-    flipMode = false,
+  flipMode = false,
 }) {
   return (
-   <div
-  ref={cardRef}
-className={`
+    <div
+      ref={cardRef}
+      className={`
   testimonial-glass--flip
   relative flex
   shrink-0
@@ -4040,7 +4077,7 @@ className={`
       : "h-[440px] w-[82vw] snap-start lg:h-[560px] lg:w-auto lg:shrink lg:snap-none lg:items-stretch lg:justify-between lg:p-6"
   }
 `}
->
+    >
       {/* MOBILE — EXISTING DESIGN */}
       <div className="flex h-full w-full flex-col items-center lg:hidden">
         <div className="testimonial-holo-casing">
@@ -4088,7 +4125,6 @@ className={`
         </div>
       </div>
 
-      {/* DESKTOP — ORIGINAL DESIGN */}
       <span
         className="
           relative z-10 hidden
@@ -4118,11 +4154,8 @@ className={`
     </div>
   );
 }
-const IMAGE =
-  "/images/iphone-duo-mockup.jpg";
+const IMAGE = "/images/iphone-duo-mockup.jpg";
 
-
-  
 function MobileTestimonialFlip() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
@@ -4138,99 +4171,121 @@ function MobileTestimonialFlip() {
     mm.add("(max-width: 1023px)", () => {
       const cards = cardRefs.current.filter(Boolean);
       const fronts = cards.map((card) =>
-        card.querySelector(".mobile-flip__front")
+        card.querySelector(".mobile-flip__front"),
       );
       const backs = cards.map((card) =>
-        card.querySelector(".mobile-flip__back")
+        card.querySelector(".mobile-flip__back"),
       );
 
       const gap = 16;
       const finalWidth = window.innerWidth * 0.82;
       const initialWidth = Math.min(window.innerWidth - 40, 360);
-      const sliceWidth = initialWidth / cards.length;
-
+      const sliceWidth = initialWidth / 2;
+      const sliceHeight = initialWidth / 2;
       gsap.set(track, {
         width: initialWidth,
+        height: initialWidth,
         gap: 0,
         x: 0,
       });
 
       gsap.set(cards, {
         width: sliceWidth,
+        height: sliceHeight,
         flexBasis: sliceWidth,
         rotationY: 0,
         borderRadius: 0,
       });
-
       gsap.set(fronts, { autoAlpha: 1 });
       gsap.set(backs, { autoAlpha: 1 });
 
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: () => `+=${window.innerHeight * 2.2}`,
 
-const timeline = gsap.timeline({
-scrollTrigger: {
-  trigger: section,
-  start: "top top",
-  end: () => `+=${window.innerHeight * 2.2}`,
+          pin: true,
+          pinSpacing: true,
+          pinReparent: true, // TEST THIS
+          anticipatePin: 0,
+          scrub: true,
+          invalidateOnRefresh: true,
+          refreshPriority: 10,
 
-  pin: true,
-  pinSpacing: true,
-  pinReparent: true, // TEST THIS
-  anticipatePin: 0,
-  scrub: true,
-  invalidateOnRefresh: true,
-  refreshPriority: 10,
+          onUpdate(self) {
+            const ready = self.progress >= 0.95;
 
-  onUpdate(self) {
-    const ready = self.progress >= 0.95;
+            track.style.overflowX = ready ? "auto" : "hidden";
+            track.style.touchAction = ready ? "pan-x" : "pan-y";
+          },
+        },
+      });
 
-    track.style.overflowX = ready ? "auto" : "hidden";
-    track.style.touchAction = ready ? "pan-x" : "pan-y";
-  },
-},
-});
+      timeline.to(
+        track,
+        {
+          gap: 8,
+          duration: 0.7,
+          ease: "none",
+        },
+        0.15,
+      );
 
-
-      // First, reveal that the image consists of four slices.
-      timeline.to(track, {
-        gap: 8,
-        duration: 0.7,
-        ease: "none",
-      }, 0.15);
-
-      timeline.to(cards, {
-        borderRadius: 12,
-        duration: 0.7,
-        ease: "none",
-      }, 0.15);
+      timeline.to(
+        cards,
+        {
+          borderRadius: 12,
+          duration: 0.7,
+          ease: "none",
+        },
+        0.15,
+      );
 
       // Expand the cards WHILE they flip.
-      timeline.to(track, {
-        width: window.innerWidth,
-        duration: 1.3,
-        ease: "none",
-      }, 1);
+      timeline.to(
+        track,
+        {
+          width: window.innerWidth,
+          duration: 1.3,
+          ease: "none",
+        },
+        1,
+      );
 
-      timeline.to(cards, {
-        width: finalWidth,
-        flexBasis: finalWidth,
-        rotationY: 180,
-        duration: 1.3,
-        stagger: 0.08,
-        ease: "none",
-      }, 1);
+      timeline.to(
+        cards,
+        {
+          width: finalWidth,
+          flexBasis: finalWidth,
+          rotationY: 180,
+          duration: 1.3,
+          stagger: 0.08,
+          ease: "none",
+        },
+        1,
+      );
 
-      timeline.to(track, {
-        gap,
-        duration: 1.3,
-        ease: "none",
-      }, 1);
+      timeline.to(
+        track,
+        {
+          gap,
+          duration: 1.3,
+          ease: "none",
+        },
+        1,
+      );
 
       // Settle the cards into the swipeable track.
-      timeline.to(cards, {
-        rotationY: 180,
-        duration: 0.4,
-        ease: "none",
-      }, 2.4);
+      timeline.to(
+        cards,
+        {
+          rotationY: 180,
+          duration: 0.4,
+          ease: "none",
+        },
+        2.4,
+      );
 
       return () => {
         track.style.overflowX = "";
@@ -4242,49 +4297,43 @@ scrollTrigger: {
   }, []);
 
   return (
-
-<section
-  ref={sectionRef}
-  className="mobile-flip-section lg:hidden"
->
-  <div className="mobile-flip__stage">
-    <div ref={trackRef} className="mobile-flip__track">
-      {TESTIMONIALS.map((testimonial, index) => (
-        <div
-          key={testimonial.number}
-          ref={(el) => {
-            cardRefs.current[index] = el;
-          }}
-          className="mobile-flip__card"
-        >
-          {/* FRONT — ONE SLICE OF THE PHOTOGRAPH */}
-          <div className="mobile-flip__front">
+    <section ref={sectionRef} className="mobile-flip-section lg:hidden">
+      <div className="mobile-flip__stage">
+        <div ref={trackRef} className="mobile-flip__track">
+          {TESTIMONIALS.map((testimonial, index) => (
             <div
-              className="mobile-flip__image"
-              style={{
-                backgroundImage: `url(${IMAGE})`,
-                backgroundPosition: `${
-                  (index / (TESTIMONIALS.length - 1)) * 100
-                }% center`,
+              key={testimonial.number}
+              ref={(el) => {
+                cardRefs.current[index] = el;
               }}
-            />
-          </div>
+              className="mobile-flip__card"
+            >
+              {/* FRONT — ONE SLICE OF THE PHOTOGRAPH */}
+              <div className="mobile-flip__front">
+                <div
+                  className="mobile-flip__image"
+                  style={{
+                    backgroundImage: `url(${IMAGE})`,
+                    backgroundPosition: `${
+                      index % 2 === 0 ? "left" : "right"
+                    } ${index < 2 ? "top" : "bottom"}`,
+                  }}
+                />
+              </div>
 
-          {/* BACK — OUR EXISTING TESTIMONIAL DESIGN */}
-          <div className="mobile-flip__back">
-            <TestimonialCard
-              testimonial={testimonial}
-              index={index}
-              activeTestimonial={0}
-              flipMode
-            />
-          </div>
+              <div className="mobile-flip__back">
+                <TestimonialCard
+                  testimonial={testimonial}
+                  index={index}
+                  activeTestimonial={0}
+                  flipMode
+                />
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-  </div>
-</section>
-
+      </div>
+    </section>
   );
 }
 const NewSection = () => {
@@ -4407,7 +4456,7 @@ const NewSection = () => {
 
     let cachedGeometry = getGeometry();
     const updatePhysicsGeometry = () => {
-    const { centerX, centerY, finalRadius } = cachedGeometry;
+      const { centerX, centerY, finalRadius } = cachedGeometry;
 
       const next = {
         centerX,
@@ -4432,7 +4481,7 @@ const NewSection = () => {
     };
 
     const renderExpansion = () => {
-    const { centerX, centerY, initialRadius, finalRadius } = cachedGeometry;
+      const { centerX, centerY, initialRadius, finalRadius } = cachedGeometry;
 
       const progress = expansion.progress;
 
@@ -4451,12 +4500,12 @@ const NewSection = () => {
           progress <= 0 ? 0 : radius
         }px at ${centerX + circleMovement.x}px ${centerY}px)`,
       });
-    if (isMobile && physicsWrapperRef.current) {
-        gsap.set(physicsWrapperRef.current, {
-          x: circleMovement.x,
-          rotation: circleMovement.rotation,
-          transformOrigin: `${centerX}px ${centerY}px`,
-        });
+      if (isMobile && physicsWrapperRef.current) {
+  gsap.set(physicsWrapperRef.current, {
+  x: circleMovement.x,
+  rotation: 0,
+  transformOrigin: `${centerX}px ${centerY}px`,
+});
       }
     };
 
@@ -4468,9 +4517,9 @@ const NewSection = () => {
 
         onUpdate: () => {
           renderExpansion();
-const shouldRun = isMobile
-  ? expansion.progress >= 0.85
-  : expansion.progress > 0.05;
+          const shouldRun = isMobile
+            ? expansion.progress >= 0.85
+            : expansion.progress > 0.05;
           if (shouldRun !== physicsStarted) {
             physicsStarted = shouldRun;
 
@@ -4496,8 +4545,8 @@ const shouldRun = isMobile
             setLogoPhysicsActive(false);
           },
           onRefresh: () => {
-  cachedGeometry = getGeometry();
-},
+            cachedGeometry = getGeometry();
+          },
         },
       });
 
@@ -4547,18 +4596,16 @@ const shouldRun = isMobile
               return window.innerWidth / 2 - starCenterX;
             },
 
-            rotation: () => {
-              const slotRect = circleSlot.getBoundingClientRect();
-              const starCenterX = slotRect.left + slotRect.width / 2;
+rotation: () => {
+  const slotRect = circleSlot.getBoundingClientRect();
+  const starCenterX = slotRect.left + slotRect.width / 2;
 
-              const distance = window.innerWidth / 2 - starCenterX;
+  const distance = window.innerWidth / 2 - starCenterX;
 
-              const { finalRadius } = getGeometry();
+  const { finalRadius } = cachedGeometry;
 
-              // Rolling angle = distance / radius, converted to degrees.
-              return (distance / finalRadius) * (180 / Math.PI);
-            },
-
+  return (distance / finalRadius) * (180 / Math.PI);
+},
             duration: 0.45,
             ease: "none",
           },
@@ -4573,14 +4620,14 @@ const shouldRun = isMobile
       renderExpansion();
     }, heading);
 
-const handleResize = () => {
-  if (isMobile) return;
+    const handleResize = () => {
+      if (isMobile) return;
 
-  cachedGeometry = getGeometry();
-  ScrollTrigger.refresh();
-  updatePhysicsGeometry();
-  renderExpansion();
-};
+      cachedGeometry = getGeometry();
+      ScrollTrigger.refresh();
+      updatePhysicsGeometry();
+      renderExpansion();
+    };
 
     window.addEventListener("resize", handleResize);
 
@@ -4712,9 +4759,9 @@ const handleResize = () => {
     <>
       <div className="relative w-full isolate bg-[#f5f5f5]">
         <section className="relative isolate flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
-         <div className="hidden md:block">
-  <GooeyReveal image="/images/flower.jpeg" background="#f5f5f5" />
-</div>
+          <div className="hidden md:block">
+            <GooeyReveal image="/images/flower.jpeg" background="#f5f5f5" />
+          </div>
           <div
             ref={containerRef}
             className="relative mx-auto w-full max-w-7xl text-[11px]"
@@ -4819,18 +4866,18 @@ const handleResize = () => {
         </section>
         {/* CIRCLE EXPANSION + TESTIMONIALS */}
 
-     <div
-  ref={testimonialContentRef}
-  className="pointer-events-none absolute z-40 overflow-visible bg-black"
-  style={{
-    top: "-50vh",
-    bottom: "-50vh",
-    left: "-50vw",
-    right: "-50vw",
-    clipPath: "circle(0px at 0px 0px)",
-    willChange: "clip-path",
-  }}
->
+        <div
+          ref={testimonialContentRef}
+          className="pointer-events-none absolute z-40 overflow-visible bg-black"
+          style={{
+            top: "-50vh",
+            bottom: "-50vh",
+            left: "-50vw",
+            right: "-50vw",
+            clipPath: "circle(0px at 0px 0px)",
+            willChange: "clip-path",
+          }}
+        >
           <div
             ref={physicsWrapperRef}
             className="pointer-events-auto absolute inset-0 z-10"
@@ -4842,30 +4889,38 @@ const handleResize = () => {
           </div>
         </div>
         <OfficeColorGrid />
-        {/* <MobileTestimonialFlip /> */}
+        <MobileTestimonialFlip />
 
-<section
-  ref={testimonialsSectionRef}
-  className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[15vh] lg:px-16"
->
-  <div className="relative isolate z-20 mt-24 w-full">
+        <section
+          ref={testimonialsSectionRef}
+          className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[15vh] lg:px-16"
+        >
+          <div className="relative isolate z-20 mt-24 w-full">
+            {/* DESKTOP — SPECTRUM BACKGROUND */}
+            <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0 hidden lg:block">
+              <TestimonialSpectrum />
+            </div>
 
-    {/* DESKTOP — SPECTRUM BACKGROUND */}
-    <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0 hidden lg:block">
-      <TestimonialSpectrum />
-    </div>
+            {/* DESKTOP — CIRCULAR MARQUEE */}
+            <div className="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center overflow-visible lg:flex">
+              <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
+                <TestimonialMarquee />
+              </div>
+            </div>
 
-    {/* DESKTOP — CIRCULAR MARQUEE */}
-    <div className="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center overflow-visible lg:flex">
-      <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
-        <TestimonialMarquee />
-      </div>
-    </div>
-
-
-  </div>
-</section>
-
+            {/* DESKTOP — TESTIMONIAL CARDS */}
+            <div className="relative z-20 hidden w-full gap-4 lg:grid lg:grid-cols-4">
+              {TESTIMONIALS.map((testimonial, index) => (
+                <TestimonialCard
+                  key={testimonial.number}
+                  testimonial={testimonial}
+                  index={index}
+                  activeTestimonial={index}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* <div className="grid w-full grid-cols-1 gap-8 max-w-7xl md:grid-cols-2">
 
@@ -4927,7 +4982,7 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
   const runnerRef = useRef(null);
   const engineRef = useRef(null);
   const renderRef = useRef(null);
-const rendererRunningRef = useRef(false);
+  const rendererRunningRef = useRef(false);
   const activeRef = useRef(active);
   const runnerRunningRef = useRef(false);
   activeRef.current = active;
@@ -5010,9 +5065,7 @@ const rendererRunningRef = useRef(false);
       options: {
         width,
         height,
-       pixelRatio: isMobile
-  ? 1.5
-  : Math.min(window.devicePixelRatio || 1, 2),
+        pixelRatio: isMobile ? 1.5 : Math.min(window.devicePixelRatio || 1, 2),
         background: "transparent",
         wireframes: false,
       },
@@ -5145,6 +5198,7 @@ const rendererRunningRef = useRef(false);
 
         ctx.restore();
       });
+
     };
 
     Events.on(render, "afterRender", drawLogos);
@@ -5178,29 +5232,55 @@ const rendererRunningRef = useRef(false);
       y: 0,
     };
 
-    const handleMouseMove = (event) => {
-      const rect = render.canvas.getBoundingClientRect();
+const handleMouseMove = (event) => {
+  const canvas = render.canvas;
+  const wrapper = canvas.parentElement;
+  const revealLayer = wrapper?.parentElement;
 
-      if (!rect.width || !rect.height) {
-        cursor.inside = false;
-        return;
-      }
+  if (!wrapper || !revealLayer) {
+    cursor.inside = false;
+    return;
+  }
 
-      const x = (event.clientX - rect.left) * (width / rect.width);
+  // The outer layer does not rotate or translate.
+  const layerRect = revealLayer.getBoundingClientRect();
 
-      const y = (event.clientY - rect.top) * (height / rect.height);
+  // Finger position in the outer layer's coordinate system.
+  const screenX = event.clientX - layerRect.left;
+  const screenY = event.clientY - layerRect.top;
 
-      if (event.pointerType === "touch" && cursor.inside) {
-        touchVelocity.x = x - cursor.x;
-        touchVelocity.y = y - cursor.y;
-      }
+  // Read GSAP's current transform.
+  const style = window.getComputedStyle(wrapper);
+  const matrix = new DOMMatrix(style.transform);
 
-      cursor.x = x;
-      cursor.y = y;
+  const [originX, originY] = style.transformOrigin
+    .split(" ")
+    .map(parseFloat);
 
-      cursor.inside = x >= 0 && x <= width && y >= 0 && y <= height;
-    };
+  // Move the coordinate origin to the rotation center.
+  const point = new DOMPoint(
+    screenX - originX,
+    screenY - originY
+  ).matrixTransform(matrix.inverse());
 
+  // Convert back to Matter.js coordinates.
+  const x = point.x + originX;
+  const y = point.y + originY;
+
+  if (isMobile && cursor.inside) {
+    touchVelocity.x = x - cursor.x;
+    touchVelocity.y = y - cursor.y;
+  }
+
+  cursor.x = x;
+  cursor.y = y;
+
+  cursor.inside =
+    x >= 0 &&
+    x <= width &&
+    y >= 0 &&
+    y <= height;
+};
     const handleMouseLeave = () => {
       cursor.inside = false;
     };
@@ -5219,7 +5299,7 @@ const rendererRunningRef = useRef(false);
     const repelNearbyBalls = () => {
       if (!cursor.inside || !activeRef.current) return;
 
-      // Preserve the existing desktop behavior.
+
       if (!isMobile) {
         const hoveredBall = balls.find((ball) => {
           if (mouseConstraint.body === ball) return false;
@@ -5300,15 +5380,15 @@ const rendererRunningRef = useRef(false);
 
     mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
 
-if (!isMobile || activeRef.current) {
-  Render.run(render);
-  rendererRunningRef.current = true;
-}
+    if (!isMobile || activeRef.current) {
+      Render.run(render);
+      rendererRunningRef.current = true;
+    }
 
-if (activeRef.current) {
-  Runner.run(runner, engine);
-  runnerRunningRef.current = true;
-}
+    if (activeRef.current) {
+      Runner.run(runner, engine);
+      runnerRunningRef.current = true;
+    }
 
     return () => {
       Events.off(engine, "beforeUpdate", repelNearbyBalls);
@@ -5324,17 +5404,17 @@ if (activeRef.current) {
       Runner.stop(runner);
       runnerRunningRef.current = false;
 
-   Render.stop(render);
-rendererRunningRef.current = false;
+      Render.stop(render);
+      rendererRunningRef.current = false;
 
-if (renderRef.current === render) {
-  renderRef.current = null;
-}
+      if (renderRef.current === render) {
+        renderRef.current = null;
+      }
 
-if (runnerRef.current === runner) {
-  runnerRef.current = null;
-  engineRef.current = null;
-}
+      if (runnerRef.current === runner) {
+        runnerRef.current = null;
+        engineRef.current = null;
+      }
 
       Composite.clear(engine.world, false);
       Engine.clear(engine);
@@ -5344,37 +5424,37 @@ if (runnerRef.current === runner) {
       render.textures = {};
     };
   }, [circleGeometry, viewportSize.width, viewportSize.height]);
-useEffect(() => {
-  const runner = runnerRef.current;
-  const engine = engineRef.current;
-  const render = renderRef.current;
+  useEffect(() => {
+    const runner = runnerRef.current;
+    const engine = engineRef.current;
+    const render = renderRef.current;
 
-  if (!runner || !engine || !render) return;
+    if (!runner || !engine || !render) return;
 
-  const isMobile = window.innerWidth <= 768;
+    const isMobile = window.innerWidth <= 768;
 
-  if (active) {
-    if (!rendererRunningRef.current) {
-      Matter.Render.run(render);
-      rendererRunningRef.current = true;
+    if (active) {
+      if (!rendererRunningRef.current) {
+        Matter.Render.run(render);
+        rendererRunningRef.current = true;
+      }
+
+      if (!runnerRunningRef.current) {
+        Matter.Runner.run(runner, engine);
+        runnerRunningRef.current = true;
+      }
+    } else {
+      if (runnerRunningRef.current) {
+        Matter.Runner.stop(runner);
+        runnerRunningRef.current = false;
+      }
+
+      if (isMobile && rendererRunningRef.current) {
+        Matter.Render.stop(render);
+        rendererRunningRef.current = false;
+      }
     }
-
-    if (!runnerRunningRef.current) {
-      Matter.Runner.run(runner, engine);
-      runnerRunningRef.current = true;
-    }
-  } else {
-    if (runnerRunningRef.current) {
-      Matter.Runner.stop(runner);
-      runnerRunningRef.current = false;
-    }
-
-    if (isMobile && rendererRunningRef.current) {
-      Matter.Render.stop(render);
-      rendererRunningRef.current = false;
-    }
-  }
-}, [active]);
+  }, [active]);
   return (
     <div
       ref={containerRef}
@@ -5879,9 +5959,8 @@ function CTAParagraphReveal({
     </span>
   );
 }
-  ScrollTrigger.config({ ignoreMobileResize: true }); 
-function CTA() {
 
+function CTA() {
   const BLOCKS = [
     {
       title: "Beyond Board Standards",
@@ -6100,7 +6179,6 @@ function CTA() {
           0.6,
         );
 
-
         expansion.to(
           bookingContentRef.current,
           {
@@ -6148,13 +6226,13 @@ function CTA() {
 
         expansion.timeScale(1.8).reverse();
       };
-const showStep = (direction) => {
-// alert(
-//   `direction: ${direction}
-//    index: ${currentIndex}
-//    animating: ${animating}
-//    expanded: ${expanded}`
-// );
+      const showStep = (direction) => {
+        // alert(
+        //   `direction: ${direction}
+        //    index: ${currentIndex}
+        //    animating: ${animating}
+        //    expanded: ${expanded}`
+        // );
         if (animating) return;
 
         if (expanded) {
@@ -6259,144 +6337,144 @@ const showStep = (direction) => {
 
         bookingContent.addEventListener("touchcancel", handleBookingTouchEnd);
       }
-const mm = gsap.matchMedia();
+      const mm = gsap.matchMedia();
 
-mm.add("(min-width: 768px)", () => {
-  observer = Observer.create({
-    target: section,
-    type: "wheel,touch",
-    preventDefault: true,
-    tolerance: 10,
+      mm.add("(min-width: 768px)", () => {
+        observer = Observer.create({
+          target: section,
+          type: "wheel,touch",
+          preventDefault: true,
+          tolerance: 10,
 
-    onDown: (self) => {
-      showStep(self.event?.type === "wheel" ? 1 : -1);
-    },
+          onDown: (self) => {
+            showStep(self.event?.type === "wheel" ? 1 : -1);
+          },
 
-    onUp: (self) => {
-      showStep(self.event?.type === "wheel" ? -1 : 1);
-    },
-  });
+          onUp: (self) => {
+            showStep(self.event?.type === "wheel" ? -1 : 1);
+          },
+        });
 
-  observer.disable();
+        observer.disable();
 
-  const syncObserver = (self) => {
-    if (self.isActive && !expanded) {
-      observer.enable();
-    } else {
-      observer.disable();
-    }
-  };
+        const syncObserver = (self) => {
+          if (self.isActive && !expanded) {
+            observer.enable();
+          } else {
+            observer.disable();
+          }
+        };
 
-  scrollTrigger = ScrollTrigger.create({
-    trigger: section,
-    start: "top top",
-    end: "+=350%",
-    pin: true,
-    anticipatePin: 1,
-    invalidateOnRefresh: true,
+        scrollTrigger = ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: "+=350%",
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
 
-    onToggle: syncObserver,
-    onRefresh: syncObserver,
-    onUpdate: syncObserver,
-  });
+          onToggle: syncObserver,
+          onRefresh: syncObserver,
+          onUpdate: syncObserver,
+        });
 
-  return () => {
-    observer.kill();
-  };
-});
+        return () => {
+          observer.kill();
+        };
+      });
 
-mm.add("(max-width: 767px)", () => {
-  let displayedIndex = 0;
+      mm.add("(max-width: 767px)", () => {
+        let displayedIndex = 0;
 
-const updateMobileStep = (progress) => {
-  if (expanded || animating) return;
+        const updateMobileStep = (progress) => {
+          if (expanded || animating) return;
 
-  const nextIndex = Math.min(
-    BLOCKS.length - 1,
-    Math.max(0, Math.floor(progress * BLOCKS.length)),
-  );
+          const nextIndex = Math.min(
+            BLOCKS.length - 1,
+            Math.max(0, Math.floor(progress * BLOCKS.length)),
+          );
 
-  if (nextIndex === displayedIndex) return;
+          if (nextIndex === displayedIndex) return;
 
-  const previousIndex = displayedIndex;
+          const previousIndex = displayedIndex;
 
-  displayedIndex = nextIndex;
-  currentIndex = nextIndex;
-  animating = true;
+          displayedIndex = nextIndex;
+          currentIndex = nextIndex;
+          animating = true;
 
-  const outgoing = contentRefs.current[previousIndex];
-  const incoming = contentRefs.current[nextIndex];
+          const outgoing = contentRefs.current[previousIndex];
+          const incoming = contentRefs.current[nextIndex];
 
-  transition?.kill();
+          transition?.kill();
 
-  transition = gsap.timeline({
-    onComplete: () => {
-      animating = false;
-    },
-  });
+          transition = gsap.timeline({
+            onComplete: () => {
+              animating = false;
+            },
+          });
 
-  transition.to(
-    outgoing,
-    {
-      autoAlpha: 0,
-      y: -12,
-      duration: 0.2,
-      ease: "power2.in",
-    },
-    0,
-  );
+          transition.to(
+            outgoing,
+            {
+              autoAlpha: 0,
+              y: -12,
+              duration: 0.2,
+              ease: "power2.in",
+            },
+            0,
+          );
 
-  transition.to(
-    wheel,
-    {
-      rotation: -90 * nextIndex,
-      duration: 0.85,
-      ease: "power3.inOut",
-    },
-    0,
-  );
+          transition.to(
+            wheel,
+            {
+              rotation: -90 * nextIndex,
+              duration: 0.85,
+              ease: "power3.inOut",
+            },
+            0,
+          );
 
-  transition.call(
-    () => {
-      setActiveIndex(nextIndex);
-    },
-    [],
-    0.75,
-  );
+          transition.call(
+            () => {
+              setActiveIndex(nextIndex);
+            },
+            [],
+            0.75,
+          );
 
-  transition.fromTo(
-    incoming,
-    {
-      autoAlpha: 0,
-      y: 12,
-    },
-    {
-      autoAlpha: 1,
-      y: 0,
-      duration: 0.45,
-      ease: "power3.out",
-    },
-    0.75,
-  );
-};
+          transition.fromTo(
+            incoming,
+            {
+              autoAlpha: 0,
+              y: 12,
+            },
+            {
+              autoAlpha: 1,
+              y: 0,
+              duration: 0.45,
+              ease: "power3.out",
+            },
+            0.75,
+          );
+        };
 
-  scrollTrigger = ScrollTrigger.create({
-    trigger: section,
-    start: "top top",
-    end: "+=350%",
-    pin: true,
-    anticipatePin: 1,
-    invalidateOnRefresh: true,
-onLeave: () => {
-  if (!expanded && !animating) {
-    openBookingSection();
-  }
-},
-    onUpdate: (self) => {
-      updateMobileStep(self.progress);
-    },
-  });
-});
+        scrollTrigger = ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: "+=350%",
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onLeave: () => {
+            if (!expanded && !animating) {
+              openBookingSection();
+            }
+          },
+          onUpdate: (self) => {
+            updateMobileStep(self.progress);
+          },
+        });
+      });
 
       return () => {
         if (bookingContent) {
@@ -6418,12 +6496,11 @@ onLeave: () => {
             "touchcancel",
             handleBookingTouchEnd,
           );
-
         }
 
-mm.revert();
-transition?.kill();
-expansion?.kill();
+        mm.revert();
+        transition?.kill();
+        expansion?.kill();
       };
     }, section);
 
@@ -6432,7 +6509,6 @@ expansion?.kill();
 
   return (
     <>
-
       <div ref={transitionRef} className="cta-expansion">
         <div ref={blueCircleRef} className="cta-expansion__blue" />
 
@@ -6509,7 +6585,7 @@ expansion?.kill();
               className="cta-orbit__content-block"
             >
               <div className="mx-auto flex w-full max-w-[700px] flex-col items-center text-center">
-                <h3 className="w-full font-neuehaas45 uppercase text-[clamp(16px,1.25vw,16px)] font-normal leading-[1.3] tracking-[0.05em]">
+                <h3 className="cta-orbit__title w-full font-neuehaas45 uppercase text-[clamp(16px,1.25vw,16px)] font-normal leading-[1.3] tracking-[0.05em]">
                   <CTAParagraphReveal
                     ready={activeIndex === index}
                     delay={0}
@@ -6519,8 +6595,7 @@ expansion?.kill();
                     {block.title}
                   </CTAParagraphReveal>
                 </h3>
-
-                <p className="mt-6 w-full max-w-[600px] font-neuehaas45 text-[clamp(14px,0.85vw,16px)] leading-[1.45] tracking-[0.04em] text-white">
+                <p className="cta-orbit__paragraph mt-6 w-full max-w-[600px] font-neuehaas45 text-[clamp(14px,0.85vw,16px)] leading-[1.45] tracking-[0.04em] text-white">
                   <CTAParagraphReveal
                     ready={activeIndex === index}
                     delay={0}
