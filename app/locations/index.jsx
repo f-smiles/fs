@@ -1532,7 +1532,7 @@ useLayoutEffect(() => {
 
   if (!route || !svg) return;
 
-  // Initialize the new route geometry.
+
   const flowingRoute = createFlowingRoute(svg);
 
   const ctx = gsap.context(() => {

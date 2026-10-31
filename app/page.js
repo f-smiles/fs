@@ -1650,18 +1650,7 @@ const Hero = () => {
             0,
           );
 
-          // 2. Restore the vertical parallax transition
-          // timeline.fromTo(
-          //   section,
-          //   { yPercent: 100 },
-          //   {
-          //     yPercent: 0,
-          //     duration: 0.8,
-          //     immediateRender: true,
-          //     force3D: true,
-          //   },
-          //   isMobile ? 0.25 : 0.5,
-          // );// Keep the second section in place on mobile
+      
           if (isMobile) {
             gsap.set(section, { yPercent: 0 });
           } else {
@@ -1678,58 +1667,57 @@ const Hero = () => {
             );
           }
 
-const chars = statsTextCharsRef.current;
+          const chars = statsTextCharsRef.current;
 
-if (chars.length) {
-  if (isMobile) {
-    const textTimeline = gsap.timeline({
-   scrollTrigger: {
-  trigger: chars[0].parentElement,
-  start: "top 70%",
-  end: "+=50%",
-  scrub: 0.35,
-  invalidateOnRefresh: true,
-},
-    });
+          if (chars.length) {
+            if (isMobile) {
+              const textTimeline = gsap.timeline({
+                scrollTrigger: {
+                  trigger: chars[0].parentElement,
+                  start: "top 70%",
+                  end: "+=50%",
+                  scrub: 0.35,
+                  invalidateOnRefresh: true,
+                },
+              });
 
-    textTimeline.to(chars, {
-      color: "#abff02",
-      duration: 0.12,
-      stagger: { each: 0.012 },
-    });
+              textTimeline.to(chars, {
+                color: "#abff02",
+                duration: 0.12,
+                stagger: { each: 0.012 },
+              });
 
-    textTimeline.to(
-      chars,
-      {
-        color: "#000000",
-        duration: 0.12,
-        stagger: { each: 0.012 },
-      },
-      0.2,
-    );
-  } else {
-    timeline.to(
-      chars,
-      {
-        color: "#abff02",
-        duration: 0.12,
-        stagger: { each: 0.012 },
-      },
-      0.65,
-    );
+              textTimeline.to(
+                chars,
+                {
+                  color: "#000000",
+                  duration: 0.12,
+                  stagger: { each: 0.012 },
+                },
+                0.2,
+              );
+            } else {
+              timeline.to(
+                chars,
+                {
+                  color: "#abff02",
+                  duration: 0.12,
+                  stagger: { each: 0.012 },
+                },
+                0.65,
+              );
 
-    timeline.to(
-      chars,
-      {
-        color: "#000000",
-        duration: 0.12,
-        stagger: { each: 0.012 },
-      },
-      0.85,
-    );
-  }
-}
-
+              timeline.to(
+                chars,
+                {
+                  color: "#000000",
+                  duration: 0.12,
+                  stagger: { each: 0.012 },
+                },
+                0.85,
+              );
+            }
+          }
         },
       );
     }, container);
@@ -2013,7 +2001,6 @@ if (chars.length) {
                 <path ref={notchPathRef} />
               </clipPath>
 
-              {/* NEW TOP INDENTATION */}
               <clipPath id="videoClip" clipPathUnits="objectBoundingBox">
                 <path
                   d="
@@ -2072,22 +2059,26 @@ if (chars.length) {
               </div>
             </div>
           </div>
-          <div className="relative flex h-auto w-full flex-col items-center justify-center gap-8 py-8 md:h-full md:flex-row md:gap-0 md:py-0">
-            <div
-              className="relative aspect-video w-[94vw] md:w-[75vw]"
-              style={{
-                clipPath: "url(#videoClip)",
-              }}
-            >
+<div className="relative flex h-auto w-full flex-col items-center justify-center gap-8 py-8 md:h-full md:translate-y-[4vh] md:flex-row md:gap-0 md:py-0">
+<div
+  className="relative mx-auto aspect-[4/3] w-[95vw] md:aspect-[2/1] md:w-[min(85vw,140vh)]"
+  style={{
+    clipPath: "url(#videoClip)",
+  }}
+>
               <div
-                className="relative h-full w-full overflow-hidden"
+                className="relative h-full w-full overflow-hidden brightness-[0.8] contrast-[2]"
                 style={{
                   clipPath: "url(#moving-fluted-clip)",
                 }}
               >
-                <FlutedGlassEffect
-                  className="h-full w-full"
-                  src="/videos/Silhouettealigner.mp4"
+            <FlutedGlassEffect
+  className="absolute inset-0 h-full w-full"
+                  src="/videos/silhouettealignerfinal.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                 />
               </div>
             </div>
@@ -3772,21 +3763,7 @@ function TestimonialMarquee() {
           <path id={staticPathId} d={circlePath} />
         </defs>
 
-        <text
-          fill="black"
-          className="font-canelathin"
-          style={{
-            fontSize: 20,
-          }}
-        >
-          <textPath
-            href={`#${staticPathId}`}
-            startOffset="50%"
-            textAnchor="middle"
-          >
-            Testimonials
-          </textPath>
-        </text>
+
       </svg>
     </div>
   );
@@ -3822,7 +3799,6 @@ function GooeyFlowerSVG() {
             />
           </filter>
 
-          {/* The organic silhouette becomes an image mask */}
           <mask
             id="flower-mask"
             maskUnits="userSpaceOnUse"
@@ -3900,75 +3876,54 @@ const GRID_ROWS = [
 
 const OFFICE_COPY = [
   "A DIFFERENT KIND OF ORTHODONTIC EXPERIENCE",
-  "ALLENTOWN / BETHLEHEM / SCHNECKSVILLE / LEHIGHTON",
   "GET IN THE KNOW",
 ];
 
 function OfficeColorGrid() {
   const sectionRef = useRef(null);
-  const cellsRef = useRef([]);
+  const gridRef = useRef(null);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
 
     const ctx = gsap.context(() => {
-      const rows = gsap.utils.toArray(".office-color-grid__row", section);
+      const groups = [0, 1, 2].map((index) =>
+        gsap.utils.toArray(`.office-color-grid__cell--group-${index}`, section),
+      );
 
-      // Each row starts above its final position
-      gsap.set(rows, {
-        y: -180,
-        autoAlpha: 1,
-        force3D: true,
+      gsap.set(groups.flat(), {
+        scale: 0.01,
+        transformOrigin: "50% 50%",
       });
 
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: section,
-          start: "top 10%",
+          start: "top 70%",
           once: true,
         },
       });
 
-      [...rows].reverse().forEach((row) => {
-        timeline.to(row, {
-          y: 0,
-          duration: 0.45,
-          ease: "power2.inOut",
-          force3D: true,
-        });
-
-        // Gentle rebound
-        timeline.to(row, {
-          y: -3,
-          duration: 0.12,
-          ease: "power2.out",
-        });
-
-        // Soft settling
-        timeline.to(row, {
-          y: 0,
-          duration: 0.2,
-          ease: "power2.out",
-        });
+      groups.forEach((cells, index) => {
+        timeline.to(
+          cells,
+          {
+            scale: 1,
+            duration: 0.32,
+            ease: "power2.out",
+            stagger: 0,
+            overwrite: "auto",
+          },
+          index * 0.12,
+        );
       });
-      // Typography appears after construction
-      timeline.from(
-        ".office-color-grid__overlay",
-        {
-          autoAlpha: 0,
-          y: 15,
-          duration: 0.35,
-          ease: "power2.out",
-        },
-        "-=0.25",
-      );
     }, section);
 
     return () => ctx.revert();
   }, []);
 
-  let cellIndex = 0;
+  const transparentColors = ["#F5F3EF", "#F4F1EC", "#F2EFEB", "#F0EDE8"];
 
   return (
     <section
@@ -3976,57 +3931,82 @@ function OfficeColorGrid() {
       className="office-color-grid relative w-full overflow-hidden lg:hidden"
       aria-label="About the FreySmiles experience"
     >
-      <div className="office-color-grid__rows">
+      <div ref={gridRef} className="office-color-grid__rows">
         {GRID_ROWS.map((row, rowIndex) => (
           <div key={rowIndex} className="office-color-grid__row">
             {row.map((color, blockIndex) => {
-              const index = cellIndex++;
-
+              const town =
+                rowIndex === 2 && blockIndex === 6
+                  ? "ALLENTOWN"
+                  : rowIndex === 2 && blockIndex === 3
+                    ? "BETHLEHEM"
+                    : rowIndex === 7 && blockIndex === 4
+                      ? "LEHIGHTON"
+                      : null;
               return (
                 <div
                   key={blockIndex}
-                  ref={(el) => {
-                    cellsRef.current[index] = el;
-                  }}
-                  className="office-color-grid__cell"
+                  className={`office-color-grid__cell office-color-grid__cell--group-${
+                    (rowIndex + blockIndex) % 3
+                  }`}
                   style={{
-                    backgroundColor: [
-                      "#F5F3EF",
-                      "#F4F1EC",
-                      "#F2EFEB",
-                      "#F0EDE8",
-                    ].includes(color.toUpperCase())
+                    position: "relative",
+                    backgroundColor: transparentColors.includes(
+                      color.toUpperCase(),
+                    )
                       ? "transparent"
                       : color,
                     flex: blockIndex % 3 === 0 ? 1.3 : 1,
                   }}
-                />
+                >
+                  {town && (
+                    <span
+                      className={`office-color-grid__town ${
+                        town === "BETHLEHEM" || town === "LEHIGHTON"
+                          ? "office-color-grid__town--flipped"
+                          : ""
+                      }`}
+                      style={{
+                        color: color === "#161616" ? "#ffffff" : "#151515",
+                      }}
+                    >
+                      {town}
+                    </span>
+                  )}
+                </div>
               );
             })}
+            {rowIndex === 1 && (
+              <span className="office-color-grid__row-copy">
+                GET IN THE KNOW
+              </span>
+            )}
           </div>
         ))}
       </div>
 
       <div className="office-color-grid__overlay">
-        <span className="office-color-grid__eyebrow">
-          FREYSMILES / EST. 2004
-        </span>
-
         <h2 className="office-color-grid__heading uppercase">
           Intentional
           <br />
           smiles
         </h2>
-
+        <span className="office-color-grid__schnecksville">SCHNECKSVILLE</span>
         <div className="office-color-grid__details">
-          {OFFICE_COPY.map((line, index) => (
-            <p key={index}>{line}</p>
-          ))}
+          <p className="office-color-grid__experience">
+            <span>A DIFFERENT KIND OF</span>
+            <span>ORTHODONTIC EXPERIENCE</span>
+          </p>
+          <p className="office-color-grid__experience">
+            <span>A DIFFERENT KIND OF</span>
+            <span>ORTHODONTIC EXPERIENCE</span>
+          </p>
         </div>
       </div>
     </section>
   );
 }
+
 const TESTIMONIALS = [
   {
     number: "01",
@@ -4154,186 +4134,292 @@ function TestimonialCard({
     </div>
   );
 }
-const IMAGE = "/images/iphone-duo-mockup.jpg";
+function TransmissionText({ children, className = "" }) {
+  const elementRef = useRef(null);
+  const [display, setDisplay] = useState(String(children));
+  const hasPlayedRef = useRef(false);
 
-function MobileTestimonialFlip() {
-  const sectionRef = useRef(null);
-  const trackRef = useRef(null);
-  const cardRefs = useRef([]);
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
 
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const track = trackRef.current;
-    if (!section || !track) return;
+    const original = String(children);
+    const chars = [...original];
+    const symbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789*-_'";
 
-    const mm = gsap.matchMedia();
+    let frame = 0;
+    let intervalId = null;
+    let visible = false;
+    let cancelled = false;
 
-    mm.add("(max-width: 1023px)", () => {
-      const cards = cardRefs.current.filter(Boolean);
-      const fronts = cards.map((card) =>
-        card.querySelector(".mobile-flip__front"),
-      );
-      const backs = cards.map((card) =>
-        card.querySelector(".mobile-flip__back"),
-      );
+    const randomChar = () =>
+      symbols[Math.floor(Math.random() * symbols.length)];
 
-      const gap = 16;
-      const finalWidth = window.innerWidth * 0.82;
-      const initialWidth = Math.min(window.innerWidth - 40, 360);
-      const sliceWidth = initialWidth / 2;
-      const sliceHeight = initialWidth / 2;
-      gsap.set(track, {
-        width: initialWidth,
-        height: initialWidth,
-        gap: 0,
-        x: 0,
-      });
+    const stop = () => {
+      clearInterval(intervalId);
+      intervalId = null;
+      setDisplay(original);
+    };
 
-      gsap.set(cards, {
-        width: sliceWidth,
-        height: sliceHeight,
-        flexBasis: sliceWidth,
-        rotationY: 0,
-        borderRadius: 0,
-      });
-      gsap.set(fronts, { autoAlpha: 1 });
-      gsap.set(backs, { autoAlpha: 1 });
+    const run = () => {
+      if (
+        !visible ||
+        cancelled ||
+        hasPlayedRef.current ||
+        intervalId !== null
+      ) {
+        return;
+      }
 
-      const timeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: () => `+=${window.innerHeight * 2.2}`,
+      frame = 0;
 
-          pin: true,
-          pinSpacing: true,
-          pinReparent: true, // TEST THIS
-          anticipatePin: 0,
-          scrub: true,
-          invalidateOnRefresh: true,
-          refreshPriority: 10,
-
-          onUpdate(self) {
-            const ready = self.progress >= 0.95;
-
-            track.style.overflowX = ready ? "auto" : "hidden";
-            track.style.touchAction = ready ? "pan-x" : "pan-y";
-          },
-        },
-      });
-
-      timeline.to(
-        track,
-        {
-          gap: 8,
-          duration: 0.7,
-          ease: "none",
-        },
-        0.15,
+      let current = chars.map((char) =>
+        char === " " ? " " : randomChar()
       );
 
-      timeline.to(
-        cards,
-        {
-          borderRadius: 12,
-          duration: 0.7,
-          ease: "none",
-        },
-        0.15,
-      );
+      intervalId = setInterval(() => {
+        if (!visible || cancelled) {
+          stop();
+          return;
+        }
 
-      // Expand the cards WHILE they flip.
-      timeline.to(
-        track,
-        {
-          width: window.innerWidth,
-          duration: 1.3,
-          ease: "none",
-        },
-        1,
-      );
+        const previous = [...current];
 
-      timeline.to(
-        cards,
-        {
-          width: finalWidth,
-          flexBasis: finalWidth,
-          rotationY: 180,
-          duration: 1.3,
-          stagger: 0.08,
-          ease: "none",
-        },
-        1,
-      );
+        current = chars.map((char, index) => {
+          if (char === " ") return " ";
 
-      timeline.to(
-        track,
-        {
-          gap,
-          duration: 1.3,
-          ease: "none",
-        },
-        1,
-      );
+          if (index === 0 || chars[index - 1] === " ") {
+            return randomChar();
+          }
 
-      // Settle the cards into the swipeable track.
-      timeline.to(
-        cards,
-        {
-          rotationY: 180,
-          duration: 0.4,
-          ease: "none",
-        },
-        2.4,
-      );
+          return previous[index - 1];
+        });
 
-      return () => {
-        track.style.overflowX = "";
-        track.style.touchAction = "";
-      };
-    });
+        frame += 1;
 
-    return () => mm.revert();
-  }, []);
+        const resolvedCount = Math.floor(
+          (frame / 35) * chars.length
+        );
+
+        current = current.map((char, index) =>
+          index < resolvedCount ? chars[index] : char
+        );
+
+        setDisplay(current.join(""));
+
+        if (frame >= 35) {
+          clearInterval(intervalId);
+          intervalId = null;
+
+          setDisplay(original);
+          hasPlayedRef.current = true;
+        }
+      }, 30);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+
+        if (visible) {
+          run();
+        } else {
+          stop();
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(element);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      clearInterval(intervalId);
+    };
+  }, [children]);
 
   return (
-    <section ref={sectionRef} className="mobile-flip-section lg:hidden">
-      <div className="mobile-flip__stage">
-        <div ref={trackRef} className="mobile-flip__track">
-          {TESTIMONIALS.map((testimonial, index) => (
-            <div
-              key={testimonial.number}
-              ref={(el) => {
-                cardRefs.current[index] = el;
-              }}
-              className="mobile-flip__card"
-            >
-              {/* FRONT — ONE SLICE OF THE PHOTOGRAPH */}
-              <div className="mobile-flip__front">
-                <div
-                  className="mobile-flip__image"
-                  style={{
-                    backgroundImage: `url(${IMAGE})`,
-                    backgroundPosition: `${
-                      index % 2 === 0 ? "left" : "right"
-                    } ${index < 2 ? "top" : "bottom"}`,
-                  }}
-                />
-              </div>
+    <span
+      ref={elementRef}
+      className={`transmission-text ${className}`}
+      aria-label={String(children)}
+    >
+      <span aria-hidden="true">{display}</span>
+    </span>
+  );
+}
 
-              <div className="mobile-flip__back">
-                <TestimonialCard
-                  testimonial={testimonial}
-                  index={index}
-                  activeTestimonial={0}
-                  flipMode
-                />
+function MobileTestimonials() {
+  const sectionRef = useRef(null);
+ 
+  const mainRef = useRef(null);
+  const strokeRef = useRef(null);
+  const PATIENT_IDS = ["4DD3", "A7F2", "09XK", "B6Q1"];
+
+useLayoutEffect(() => {
+  const main = mainRef.current;
+  const stroke = strokeRef.current;
+
+  if (!main || !stroke) return;
+
+  const ctx = gsap.context(() => {
+    const length = stroke.getTotalLength();
+
+    gsap.set(stroke, {
+      strokeDasharray: length,
+      strokeDashoffset: length,
+    });
+
+    const progress = { value: 0 };
+
+    gsap.to(progress, {
+      value: 1,
+      ease: "none",
+
+      onUpdate: () => {
+        stroke.style.strokeDashoffset =
+          length * (1 - progress.value);
+      },
+
+      scrollTrigger: {
+        trigger: main,
+        start: "top bottom",
+  end: "bottom 50%",
+        scrub: .25,
+        invalidateOnRefresh: true,
+      },
+    });
+  }, main);
+
+  return () => ctx.revert();
+}, []);
+
+  return (
+    <>
+      <svg
+        width="0"
+        height="0"
+        aria-hidden="true"
+        style={{ position: "absolute" }}
+      >
+        <defs>
+          <clipPath
+            id="testimonial-ticket-shape"
+            clipPathUnits="objectBoundingBox"
+          >
+            <path
+              d="
+        M .025 0
+        H .975
+        Q 1 0 1 .025
+        V .225
+        Q 1 .24 .98 .24
+        H .965
+        Q .94 .24 .94 .26
+        Q .94 .28 .965 .28
+        H .98
+        Q 1 .28 1 .295
+        V .975
+        Q 1 1 .975 1
+        H .025
+        Q 0 1 0 .975
+        V .295
+        Q 0 .28 .02 .28
+        H .035
+        Q .06 .28 .06 .26
+        Q .06 .24 .035 .24
+        H .02
+        Q 0 .24 0 .225
+        V .025
+        Q 0 0 .025 0
+        Z
+      "
+            />
+          </clipPath>
+        </defs>
+      </svg>
+      <section ref={sectionRef} className="mobile-testimonials lg:hidden">
+
+          <main ref={mainRef} className="mobile-testimonials__path">
+            <svg
+              className="mobile-testimonials__path-svg"
+              preserveAspectRatio="xMidYMid slice"
+              viewBox="0 1000 8500 14948.91"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient
+                  id="testimonialStrokeGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" stopColor="#3339F1" />
+                  <stop offset="50%" stopColor="#000AFF" />
+                </linearGradient>
+              </defs>
+
+              <path
+                ref={strokeRef}
+                d="M4462.32,625c0,0 14.613,622.459 -463.862,807.768c-481.301,186.404 -1447.09,-126.375 -1575.51,541.543c-124.818,649.224 959.032,311.455 1893.1,826.688c1089.01,600.699 -524.942,1127.57 -1302.17,1453.96c-951.997,399.786 -995.709,1421.16 -230.78,1308.47c1157.75,-170.555 2955.04,-369.639 2625.82,434.977c-258.167,630.956 -1834.68,308.013 -1915.59,964.376c-123.736,1003.78 785.635,859.091 1309.31,778.296c976.475,-150.654 1261.08,579.399 1203.78,1013.11c-62.259,471.302 -669.89,1009.61 -1534.75,1125.17c-1019.84,136.266 -2356.12,174.662 -2200.88,942.9c130.32,644.912 1957.69,378.097 2999.78,691.136c860.372,258.452 772.286,1223.59 346.923,1696.49c-769.812,855.852 -852.502,1355.35 -852.502,1355.35
+c-220,420 380,850 1150,1050
+c950,250 1500,600 1050,1200
+c-350,600 -1450,450 -1900,900
+c-450,450 250,950 1200,1200"
+                fill="none"
+         stroke="#000AFF"
+                strokeWidth="90"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </main>
+
+          <div className="mobile-testimonials__stack">
+            {TESTIMONIALS.slice(0, 4).map((testimonial, index) => (
+              <div
+                key={testimonial.number}
+             
+                className={`mobile-testimonials__item mobile-testimonials__item--${index}`}
+              >
+                <article className="mobile-ticket">
+                  <div className="mobile-ticket__header">
+                    <TransmissionText>FREYSMILES®</TransmissionText>
+
+                    <TransmissionText>
+                      {`ID / ${PATIENT_IDS[index]}`}
+                    </TransmissionText>
+                  </div>
+
+                  <div className="mobile-ticket__index">
+                    <div>
+                      <TransmissionText>PATIENT NAME</TransmissionText>
+                    </div>
+
+                    <div>
+                      <TransmissionText>{testimonial.name}</TransmissionText>
+                    </div>
+                  </div>
+
+                  <blockquote className="mobile-ticket__quote holographic-quote">
+                    “{testimonial.quote}”
+                  </blockquote>
+
+                  <div className="mobile-ticket__signature">
+                    <TransmissionText>
+                      {`TESTIMONIAL / ${testimonial.number}`}
+                    </TransmissionText>
+                    <TransmissionText>F / S — EST. 2004</TransmissionText>
+                  </div>
+                </article>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+            ))}
+          </div>
+   
+      </section>
+    </>
   );
 }
 const NewSection = () => {
@@ -4501,11 +4587,11 @@ const NewSection = () => {
         }px at ${centerX + circleMovement.x}px ${centerY}px)`,
       });
       if (isMobile && physicsWrapperRef.current) {
-  gsap.set(physicsWrapperRef.current, {
-  x: circleMovement.x,
-  rotation: 0,
-  transformOrigin: `${centerX}px ${centerY}px`,
-});
+        gsap.set(physicsWrapperRef.current, {
+          x: circleMovement.x,
+          rotation: 0,
+          transformOrigin: `${centerX}px ${centerY}px`,
+        });
       }
     };
 
@@ -4596,16 +4682,16 @@ const NewSection = () => {
               return window.innerWidth / 2 - starCenterX;
             },
 
-rotation: () => {
-  const slotRect = circleSlot.getBoundingClientRect();
-  const starCenterX = slotRect.left + slotRect.width / 2;
+            rotation: () => {
+              const slotRect = circleSlot.getBoundingClientRect();
+              const starCenterX = slotRect.left + slotRect.width / 2;
 
-  const distance = window.innerWidth / 2 - starCenterX;
+              const distance = window.innerWidth / 2 - starCenterX;
 
-  const { finalRadius } = cachedGeometry;
+              const { finalRadius } = cachedGeometry;
 
-  return (distance / finalRadius) * (180 / Math.PI);
-},
+              return (distance / finalRadius) * (180 / Math.PI);
+            },
             duration: 0.45,
             ease: "none",
           },
@@ -4860,7 +4946,9 @@ rotation: () => {
 
               <span className="block pl-[3%]">&amp; Recog-</span>
 
-              <span className="block pl-[43%]">nitions</span>
+<span className="relative top-[0.15em] md:top-0 block pl-[43%]">
+  nitions
+</span>
             </h2>
           </div>
         </section>
@@ -4889,26 +4977,34 @@ rotation: () => {
           </div>
         </div>
         <OfficeColorGrid />
-        <MobileTestimonialFlip />
 
-        <section
-          ref={testimonialsSectionRef}
-          className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[15vh] lg:px-16"
-        >
-          <div className="relative isolate z-20 mt-24 w-full">
+<section
+  ref={testimonialsSectionRef}
+  className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[1vh] pb-20 lg:px-16 lg:pb-0"
+>
+          <div className="relative isolate z-20 mt-2 w-full">
             {/* DESKTOP — SPECTRUM BACKGROUND */}
             <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0 hidden lg:block">
               <TestimonialSpectrum />
             </div>
 
             {/* DESKTOP — CIRCULAR MARQUEE */}
-            <div className="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center overflow-visible lg:flex">
+            <div className="pointer-events-none absolute inset-0 z-0 hidden items-center justify-center overflow-visible lg:flex">
               <div className="w-[85vw] max-w-[1200px] shrink-0 translate-y-[80px]">
                 <TestimonialMarquee />
               </div>
             </div>
 
-            {/* DESKTOP — TESTIMONIAL CARDS */}
+            <div className="mobile-testimonials__heading lg:hidden">
+              <h2>
+                OUR GREATEST AWARD
+                <br />
+                IS THE SUCCESS
+                <br />
+                OF OUR PATIENTS.
+              </h2>
+            </div>
+            <MobileTestimonials />
             <div className="relative z-20 hidden w-full gap-4 lg:grid lg:grid-cols-4">
               {TESTIMONIALS.map((testimonial, index) => (
                 <TestimonialCard
@@ -5198,7 +5294,6 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
 
         ctx.restore();
       });
-
     };
 
     Events.on(render, "afterRender", drawLogos);
@@ -5232,55 +5327,51 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
       y: 0,
     };
 
-const handleMouseMove = (event) => {
-  const canvas = render.canvas;
-  const wrapper = canvas.parentElement;
-  const revealLayer = wrapper?.parentElement;
+    const handleMouseMove = (event) => {
+      const canvas = render.canvas;
+      const wrapper = canvas.parentElement;
+      const revealLayer = wrapper?.parentElement;
 
-  if (!wrapper || !revealLayer) {
-    cursor.inside = false;
-    return;
-  }
+      if (!wrapper || !revealLayer) {
+        cursor.inside = false;
+        return;
+      }
 
-  // The outer layer does not rotate or translate.
-  const layerRect = revealLayer.getBoundingClientRect();
+      // The outer layer does not rotate or translate.
+      const layerRect = revealLayer.getBoundingClientRect();
 
-  // Finger position in the outer layer's coordinate system.
-  const screenX = event.clientX - layerRect.left;
-  const screenY = event.clientY - layerRect.top;
+      // Finger position in the outer layer's coordinate system.
+      const screenX = event.clientX - layerRect.left;
+      const screenY = event.clientY - layerRect.top;
 
-  // Read GSAP's current transform.
-  const style = window.getComputedStyle(wrapper);
-  const matrix = new DOMMatrix(style.transform);
+      // Read GSAP's current transform.
+      const style = window.getComputedStyle(wrapper);
+      const matrix = new DOMMatrix(style.transform);
 
-  const [originX, originY] = style.transformOrigin
-    .split(" ")
-    .map(parseFloat);
+      const [originX, originY] = style.transformOrigin
+        .split(" ")
+        .map(parseFloat);
 
-  // Move the coordinate origin to the rotation center.
-  const point = new DOMPoint(
-    screenX - originX,
-    screenY - originY
-  ).matrixTransform(matrix.inverse());
+      // Move the coordinate origin to the rotation center.
+      const point = new DOMPoint(
+        screenX - originX,
+        screenY - originY,
+      ).matrixTransform(matrix.inverse());
 
-  // Convert back to Matter.js coordinates.
-  const x = point.x + originX;
-  const y = point.y + originY;
+      // Convert back to Matter.js coordinates.
+      const x = point.x + originX;
+      const y = point.y + originY;
 
-  if (isMobile && cursor.inside) {
-    touchVelocity.x = x - cursor.x;
-    touchVelocity.y = y - cursor.y;
-  }
+      if (isMobile && cursor.inside) {
+        touchVelocity.x = x - cursor.x;
+        touchVelocity.y = y - cursor.y;
+      }
 
-  cursor.x = x;
-  cursor.y = y;
+      cursor.x = x;
+      cursor.y = y;
 
-  cursor.inside =
-    x >= 0 &&
-    x <= width &&
-    y >= 0 &&
-    y <= height;
-};
+      cursor.inside = x >= 0 && x <= width && y >= 0 && y <= height;
+    };
     const handleMouseLeave = () => {
       cursor.inside = false;
     };
@@ -5298,7 +5389,6 @@ const handleMouseMove = (event) => {
 
     const repelNearbyBalls = () => {
       if (!cursor.inside || !activeRef.current) return;
-
 
       if (!isMobile) {
         const hoveredBall = balls.find((ball) => {
@@ -6122,20 +6212,34 @@ function CTA() {
         const x = (centerX / window.innerWidth) * 100;
         const y = (centerY / window.innerHeight) * 100;
 
-        const maxRadius = Math.hypot(
-          Math.max(centerX, window.innerWidth - centerX),
-          Math.max(centerY, window.innerHeight - centerY),
+        const containerRect = transitionRef.current.getBoundingClientRect();
+
+        const circleX = centerX - containerRect.left - 50;
+        const circleY = centerY - containerRect.top - 50;
+
+        const originX = centerX - containerRect.left;
+        const originY = centerY - containerRect.top;
+
+        const maxRadius = Math.max(
+          Math.hypot(originX, originY),
+          Math.hypot(containerRect.width - originX, originY),
+          Math.hypot(originX, containerRect.height - originY),
+          Math.hypot(
+            containerRect.width - originX,
+            containerRect.height - originY,
+          ),
         );
 
-        const initialClip = `circle(0px at ${x}% ${y}%)`;
-        const finalClip = `circle(${maxRadius + 10}px at ${x}% ${y}%)`;
+        const finalScale = (maxRadius * 2 + 100) / 100;
+
+        gsap.set([blueCircleRef.current, whiteCircleRef.current], {
+          x: circleX,
+          y: circleY,
+          scale: 0,
+        });
 
         gsap.set(transitionRef.current, {
           autoAlpha: 1,
-        });
-
-        gsap.set([blueCircleRef.current, whiteCircleRef.current], {
-          clipPath: initialClip,
         });
 
         expansion?.kill();
@@ -6162,7 +6266,7 @@ function CTA() {
         expansion.to(
           blueCircleRef.current,
           {
-            clipPath: finalClip,
+            scale: finalScale,
             duration: 1.35,
             ease: "power3.inOut",
           },
@@ -6172,13 +6276,12 @@ function CTA() {
         expansion.to(
           whiteCircleRef.current,
           {
-            clipPath: finalClip,
+            scale: finalScale,
             duration: 1.2,
             ease: "power3.inOut",
           },
           0.6,
         );
-
         expansion.to(
           bookingContentRef.current,
           {
@@ -6346,13 +6449,13 @@ function CTA() {
           preventDefault: true,
           tolerance: 10,
 
-          onDown: (self) => {
-            showStep(self.event?.type === "wheel" ? 1 : -1);
-          },
+onDown: () => {
+  showStep(1);
+},
 
-          onUp: (self) => {
-            showStep(self.event?.type === "wheel" ? -1 : 1);
-          },
+onUp: () => {
+  showStep(-1);
+},
         });
 
         observer.disable();
@@ -6368,7 +6471,7 @@ function CTA() {
         scrollTrigger = ScrollTrigger.create({
           trigger: section,
           start: "top top",
-          end: "+=350%",
+          end: "+=300%",
           pin: true,
           anticipatePin: 1,
           invalidateOnRefresh: true,

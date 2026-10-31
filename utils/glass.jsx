@@ -113,8 +113,7 @@ export default function FlutedGlassEffect({
 }) {
   const containerRef = useRef(null);
 
-  const BASE_WIDTH = 1799.6;
-  const BASE_HEIGHT = 1071.5;
+
 
   useEffect(() => {
     const container = containerRef.current;
@@ -141,7 +140,7 @@ export default function FlutedGlassEffect({
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    renderer.setSize(BASE_WIDTH, BASE_HEIGHT, false);
+
 
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
@@ -155,9 +154,9 @@ export default function FlutedGlassEffect({
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTexture: { value: null },
-        uResolution: {
-          value: new THREE.Vector2(BASE_WIDTH, BASE_HEIGHT),
-        },
+    uResolution: {
+  value: new THREE.Vector2(1, 1),
+},
         uTextureSize: { value: textureSize },
         uMouse: { value: mouse },
         uParallaxStrength: {
@@ -270,20 +269,30 @@ export default function FlutedGlassEffect({
         1.0 - (e.clientY - rect.top) / rect.height;
     };
 
-    const onResize = () => {
-      renderer.domElement.style.width =
-        `${container.clientWidth}px`;
+const onResize = () => {
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
-      renderer.domElement.style.height =
-        `${container.clientHeight}px`;
-    };
+  if (!width || !height) return;
+
+  renderer.setSize(width, height, false);
+
+  material.uniforms.uResolution.value.set(width, height);
+
+  renderer.domElement.style.width = "100%";
+  renderer.domElement.style.height = "100%";
+};
 
     container.addEventListener(
       "mousemove",
       onMouseMove
     );
 
-    window.addEventListener("resize", onResize);
+const resizeObserver = new ResizeObserver(onResize);
+
+resizeObserver.observe(container);
+
+onResize();
 
     let raf = 0;
 
@@ -310,10 +319,7 @@ export default function FlutedGlassEffect({
         onMouseMove
       );
 
-      window.removeEventListener(
-        "resize",
-        onResize
-      );
+ resizeObserver.disconnect();
 
       if (video) {
         video.pause();
