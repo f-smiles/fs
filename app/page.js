@@ -1282,27 +1282,31 @@ function FreyMobileSkyMarquee() {
 
 function FloatingBookButton() {
   return (
-    <div className="fixed right-6 top-6 z-[100] md:right-[4vw] md:top-[34px]">
-      <Link
-        href="/book-now"
-        className="frey-orbit-button"
-        aria-label="Book Now"
-      >
-        <span className="frey-orbit-button__loader" aria-hidden="true">
-          {Array.from({ length: 10 }, (_, index) => (
-            <span
-              key={index}
-              className="frey-orbit-button__ball"
-              style={{
-                animationDelay: `${index * -0.25}s`,
-              }}
-            />
-          ))}
-        </span>
+<div className="fixed right-6 top-[10px] z-[100] md:right-[4vw] md:top-[10px]">
+  <Link
+    href="/book-now"
+    className="frey-orbit-button"
+    aria-label="Book Now"
+  >
+    {/* FROSTED GLASS DISC */}
+    <span className="frey-orbit-button__glass" aria-hidden="true" />
 
-        <span className="frey-orbit-button__label">Book Now</span>
-      </Link>
-    </div>
+    {/* ORBITING DOTS */}
+    <span className="frey-orbit-button__loader" aria-hidden="true">
+      {Array.from({ length: 10 }, (_, index) => (
+        <span
+          key={index}
+          className="frey-orbit-button__ball"
+          style={{
+            animationDelay: `${index * -0.25}s`,
+          }}
+        />
+      ))}
+    </span>
+
+    <span className="frey-orbit-button__label">Book Now</span>
+  </Link>
+</div>
   );
 }
 const COLORS = [
@@ -1813,7 +1817,7 @@ const Hero = () => {
   return (
     <>
       <div ref={transitionRef} className="relative h-auto w-full md:h-screen">
-        <section className="relative flex h-[100svh] w-full flex-col justify-end overflow-hidden bg-[#0F0F0F] md:h-screen">
+        <section className="relative flex h-[100svh] w-full flex-col justify-end overflow-hidden bg-[#222222] md:h-screen">
           <div ref={videoStepRef} className="hero-main-video">
             <div className="hero-main-video-scene bg-[#0F0F0F]">
               <video
@@ -1831,7 +1835,7 @@ const Hero = () => {
             </div>
 
             <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-              <h2 className="frey-video-headline -translate-x-16 max-w-[620px] font-neueroman text-[clamp(2.5rem,5vw,5.5rem)] leading-[0.95] tracking-[-0.025em]">
+              <h2 className="frey-video-headline -translate-x-16 max-w-[620px] font-neueroman text-[clamp(2.5rem,4.5vw,4.5rem)] leading-[0.95] tracking-[-0.025em]">
                 <LocationCharacterReveal
                   ready={videoReady}
                   delay={0.35}
@@ -1853,14 +1857,20 @@ const Hero = () => {
             </div>
           </div>
 
-          <div
-            ref={editorialRef}
-            className="
-  absolute z-[5] hidden
-  md:grid md:bottom-[66%] md:left-[56%] md:right-[6%]
-  md:grid-cols-2 md:gap-10
-"
-          >
+<div
+  ref={editorialRef}
+  className="
+    absolute z-[5] hidden
+    md:grid
+    md:top-[32%]
+    md:bottom-auto
+    md:left-[55%]
+    md:right-auto
+    md:w-[calc(45%-300px)]
+    md:grid-cols-1
+    md:gap-8
+  "
+>
             <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
               <span className="font-neuehaas45 text-[12px] uppercase leading-[1.35] tracking-[0.04em] md:text-[11px] md:tracking-[0.08em]">
                 (01) — OUR PHILOSOPHY
@@ -1884,13 +1894,13 @@ const Hero = () => {
             </div>
           </div>
 
-          <div
-            className="
-    absolute bottom-[36%] left-[56%] right-[4%] z-[5]
+<div
+  className="
+    absolute bottom-[12%] left-[34%]  z-[5]
     hidden items-start gap-6 text-white
     md:flex
   "
-          >
+>
             <div className="shrink-0 scale-125 origin-center md:mt-[5px] md:scale-100">
               <DotMatrix />
             </div>
@@ -1925,7 +1935,7 @@ const Hero = () => {
             </h1>
           </div>
 
-          <div
+          {/* <div
             ref={marqueeRef}
             className="frey-hero-bottom-marquee pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden w-full md:block"
           >
@@ -1979,7 +1989,32 @@ const Hero = () => {
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 md:hidden">
             <FreyMobileSkyMarquee />
-          </div>
+          </div> */}
+<div
+  ref={marqueeRef}
+  className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[180px] md:bottom-0 md:left-auto md:right-0 md:top-0 md:h-auto md:w-[300px]"
+>
+  <div className="frey-image-marquee">
+    <div className="frey-image-marquee__track">
+      {[0, 1].map((copy) => (
+        <div className="frey-image-marquee__group" key={copy}>
+          {[
+            "/images/table_mockup.jpg",
+            "/images/bethlehem.jpg",
+            "/images/iphone-duo-mockup.jpg",
+            "/images/invisalignmockup1.jpg",
+            "/images/ajomockupchairupdated.png",
+            "/images/cardsonpalm.png"
+          ].map((src, index) => (
+            <div className="frey-image-marquee__card" key={`${copy}-${index}`}>
+              <img src={src} alt="" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         </section>
 
         <section
@@ -2067,14 +2102,14 @@ const Hero = () => {
   }}
 >
               <div
-                className="relative h-full w-full overflow-hidden brightness-[0.8] contrast-[2]"
+                className="relative h-full w-full overflow-hidden "
                 style={{
                   clipPath: "url(#moving-fluted-clip)",
                 }}
               >
             <FlutedGlassEffect
-  className="absolute inset-0 h-full w-full"
-                  src="/videos/silhouettealignerfinal.mp4"
+  className="absolute inset-0 h-full w-full "
+                  src="/videos/silhouettealigner.mp4"
                   autoPlay
                   loop
                   muted
@@ -2084,7 +2119,7 @@ const Hero = () => {
             </div>
 
             <div className="pointer-events-none relative z-20 w-full px-7 md:absolute md:inset-0 md:flex md:items-center md:justify-end md:px-0">
-              <div className="w-full md:w-[40%] md:pr-[13%]">
+              <div className="w-full md:w-[45%] md:pr-[14%]">
                 <TransitionAnimatedCopy charsRef={statsTextCharsRef}>
                   <h2 className="font-neueroman text-[14px] font-[550] leading-[1.4] tracking-[-0.01em] text-black md:text-[15px] md:leading-[1.5]">
                     Our doctors are fully invested in treatment planning your
@@ -3626,7 +3661,7 @@ function GooeyReveal({
 
     parent.addEventListener("pointermove", onPointerMove);
 
-    parent.addEventListener("pointerleave", onPointerLeave);
+    window.addEventListener("pointermove", onPointerMove);
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(parent);
@@ -3666,9 +3701,7 @@ function GooeyReveal({
     return () => {
       cancelAnimationFrame(frameId);
 
-      parent.removeEventListener("pointermove", onPointerMove);
-
-      parent.removeEventListener("pointerleave", onPointerLeave);
+window.removeEventListener("pointermove", onPointerMove);
 
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
@@ -4845,9 +4878,14 @@ const NewSection = () => {
     <>
       <div className="relative w-full isolate bg-[#f5f5f5]">
         <section className="relative isolate flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
-          <div className="hidden md:block">
-            <GooeyReveal image="/images/flower.jpeg" background="#f5f5f5" />
-          </div>
+<div className="pointer-events-none absolute inset-x-0 top-0 -bottom-[100vh] z-0 hidden md:block">
+  <div className="pointer-events-auto relative h-full w-full">
+    <GooeyReveal
+      image="/images/flower.jpeg"
+      background="#f5f5f5"
+    />
+  </div>
+</div>
           <div
             ref={containerRef}
             className="relative mx-auto w-full max-w-7xl text-[11px]"

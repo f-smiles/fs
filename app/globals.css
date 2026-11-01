@@ -8360,14 +8360,14 @@ body,
     transform-origin: center center;
   }
 }
-.frey-hero-bottom-marquee {
+/* .frey-hero-bottom-marquee {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   top: auto;
   z-index: 10;
-}
+} */
 
 .transition-copy-word {
   display: inline-block;
@@ -9237,5 +9237,125 @@ body,
     line-height: 1.05;
     letter-spacing: -0.045em;
     color: #151515;
+  }
+}
+
+
+.frey-orbit-button {
+  position: relative;
+  isolation: isolate;
+}
+
+.frey-orbit-button__glass {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%);
+
+  background:rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(1.2rem) ;
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+ box-shadow:
+    inset 0 0 0.8rem #ffffff05,
+    inset 0 0 0.2rem #fff3;
+
+  pointer-events: none;
+  z-index: 0;
+}
+
+.frey-orbit-button__loader {
+  z-index: 1;
+}
+
+.frey-orbit-button__label {
+  position: relative;
+  z-index: 2;
+}
+
+/* DESKTOP — VERTICAL MARQUEE */
+
+.frey-image-marquee {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.frey-image-marquee__track {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: max-content;
+  animation: frey-image-scroll-vertical 35s linear infinite;
+}
+
+.frey-image-marquee__group {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.frey-image-marquee__card {
+  width: 100%;
+  height: 260px;
+  flex: 0 0 260px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.frey-image-marquee__card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes frey-image-scroll-vertical {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* MOBILE — HORIZONTAL MARQUEE */
+
+@media (max-width: 767px) {
+  .frey-image-marquee__track {
+    flex-direction: row;
+    width: max-content;
+    height: 100%;
+    animation: frey-image-scroll-horizontal 35s linear infinite;
+  }
+
+  .frey-image-marquee__group {
+    flex-direction: row;
+    gap: 10px;
+    padding-right: 10px;
+    padding-bottom: 0;
+  }
+
+  .frey-image-marquee__card {
+    width: 150px;
+    height: 180px;
+    flex: 0 0 150px;
+  }
+}
+
+@keyframes frey-image-scroll-horizontal {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frey-image-marquee__track {
+    animation: none;
   }
 }

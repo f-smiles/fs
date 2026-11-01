@@ -78,11 +78,14 @@ void main() {
 
   uv += parallaxOffset;
   
-  vec2 coverUV = getCoverUV(uv, uTextureSize);
+vec2 coverUV = getCoverUV(uv, uTextureSize);
 
-  coverUV = clamp(coverUV, 0.0, 1.0);
+// Shift only the video image to the left
+coverUV.x += 0.14;
 
-  vec4 color = texture2D(uTexture, coverUV);
+coverUV = clamp(coverUV, 0.0, 1.0);
+
+vec4 color = texture2D(uTexture, coverUV);
 
 color.rgb *= 1.35;
 
