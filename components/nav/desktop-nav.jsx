@@ -1030,10 +1030,23 @@ export default function Navbar() {
                   <span>Allentown · Bethlehem</span>
                   <span>Schnecksville · Lehighton</span>
 
-                  <div className="flex gap-4 pt-1">
-                    <a href="#">Instagram</a>
-                    <a href="#">Facebook</a>
-                  </div>
+                 <div className="flex gap-4 pt-1">
+  <a
+    href="https://www.instagram.com/freysmiles/?hl=en"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Instagram
+  </a>
+
+  <a
+    href="https://www.facebook.com/FreySmiles/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Facebook
+  </a>
+</div>
                 </div>
               </div>
 

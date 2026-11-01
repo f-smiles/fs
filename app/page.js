@@ -1687,7 +1687,7 @@ function FloatingBookButton() {
   return (
     <div className="fixed right-6 top-[10px] z-[160] mix-blend-difference md:right-[4vw] md:top-[10px]">
       <Link
-        href="/book-now"
+        href="https://freysmilesappointments.as.me/"
         className="frey-orbit-button"
         aria-label="Book Now"
       >
@@ -2607,7 +2607,7 @@ const Hero = () => {
               >
             <FlutedGlassEffect
   className="absolute inset-0 h-full w-full "
-  src="/videos/invisman.mp4"
+  src="/videos/silhouettealignerfinal2.mp4"
   autoPlay
   loop
   muted
