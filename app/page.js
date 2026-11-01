@@ -17,7 +17,6 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Line2, LineMaterial, LineGeometry } from "three-stdlib";
 import { Water } from "three/examples/jsm/objects/Water";
 import { Sky } from "three/examples/jsm/objects/Sky";
-import { Curtains, Plane } from "curtainsjs";
 import {
   Vector2,
   Vector4,
@@ -120,828 +119,828 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
 extend({ MeshLambertMaterial: THREE.MeshLambertMaterial });
 
-function Tunnel() {
-  const { camera } = useThree();
-  const scroll = useThreeScroll();
-
-  const path = useMemo(() => {
-    const rawPoints = [
-      [68.5, 185.5],
-      [1, 262.5],
-      [270.9, 281.9],
-      [345.5, 212.8],
-      [178, 155.7],
-      [240.3, 72.3],
-      [153.4, 0.6],
-      [52.6, 53.3],
-      [68.5, 185.5],
-    ];
-
-    const points = rawPoints.map(
-      ([x, y]) => new Vector3((x - 150) * 0.05, 8, (y - 150) * 0.05 - 5), // tunnel camera height is 8 to match door
-    );
-
-    return new THREE.CatmullRomCurve3(points, true);
-  }, []);
-
-  useFrame(() => {
-    const t = scroll.offset;
-
-    if (t < 0.4) return; // only control camera after door opens
-
-    const tunnelProgress = THREE.MathUtils.clamp((t - 0.4) / 1.2, 0, 1);
-    const tunnelT = (tunnelProgress * 2) % 1; // 2 loops
-    const p1 = path.getPointAt(tunnelT);
-    const p2 = path.getPointAt((tunnelT + 0.01) % 1);
-
-    camera.position.copy(p1);
-    camera.lookAt(p2);
-  });
-
-  return (
-    <group visible={scroll.offset > 0.39}>
-      <mesh>
-        <tubeGeometry args={[path, 300, 1.2, 20, true]} />
-        <meshStandardMaterial color="hotpink" wireframe />
-      </mesh>
-    </group>
-  );
-}
-
-function PortalScene() {
-  return null;
-}
-
-function DoorModel() {
-  const { scene, animations } = useGLTF("/models/openingclosingdoor3d.glb");
-  const mixer = useRef();
-  const actionRef = useRef();
-  const scroll = useThreeScroll();
-
-  useEffect(() => {
-    const textureLoader = new THREE.TextureLoader();
-    const matcap = textureLoader.load("/images/matcap-green-yellow-pink.png");
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshMatcapMaterial({ matcap });
-        child.material.needsUpdate = true;
-      }
-    });
-  }, [scene]);
-
-  useEffect(() => {
-    if (!animations.length) return;
-
-    mixer.current = new THREE.AnimationMixer(scene);
-
-    const relevantClips = animations.filter(
-      (a) => a.name === "Action" || a.name === "Curve.006Action",
-    );
-
-    relevantClips.forEach((clip) => {
-      const action = mixer.current.clipAction(clip);
-      action.reset();
-      action.paused = true;
-      action.play();
-      action.time = 0;
-    });
-
-    actionRef.current = relevantClips.map((clip) =>
-      mixer.current.clipAction(clip),
-    );
-    mixer.current.update(0);
-  }, [animations, scene]);
-
-  useFrame((_, delta) => {
-    if (!mixer.current || !actionRef.current) return;
-
-    const offset = scroll.offset;
-
-    actionRef.current.forEach((action) => {
-      const clip = action.getClip();
-      const clipStart = 0;
-      const clipEnd = clip.duration * 0.68;
-
-      // Door starts opening at t = 0.15, finishes at t = 0.4
-      const openStart = 0.15;
-      const openEnd = 0.4;
-
-      const openProgress = THREE.MathUtils.clamp(
-        (offset - openStart) / (openEnd - openStart),
-        0,
-        1,
-      );
-
-      const clampedTime = THREE.MathUtils.lerp(
-        clipStart,
-        clipEnd,
-        openProgress,
-      );
-
-      action.time = THREE.MathUtils.damp(action.time, clampedTime, 100, delta);
-    });
-
-    mixer.current.update(delta);
-  });
-
-  return (
-    <group position={[0, -0.5, -5]} rotation={[0, Math.PI, 0]} scale={6.25}>
-      <primitive object={scene} />
-    </group>
-  );
-}
-function InfiniteCorridor() {
-  const group = useRef();
-  const scroll = useThreeScroll();
-
-  const segmentCount = 30;
-  const segmentSpacing = 34;
-  const panelDepth = 21;
-
-  const panelOffset = 13;
-  const corridorWidth = panelOffset * 2;
-
-  const floorY = -6;
-  const corridorHeight = 26;
-  const ceilingY = floorY + corridorHeight;
-  const wallCenterY = floorY + corridorHeight / 2;
-  const corridorY = 4.6;
-
-  const panelPalette = ["#4a4a55", "#756d72", "#aaa39c", "#d4a5a5"];
-
-  useFrame(() => {
-    if (!group.current) return;
-
-    const progress = scroll.offset * segmentCount * segmentSpacing;
-
-    group.current.position.z = progress * 0.8;
-  });
-
-  return (
-    <group ref={group} position={[0, corridorY, 0]}>
-      {Array.from({ length: segmentCount }).map((_, i) => {
-        const z = -i * segmentSpacing;
-
-        const opacity = Math.max(0, 1 - (i / segmentCount) * 1.2);
-
-        // Each new rectangle rotates the complete
-        // lighting arrangement clockwise by 90 degrees.
-        const getPanelColor = (sideIndex) => {
-          const paletteIndex = (sideIndex - i + 4) % 4;
-
-          return panelPalette[paletteIndex];
-        };
-
-        return (
-          <group key={i} position={[0, 0, z]}>
-            {/* Left: side index 3 */}
-            <mesh
-              position={[-panelOffset, wallCenterY, 0]}
-              rotation={[0, Math.PI / 2, 0]}
-            >
-              <planeGeometry args={[panelDepth, corridorHeight]} />
-
-              <meshStandardMaterial
-                color={getPanelColor(3)}
-                emissive="#222222"
-                roughness={0.15}
-                metalness={0.95}
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-
-            {/* Right: side index 1 */}
-            <mesh
-              position={[panelOffset, wallCenterY, 0]}
-              rotation={[0, -Math.PI / 2, 0]}
-            >
-              <planeGeometry args={[panelDepth, corridorHeight]} />
-
-              <meshStandardMaterial
-                color={getPanelColor(1)}
-                emissive="#222222"
-                roughness={0.15}
-                metalness={0.95}
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-
-            {/* Top: side index 0 */}
-            <mesh position={[0, ceilingY, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[corridorWidth, panelDepth]} />
-
-              <meshStandardMaterial
-                color={getPanelColor(0)}
-                emissive="#222222"
-                roughness={0.15}
-                metalness={0.95}
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-
-            {/* Bottom: side index 2 */}
-            <mesh position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[corridorWidth, panelDepth]} />
-
-              <meshStandardMaterial
-                color={getPanelColor(2)}
-                emissive="#222222"
-                roughness={0.15}
-                metalness={0.95}
-                transparent
-                opacity={opacity}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
-const WATER_Y = -2;
-const RING_RADIUS = 10;
-const RING_SUBMERSION = 2.75;
-
-const RING_CENTER_Y = WATER_Y + RING_RADIUS - RING_SUBMERSION;
-function NeonRing({ waterY = -2, submersion = 0.75 }) {
-  const group = useRef();
-  const shaderRef = useRef();
-  const scroll = useThreeScroll();
-
-  const ringRadius = 10;
-
-  const ringCenterY = waterY + ringRadius - submersion;
-
-  const ringMaterial = useMemo(() => {
-    const material = new THREE.MeshStandardMaterial({
-      color: "#ff5b9d",
-      emissive: "#ff146f",
-      emissiveIntensity: 4.1,
-
-      roughness: 0.25,
-      metalness: 0.03,
-
-      transparent: true,
-      opacity: 0.98,
-
-      toneMapped: false,
-    });
-
-    material.onBeforeCompile = (shader) => {
-      shader.uniforms.uTime = {
-        value: 0,
-      };
-
-      shader.vertexShader = `
-        uniform float uTime;
-        ${shader.vertexShader}
-      `;
-
-      shader.vertexShader = shader.vertexShader.replace(
-        "#include <begin_vertex>",
-        `
-            vec3 transformed =
-              vec3(position);
-
-            float ringAngle = atan(
-              position.y,
-              position.x
-            );
-
-            float slowWave =
-              sin(
-                ringAngle * 5.0 +
-                uTime * 0.48
-              ) * 0.032;
-
-            float middleWave =
-              sin(
-                ringAngle * 13.0 -
-                uTime * 0.9
-              ) * 0.022;
-
-            float fineWave =
-              sin(
-                ringAngle * 31.0 +
-                uTime * 1.5
-              ) * 0.01;
-
-            float liquidPeak =
-              pow(
-                max(
-                  0.0,
-                  sin(
-                    ringAngle * 4.0 -
-                    uTime * 0.62
-                  )
-                ),
-                12.0
-              );
-
-            vec2 radialDirection =
-              normalize(position.xy);
-
-            float radialMovement =
-              slowWave +
-              middleWave +
-              fineWave +
-              liquidPeak * 0.095;
-
-            transformed.xy +=
-              radialDirection *
-              radialMovement;
-
-            transformed +=
-              normal *
-              liquidPeak *
-              0.035;
-          `,
-      );
-
-      shaderRef.current = shader;
-    };
-
-    material.customProgramCacheKey = () => "animated-neon-ring-v2";
-
-    return material;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      ringMaterial.dispose();
-    };
-  }, [ringMaterial]);
-
-  useFrame(({ clock }) => {
-    const time = clock.getElapsedTime();
-
-    if (shaderRef.current) {
-      shaderRef.current.uniforms.uTime.value = time * 2.9;
-    }
-
-    if (!group.current) return;
-
-    group.current.rotation.z =
-      scroll.offset * 0.22 + Math.sin(time * 0.13) * 0.008;
-
-    const breath = 1 + Math.sin(time * 0.8) * 0.0015;
-
-    group.current.scale.setScalar(breath);
-  });
-
-  return (
-    <group ref={group} position={[0, ringCenterY, -8]}>
-      <mesh>
-        <torusGeometry args={[ringRadius, 0.028, 12, 512]} />
-
-        <primitive object={ringMaterial} attach="material" />
-      </mesh>
-    </group>
-  );
-}
-
-function ReflectionCard({ position, rotation, size, color, intensity = 1 }) {
-  const uniforms = useMemo(
-    () => ({
-      uColor: { value: new THREE.Color(color) },
-      uIntensity: { value: intensity },
-    }),
-    [color, intensity],
-  );
-
-  return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      onUpdate={(mesh) => mesh.layers.set(1)}
-    >
-      <planeGeometry args={[size, size]} />
-      <shaderMaterial
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        side={THREE.DoubleSide}
-        toneMapped={false}
-        vertexShader={`
-          varying vec2 vUv;
-
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix
-              * modelViewMatrix
-              * vec4(position, 1.0);
-          }
-        `}
-        fragmentShader={`
-          uniform vec3 uColor;
-          uniform float uIntensity;
-          varying vec2 vUv;
-
-          void main() {
-            vec2 p = vUv * 2.0 - 1.0;
-            float softness =
-              1.0 - smoothstep(0.15, 0.95, length(p));
-
-            gl_FragColor = vec4(
-              uColor * uIntensity,
-              softness * 0.85
-            );
-          }
-        `}
-      />
-    </mesh>
-  );
-}
-function FloatingCube({ waterY = WATER_Y, position = [-5, 0, 2], size = 2.4 }) {
-  const floatRef = useRef();
-  const cubeRef = useRef();
-  const cameraRef = useRef();
-
-  const restingY = waterY + size * 0.42;
-
-  useEffect(() => {
-    if (!cameraRef.current) return;
-
-    cameraRef.current.traverse((object) => {
-      if (object.isCamera) {
-        object.layers.enable(1);
-      }
-    });
-  }, []);
-
-  useFrame(({ clock }, delta) => {
-    if (!floatRef.current || !cubeRef.current) {
-      return;
-    }
-
-    const time = clock.getElapsedTime();
-
-    const targetY =
-      restingY + Math.sin(time * 0.85) * 0.16 + Math.sin(time * 1.7) * 0.035;
-
-    floatRef.current.position.y = THREE.MathUtils.damp(
-      floatRef.current.position.y,
-      targetY,
-      3.5,
-      delta,
-    );
-
-    cubeRef.current.rotation.x = Math.sin(time * 0.72) * 0.075;
-
-    cubeRef.current.rotation.z = Math.sin(time * 0.58 + 1.2) * 0.095;
-
-    cubeRef.current.rotation.y += delta * 0.035;
-  });
-
-  return (
-    <group ref={floatRef} position={[position[0], restingY, position[2]]}>
-      {/* Mauve frontal reflection */}
-      <ReflectionCard
-        position={[0, size * 0.45, size * 2]}
-        rotation={[0, Math.PI, 0]}
-        size={size * 2.7}
-        color="#e2bfd2"
-        intensity={2.0}
-      />
-
-      {/* Pale lilac highlight */}
-      <ReflectionCard
-        position={[-size * 1.8, size * 0.25, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        size={size * 2.2}
-        color="#f5e3ed"
-        intensity={2.6}
-      />
-
-      {/* Deeper purple-rose overhead reflection */}
-      <ReflectionCard
-        position={[0, size * 1.9, 0]}
-        rotation={[Math.PI / 2, 0, 0]}
-        size={size * 2.5}
-        color="#c696b2"
-        intensity={1.6}
-      />
-      <CubeCamera
-        ref={cameraRef}
-        resolution={256}
-        near={0.1}
-        far={20000}
-        frames={Infinity}
-      >
-        {(cubeEnvironment) => (
-          <RoundedBox
-            ref={cubeRef}
-            args={[size, size, size]}
-            radius={size * 0.008}
-            smoothness={4}
-          >
-            <meshPhysicalMaterial
-              color="#d9b4c7"
-              envMap={cubeEnvironment}
-              envMapIntensity={3.0}
-              metalness={0.9}
-              roughness={0.12}
-              clearcoat={1}
-              clearcoatRoughness={0.025}
-              emissive="#684b65"
-              emissiveIntensity={0.1}
-              transparent={false}
-              transmission={0}
-            />
-          </RoundedBox>
-        )}
-      </CubeCamera>
-    </group>
-  );
-}
-const OceanScene = () => {
-  const scroll = useThreeScroll();
-  const { scene, gl, camera } = useThree();
-
-  const waterRef = useRef();
-  const smoothedScroll = useRef(0);
-  const enteredPortalRef = useRef(false);
-
-  const [enteredPortal, setEnteredPortal] = useState(false);
-
-  useEffect(() => {
-    const previousFog = scene.fog;
-
-    const previousEnvironment = scene.environment;
-
-    const previousToneMapping = gl.toneMapping;
-
-    const previousExposure = gl.toneMappingExposure;
-
-    const previousClearColor = new THREE.Color();
-
-    gl.getClearColor(previousClearColor);
-
-    const previousClearAlpha = gl.getClearAlpha();
-
-    const horizonColor = 0x66545c;
-
-    scene.fog = new THREE.FogExp2(horizonColor, 0.0016);
-
-    gl.setClearColor(0x000000, 0);
-
-    gl.outputColorSpace = THREE.SRGBColorSpace;
-
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-
-    gl.toneMappingExposure = 0.95;
-
-    const waterNormals = new THREE.TextureLoader().load(
-      "https://threejs.org/examples/textures/waternormals.jpg",
-    );
-
-    waterNormals.wrapS = THREE.RepeatWrapping;
-
-    waterNormals.wrapT = THREE.RepeatWrapping;
-
-    const water = new Water(new THREE.PlaneGeometry(10000, 10000), {
-      textureWidth: 512,
-      textureHeight: 512,
-
-      waterNormals,
-
-      sunDirection: new THREE.Vector3(),
-
-      sunColor: 0xffbdcc,
-      waterColor: 0x242126,
-
-      distortionScale: 3.2,
-      fog: true,
-    });
-
-    water.rotation.x = -Math.PI / 2;
-
-    water.position.y = WATER_Y;
-
-    scene.add(water);
-    waterRef.current = water;
-
-    const sky = new Sky();
-
-    sky.scale.setScalar(10000);
-
-    const skyUniforms = sky.material.uniforms;
-
-    skyUniforms.turbidity.value = 12;
-
-    skyUniforms.rayleigh.value = 1.25;
-
-    skyUniforms.mieCoefficient.value = 0.012;
-
-    skyUniforms.mieDirectionalG.value = 0.86;
-
-    sky.material.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        "#include <tonemapping_fragment>",
-        `
-            float skyHeight = clamp(
-              normalize(
-                vWorldPosition
-              ).y,
-              0.0,
-              1.0
-            );
-
-            float horizonInfluence =
-              1.0 -
-              smoothstep(
-                0.0,
-                0.38,
-                skyHeight
-              );
-
-            float middleInfluence =
-              1.0 -
-              smoothstep(
-                0.18,
-                0.72,
-                skyHeight
-              );
-
-            vec3 upperGray = vec3(
-              0.245,
-              0.235,
-              0.240
-            );
-
-            vec3 middleGrayMauve =
-              vec3(
-                0.315,
-                0.270,
-                0.285
-              );
-
-            vec3 horizonPink = vec3(
-              0.470,
-              0.300,
-              0.355
-            );
-
-            vec3 grayPinkSky = mix(
-              upperGray,
-              middleGrayMauve,
-              middleInfluence
-            );
-
-            grayPinkSky = mix(
-              grayPinkSky,
-              horizonPink,
-              horizonInfluence * 0.72
-            );
-
-            gl_FragColor.rgb = mix(
-              gl_FragColor.rgb,
-              grayPinkSky,
-              0.88
-            );
-
-            #include <tonemapping_fragment>
-          `,
-      );
-    };
-
-    sky.material.needsUpdate = true;
-
-    scene.add(sky);
-
-    const sun = new THREE.Vector3();
-
-    const theta = Math.PI * (0.495 - 0.47);
-
-    const phi = 2 * Math.PI * (0.205 - 0.5);
-
-    sun.x = Math.cos(phi);
-
-    sun.y = Math.sin(phi) * Math.sin(theta);
-
-    sun.z = Math.sin(phi) * Math.cos(theta);
-
-    skyUniforms.sunPosition.value.copy(sun);
-    RectAreaLightUniformsLib.init();
-
-    const cubeCenter = new THREE.Vector3(-26.5, WATER_Y + 7.4 * 0.42, -27);
-
-    const cubeKeyLight = new THREE.RectAreaLight(0xe1b4ca, 7.5, 18, 22);
-
-    cubeKeyLight.position.set(-14, 11, -12);
-
-    cubeKeyLight.lookAt(cubeCenter);
-
-    const cubeFillLight = new THREE.RectAreaLight(0x9f899f, 2.2, 14, 18);
-
-    cubeFillLight.position.set(-39, 5, -19);
-
-    cubeFillLight.lookAt(cubeCenter);
-
-    const cubeGlintLight = new THREE.PointLight(0xf6becf, 1.8, 35, 2);
-    cubeGlintLight.position.set(-21, WATER_Y + 5, -19);
-
-    scene.add(cubeKeyLight, cubeFillLight, cubeGlintLight);
-    water.material.uniforms.sunDirection.value.copy(sun).normalize();
-
-    const pmrem = new THREE.PMREMGenerator(gl);
-
-    const environmentTarget = pmrem.fromScene(sky);
-
-    scene.environment = environmentTarget.texture;
-
-    return () => {
-      scene.remove(water, sky, cubeKeyLight, cubeFillLight, cubeGlintLight);
-
-      scene.fog = previousFog;
-
-      scene.environment = previousEnvironment;
-
-      gl.toneMapping = previousToneMapping;
-
-      gl.toneMappingExposure = previousExposure;
-
-      gl.setClearColor(previousClearColor, previousClearAlpha);
-
-      waterRef.current = null;
-
-      water.geometry.dispose();
-      water.material.dispose();
-      waterNormals.dispose();
-
-      sky.geometry.dispose();
-      sky.material.dispose();
-
-      environmentTarget.dispose();
-      pmrem.dispose();
-    };
-  }, [scene, gl]);
-
-  useFrame((_, delta) => {
-    smoothedScroll.current = THREE.MathUtils.damp(
-      smoothedScroll.current,
-      scroll.offset,
-      6,
-      delta,
-    );
-
-    const t = THREE.MathUtils.smoothstep(smoothedScroll.current, 0, 1);
-
-    const cameraZ = THREE.MathUtils.lerp(35, -70, t);
-
-    camera.position.set(0, RING_CENTER_Y, cameraZ);
-
-    camera.lookAt(0, RING_CENTER_Y, cameraZ - 100);
-
-    const shouldEnterPortal = cameraZ <= -5;
-
-    if (shouldEnterPortal !== enteredPortalRef.current) {
-      enteredPortalRef.current = shouldEnterPortal;
-
-      setEnteredPortal(shouldEnterPortal);
-    }
-
-    if (waterRef.current) {
-      waterRef.current.material.uniforms.time.value += delta * 0.18;
-    }
-  });
-
-  return (
-    <>
-      <NeonRing waterY={WATER_Y} submersion={RING_SUBMERSION} />
-
-      <FloatingCube waterY={WATER_Y} position={[-26.5, 0, -27]} size={7.4} />
-
-      <EffectComposer multisampling={8}>
-        <Bloom
-          mipmapBlur
-          intensity={2.9}
-          luminanceThreshold={0.62}
-          luminanceSmoothing={0.9}
-          resolutionX={1024}
-          resolutionY={1024}
-        />
-      </EffectComposer>
-    </>
-  );
-};
-const ScrollTracker = ({ onScrollChange }) => {
-  const scroll = useThreeScroll();
-
-  useFrame(() => {
-    onScrollChange(scroll.offset);
-  });
-
-  return null;
-};
+// function Tunnel() {
+//   const { camera } = useThree();
+//   const scroll = useThreeScroll();
+
+//   const path = useMemo(() => {
+//     const rawPoints = [
+//       [68.5, 185.5],
+//       [1, 262.5],
+//       [270.9, 281.9],
+//       [345.5, 212.8],
+//       [178, 155.7],
+//       [240.3, 72.3],
+//       [153.4, 0.6],
+//       [52.6, 53.3],
+//       [68.5, 185.5],
+//     ];
+
+//     const points = rawPoints.map(
+//       ([x, y]) => new Vector3((x - 150) * 0.05, 8, (y - 150) * 0.05 - 5), // tunnel camera height is 8 to match door
+//     );
+
+//     return new THREE.CatmullRomCurve3(points, true);
+//   }, []);
+
+//   useFrame(() => {
+//     const t = scroll.offset;
+
+//     if (t < 0.4) return; // only control camera after door opens
+
+//     const tunnelProgress = THREE.MathUtils.clamp((t - 0.4) / 1.2, 0, 1);
+//     const tunnelT = (tunnelProgress * 2) % 1; // 2 loops
+//     const p1 = path.getPointAt(tunnelT);
+//     const p2 = path.getPointAt((tunnelT + 0.01) % 1);
+
+//     camera.position.copy(p1);
+//     camera.lookAt(p2);
+//   });
+
+//   return (
+//     <group visible={scroll.offset > 0.39}>
+//       <mesh>
+//         <tubeGeometry args={[path, 300, 1.2, 20, true]} />
+//         <meshStandardMaterial color="hotpink" wireframe />
+//       </mesh>
+//     </group>
+//   );
+// }
+
+// function PortalScene() {
+//   return null;
+// }
+
+// function DoorModel() {
+//   const { scene, animations } = useGLTF("/models/openingclosingdoor3d.glb");
+//   const mixer = useRef();
+//   const actionRef = useRef();
+//   const scroll = useThreeScroll();
+
+//   useEffect(() => {
+//     const textureLoader = new THREE.TextureLoader();
+//     const matcap = textureLoader.load("/images/matcap-green-yellow-pink.png");
+//     scene.traverse((child) => {
+//       if (child.isMesh) {
+//         child.material = new THREE.MeshMatcapMaterial({ matcap });
+//         child.material.needsUpdate = true;
+//       }
+//     });
+//   }, [scene]);
+
+//   useEffect(() => {
+//     if (!animations.length) return;
+
+//     mixer.current = new THREE.AnimationMixer(scene);
+
+//     const relevantClips = animations.filter(
+//       (a) => a.name === "Action" || a.name === "Curve.006Action",
+//     );
+
+//     relevantClips.forEach((clip) => {
+//       const action = mixer.current.clipAction(clip);
+//       action.reset();
+//       action.paused = true;
+//       action.play();
+//       action.time = 0;
+//     });
+
+//     actionRef.current = relevantClips.map((clip) =>
+//       mixer.current.clipAction(clip),
+//     );
+//     mixer.current.update(0);
+//   }, [animations, scene]);
+
+//   useFrame((_, delta) => {
+//     if (!mixer.current || !actionRef.current) return;
+
+//     const offset = scroll.offset;
+
+//     actionRef.current.forEach((action) => {
+//       const clip = action.getClip();
+//       const clipStart = 0;
+//       const clipEnd = clip.duration * 0.68;
+
+//       // Door starts opening at t = 0.15, finishes at t = 0.4
+//       const openStart = 0.15;
+//       const openEnd = 0.4;
+
+//       const openProgress = THREE.MathUtils.clamp(
+//         (offset - openStart) / (openEnd - openStart),
+//         0,
+//         1,
+//       );
+
+//       const clampedTime = THREE.MathUtils.lerp(
+//         clipStart,
+//         clipEnd,
+//         openProgress,
+//       );
+
+//       action.time = THREE.MathUtils.damp(action.time, clampedTime, 100, delta);
+//     });
+
+//     mixer.current.update(delta);
+//   });
+
+//   return (
+//     <group position={[0, -0.5, -5]} rotation={[0, Math.PI, 0]} scale={6.25}>
+//       <primitive object={scene} />
+//     </group>
+//   );
+// }
+// function InfiniteCorridor() {
+//   const group = useRef();
+//   const scroll = useThreeScroll();
+
+//   const segmentCount = 30;
+//   const segmentSpacing = 34;
+//   const panelDepth = 21;
+
+//   const panelOffset = 13;
+//   const corridorWidth = panelOffset * 2;
+
+//   const floorY = -6;
+//   const corridorHeight = 26;
+//   const ceilingY = floorY + corridorHeight;
+//   const wallCenterY = floorY + corridorHeight / 2;
+//   const corridorY = 4.6;
+
+//   const panelPalette = ["#4a4a55", "#756d72", "#aaa39c", "#d4a5a5"];
+
+//   useFrame(() => {
+//     if (!group.current) return;
+
+//     const progress = scroll.offset * segmentCount * segmentSpacing;
+
+//     group.current.position.z = progress * 0.8;
+//   });
+
+//   return (
+//     <group ref={group} position={[0, corridorY, 0]}>
+//       {Array.from({ length: segmentCount }).map((_, i) => {
+//         const z = -i * segmentSpacing;
+
+//         const opacity = Math.max(0, 1 - (i / segmentCount) * 1.2);
+
+//         // Each new rectangle rotates the complete
+//         // lighting arrangement clockwise by 90 degrees.
+//         const getPanelColor = (sideIndex) => {
+//           const paletteIndex = (sideIndex - i + 4) % 4;
+
+//           return panelPalette[paletteIndex];
+//         };
+
+//         return (
+//           <group key={i} position={[0, 0, z]}>
+//             {/* Left: side index 3 */}
+//             <mesh
+//               position={[-panelOffset, wallCenterY, 0]}
+//               rotation={[0, Math.PI / 2, 0]}
+//             >
+//               <planeGeometry args={[panelDepth, corridorHeight]} />
+
+//               <meshStandardMaterial
+//                 color={getPanelColor(3)}
+//                 emissive="#222222"
+//                 roughness={0.15}
+//                 metalness={0.95}
+//                 transparent
+//                 opacity={opacity}
+//                 side={THREE.DoubleSide}
+//               />
+//             </mesh>
+
+//             {/* Right: side index 1 */}
+//             <mesh
+//               position={[panelOffset, wallCenterY, 0]}
+//               rotation={[0, -Math.PI / 2, 0]}
+//             >
+//               <planeGeometry args={[panelDepth, corridorHeight]} />
+
+//               <meshStandardMaterial
+//                 color={getPanelColor(1)}
+//                 emissive="#222222"
+//                 roughness={0.15}
+//                 metalness={0.95}
+//                 transparent
+//                 opacity={opacity}
+//                 side={THREE.DoubleSide}
+//               />
+//             </mesh>
+
+//             {/* Top: side index 0 */}
+//             <mesh position={[0, ceilingY, 0]} rotation={[Math.PI / 2, 0, 0]}>
+//               <planeGeometry args={[corridorWidth, panelDepth]} />
+
+//               <meshStandardMaterial
+//                 color={getPanelColor(0)}
+//                 emissive="#222222"
+//                 roughness={0.15}
+//                 metalness={0.95}
+//                 transparent
+//                 opacity={opacity}
+//                 side={THREE.DoubleSide}
+//               />
+//             </mesh>
+
+//             {/* Bottom: side index 2 */}
+//             <mesh position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+//               <planeGeometry args={[corridorWidth, panelDepth]} />
+
+//               <meshStandardMaterial
+//                 color={getPanelColor(2)}
+//                 emissive="#222222"
+//                 roughness={0.15}
+//                 metalness={0.95}
+//                 transparent
+//                 opacity={opacity}
+//                 side={THREE.DoubleSide}
+//               />
+//             </mesh>
+//           </group>
+//         );
+//       })}
+//     </group>
+//   );
+// }
+
+// const WATER_Y = -2;
+// const RING_RADIUS = 10;
+// const RING_SUBMERSION = 2.75;
+
+// const RING_CENTER_Y = WATER_Y + RING_RADIUS - RING_SUBMERSION;
+// function NeonRing({ waterY = -2, submersion = 0.75 }) {
+//   const group = useRef();
+//   const shaderRef = useRef();
+//   const scroll = useThreeScroll();
+
+//   const ringRadius = 10;
+
+//   const ringCenterY = waterY + ringRadius - submersion;
+
+//   const ringMaterial = useMemo(() => {
+//     const material = new THREE.MeshStandardMaterial({
+//       color: "#ff5b9d",
+//       emissive: "#ff146f",
+//       emissiveIntensity: 4.1,
+
+//       roughness: 0.25,
+//       metalness: 0.03,
+
+//       transparent: true,
+//       opacity: 0.98,
+
+//       toneMapped: false,
+//     });
+
+//     material.onBeforeCompile = (shader) => {
+//       shader.uniforms.uTime = {
+//         value: 0,
+//       };
+
+//       shader.vertexShader = `
+//         uniform float uTime;
+//         ${shader.vertexShader}
+//       `;
+
+//       shader.vertexShader = shader.vertexShader.replace(
+//         "#include <begin_vertex>",
+//         `
+//             vec3 transformed =
+//               vec3(position);
+
+//             float ringAngle = atan(
+//               position.y,
+//               position.x
+//             );
+
+//             float slowWave =
+//               sin(
+//                 ringAngle * 5.0 +
+//                 uTime * 0.48
+//               ) * 0.032;
+
+//             float middleWave =
+//               sin(
+//                 ringAngle * 13.0 -
+//                 uTime * 0.9
+//               ) * 0.022;
+
+//             float fineWave =
+//               sin(
+//                 ringAngle * 31.0 +
+//                 uTime * 1.5
+//               ) * 0.01;
+
+//             float liquidPeak =
+//               pow(
+//                 max(
+//                   0.0,
+//                   sin(
+//                     ringAngle * 4.0 -
+//                     uTime * 0.62
+//                   )
+//                 ),
+//                 12.0
+//               );
+
+//             vec2 radialDirection =
+//               normalize(position.xy);
+
+//             float radialMovement =
+//               slowWave +
+//               middleWave +
+//               fineWave +
+//               liquidPeak * 0.095;
+
+//             transformed.xy +=
+//               radialDirection *
+//               radialMovement;
+
+//             transformed +=
+//               normal *
+//               liquidPeak *
+//               0.035;
+//           `,
+//       );
+
+//       shaderRef.current = shader;
+//     };
+
+//     material.customProgramCacheKey = () => "animated-neon-ring-v2";
+
+//     return material;
+//   }, []);
+
+//   useEffect(() => {
+//     return () => {
+//       ringMaterial.dispose();
+//     };
+//   }, [ringMaterial]);
+
+//   useFrame(({ clock }) => {
+//     const time = clock.getElapsedTime();
+
+//     if (shaderRef.current) {
+//       shaderRef.current.uniforms.uTime.value = time * 2.9;
+//     }
+
+//     if (!group.current) return;
+
+//     group.current.rotation.z =
+//       scroll.offset * 0.22 + Math.sin(time * 0.13) * 0.008;
+
+//     const breath = 1 + Math.sin(time * 0.8) * 0.0015;
+
+//     group.current.scale.setScalar(breath);
+//   });
+
+//   return (
+//     <group ref={group} position={[0, ringCenterY, -8]}>
+//       <mesh>
+//         <torusGeometry args={[ringRadius, 0.028, 12, 512]} />
+
+//         <primitive object={ringMaterial} attach="material" />
+//       </mesh>
+//     </group>
+//   );
+// }
+
+// function ReflectionCard({ position, rotation, size, color, intensity = 1 }) {
+//   const uniforms = useMemo(
+//     () => ({
+//       uColor: { value: new THREE.Color(color) },
+//       uIntensity: { value: intensity },
+//     }),
+//     [color, intensity],
+//   );
+
+//   return (
+//     <mesh
+//       position={position}
+//       rotation={rotation}
+//       onUpdate={(mesh) => mesh.layers.set(1)}
+//     >
+//       <planeGeometry args={[size, size]} />
+//       <shaderMaterial
+//         uniforms={uniforms}
+//         transparent
+//         depthWrite={false}
+//         side={THREE.DoubleSide}
+//         toneMapped={false}
+//         vertexShader={`
+//           varying vec2 vUv;
+
+//           void main() {
+//             vUv = uv;
+//             gl_Position = projectionMatrix
+//               * modelViewMatrix
+//               * vec4(position, 1.0);
+//           }
+//         `}
+//         fragmentShader={`
+//           uniform vec3 uColor;
+//           uniform float uIntensity;
+//           varying vec2 vUv;
+
+//           void main() {
+//             vec2 p = vUv * 2.0 - 1.0;
+//             float softness =
+//               1.0 - smoothstep(0.15, 0.95, length(p));
+
+//             gl_FragColor = vec4(
+//               uColor * uIntensity,
+//               softness * 0.85
+//             );
+//           }
+//         `}
+//       />
+//     </mesh>
+//   );
+// }
+// function FloatingCube({ waterY = WATER_Y, position = [-5, 0, 2], size = 2.4 }) {
+//   const floatRef = useRef();
+//   const cubeRef = useRef();
+//   const cameraRef = useRef();
+
+//   const restingY = waterY + size * 0.42;
+
+//   useEffect(() => {
+//     if (!cameraRef.current) return;
+
+//     cameraRef.current.traverse((object) => {
+//       if (object.isCamera) {
+//         object.layers.enable(1);
+//       }
+//     });
+//   }, []);
+
+//   useFrame(({ clock }, delta) => {
+//     if (!floatRef.current || !cubeRef.current) {
+//       return;
+//     }
+
+//     const time = clock.getElapsedTime();
+
+//     const targetY =
+//       restingY + Math.sin(time * 0.85) * 0.16 + Math.sin(time * 1.7) * 0.035;
+
+//     floatRef.current.position.y = THREE.MathUtils.damp(
+//       floatRef.current.position.y,
+//       targetY,
+//       3.5,
+//       delta,
+//     );
+
+//     cubeRef.current.rotation.x = Math.sin(time * 0.72) * 0.075;
+
+//     cubeRef.current.rotation.z = Math.sin(time * 0.58 + 1.2) * 0.095;
+
+//     cubeRef.current.rotation.y += delta * 0.035;
+//   });
+
+//   return (
+//     <group ref={floatRef} position={[position[0], restingY, position[2]]}>
+//       {/* Mauve frontal reflection */}
+//       <ReflectionCard
+//         position={[0, size * 0.45, size * 2]}
+//         rotation={[0, Math.PI, 0]}
+//         size={size * 2.7}
+//         color="#e2bfd2"
+//         intensity={2.0}
+//       />
+
+//       {/* Pale lilac highlight */}
+//       <ReflectionCard
+//         position={[-size * 1.8, size * 0.25, 0]}
+//         rotation={[0, Math.PI / 2, 0]}
+//         size={size * 2.2}
+//         color="#f5e3ed"
+//         intensity={2.6}
+//       />
+
+//       {/* Deeper purple-rose overhead reflection */}
+//       <ReflectionCard
+//         position={[0, size * 1.9, 0]}
+//         rotation={[Math.PI / 2, 0, 0]}
+//         size={size * 2.5}
+//         color="#c696b2"
+//         intensity={1.6}
+//       />
+//       <CubeCamera
+//         ref={cameraRef}
+//         resolution={256}
+//         near={0.1}
+//         far={20000}
+//         frames={Infinity}
+//       >
+//         {(cubeEnvironment) => (
+//           <RoundedBox
+//             ref={cubeRef}
+//             args={[size, size, size]}
+//             radius={size * 0.008}
+//             smoothness={4}
+//           >
+//             <meshPhysicalMaterial
+//               color="#d9b4c7"
+//               envMap={cubeEnvironment}
+//               envMapIntensity={3.0}
+//               metalness={0.9}
+//               roughness={0.12}
+//               clearcoat={1}
+//               clearcoatRoughness={0.025}
+//               emissive="#684b65"
+//               emissiveIntensity={0.1}
+//               transparent={false}
+//               transmission={0}
+//             />
+//           </RoundedBox>
+//         )}
+//       </CubeCamera>
+//     </group>
+//   );
+// }
+// const OceanScene = () => {
+//   const scroll = useThreeScroll();
+//   const { scene, gl, camera } = useThree();
+
+//   const waterRef = useRef();
+//   const smoothedScroll = useRef(0);
+//   const enteredPortalRef = useRef(false);
+
+//   const [enteredPortal, setEnteredPortal] = useState(false);
+
+//   useEffect(() => {
+//     const previousFog = scene.fog;
+
+//     const previousEnvironment = scene.environment;
+
+//     const previousToneMapping = gl.toneMapping;
+
+//     const previousExposure = gl.toneMappingExposure;
+
+//     const previousClearColor = new THREE.Color();
+
+//     gl.getClearColor(previousClearColor);
+
+//     const previousClearAlpha = gl.getClearAlpha();
+
+//     const horizonColor = 0x66545c;
+
+//     scene.fog = new THREE.FogExp2(horizonColor, 0.0016);
+
+//     gl.setClearColor(0x000000, 0);
+
+//     gl.outputColorSpace = THREE.SRGBColorSpace;
+
+//     gl.toneMapping = THREE.ACESFilmicToneMapping;
+
+//     gl.toneMappingExposure = 0.95;
+
+//     const waterNormals = new THREE.TextureLoader().load(
+//       "https://threejs.org/examples/textures/waternormals.jpg",
+//     );
+
+//     waterNormals.wrapS = THREE.RepeatWrapping;
+
+//     waterNormals.wrapT = THREE.RepeatWrapping;
+
+//     const water = new Water(new THREE.PlaneGeometry(10000, 10000), {
+//       textureWidth: 512,
+//       textureHeight: 512,
+
+//       waterNormals,
+
+//       sunDirection: new THREE.Vector3(),
+
+//       sunColor: 0xffbdcc,
+//       waterColor: 0x242126,
+
+//       distortionScale: 3.2,
+//       fog: true,
+//     });
+
+//     water.rotation.x = -Math.PI / 2;
+
+//     water.position.y = WATER_Y;
+
+//     scene.add(water);
+//     waterRef.current = water;
+
+//     const sky = new Sky();
+
+//     sky.scale.setScalar(10000);
+
+//     const skyUniforms = sky.material.uniforms;
+
+//     skyUniforms.turbidity.value = 12;
+
+//     skyUniforms.rayleigh.value = 1.25;
+
+//     skyUniforms.mieCoefficient.value = 0.012;
+
+//     skyUniforms.mieDirectionalG.value = 0.86;
+
+//     sky.material.onBeforeCompile = (shader) => {
+//       shader.fragmentShader = shader.fragmentShader.replace(
+//         "#include <tonemapping_fragment>",
+//         `
+//             float skyHeight = clamp(
+//               normalize(
+//                 vWorldPosition
+//               ).y,
+//               0.0,
+//               1.0
+//             );
+
+//             float horizonInfluence =
+//               1.0 -
+//               smoothstep(
+//                 0.0,
+//                 0.38,
+//                 skyHeight
+//               );
+
+//             float middleInfluence =
+//               1.0 -
+//               smoothstep(
+//                 0.18,
+//                 0.72,
+//                 skyHeight
+//               );
+
+//             vec3 upperGray = vec3(
+//               0.245,
+//               0.235,
+//               0.240
+//             );
+
+//             vec3 middleGrayMauve =
+//               vec3(
+//                 0.315,
+//                 0.270,
+//                 0.285
+//               );
+
+//             vec3 horizonPink = vec3(
+//               0.470,
+//               0.300,
+//               0.355
+//             );
+
+//             vec3 grayPinkSky = mix(
+//               upperGray,
+//               middleGrayMauve,
+//               middleInfluence
+//             );
+
+//             grayPinkSky = mix(
+//               grayPinkSky,
+//               horizonPink,
+//               horizonInfluence * 0.72
+//             );
+
+//             gl_FragColor.rgb = mix(
+//               gl_FragColor.rgb,
+//               grayPinkSky,
+//               0.88
+//             );
+
+//             #include <tonemapping_fragment>
+//           `,
+//       );
+//     };
+
+//     sky.material.needsUpdate = true;
+
+//     scene.add(sky);
+
+//     const sun = new THREE.Vector3();
+
+//     const theta = Math.PI * (0.495 - 0.47);
+
+//     const phi = 2 * Math.PI * (0.205 - 0.5);
+
+//     sun.x = Math.cos(phi);
+
+//     sun.y = Math.sin(phi) * Math.sin(theta);
+
+//     sun.z = Math.sin(phi) * Math.cos(theta);
+
+//     skyUniforms.sunPosition.value.copy(sun);
+//     RectAreaLightUniformsLib.init();
+
+//     const cubeCenter = new THREE.Vector3(-26.5, WATER_Y + 7.4 * 0.42, -27);
+
+//     const cubeKeyLight = new THREE.RectAreaLight(0xe1b4ca, 7.5, 18, 22);
+
+//     cubeKeyLight.position.set(-14, 11, -12);
+
+//     cubeKeyLight.lookAt(cubeCenter);
+
+//     const cubeFillLight = new THREE.RectAreaLight(0x9f899f, 2.2, 14, 18);
+
+//     cubeFillLight.position.set(-39, 5, -19);
+
+//     cubeFillLight.lookAt(cubeCenter);
+
+//     const cubeGlintLight = new THREE.PointLight(0xf6becf, 1.8, 35, 2);
+//     cubeGlintLight.position.set(-21, WATER_Y + 5, -19);
+
+//     scene.add(cubeKeyLight, cubeFillLight, cubeGlintLight);
+//     water.material.uniforms.sunDirection.value.copy(sun).normalize();
+
+//     const pmrem = new THREE.PMREMGenerator(gl);
+
+//     const environmentTarget = pmrem.fromScene(sky);
+
+//     scene.environment = environmentTarget.texture;
+
+//     return () => {
+//       scene.remove(water, sky, cubeKeyLight, cubeFillLight, cubeGlintLight);
+
+//       scene.fog = previousFog;
+
+//       scene.environment = previousEnvironment;
+
+//       gl.toneMapping = previousToneMapping;
+
+//       gl.toneMappingExposure = previousExposure;
+
+//       gl.setClearColor(previousClearColor, previousClearAlpha);
+
+//       waterRef.current = null;
+
+//       water.geometry.dispose();
+//       water.material.dispose();
+//       waterNormals.dispose();
+
+//       sky.geometry.dispose();
+//       sky.material.dispose();
+
+//       environmentTarget.dispose();
+//       pmrem.dispose();
+//     };
+//   }, [scene, gl]);
+
+//   useFrame((_, delta) => {
+//     smoothedScroll.current = THREE.MathUtils.damp(
+//       smoothedScroll.current,
+//       scroll.offset,
+//       6,
+//       delta,
+//     );
+
+//     const t = THREE.MathUtils.smoothstep(smoothedScroll.current, 0, 1);
+
+//     const cameraZ = THREE.MathUtils.lerp(35, -70, t);
+
+//     camera.position.set(0, RING_CENTER_Y, cameraZ);
+
+//     camera.lookAt(0, RING_CENTER_Y, cameraZ - 100);
+
+//     const shouldEnterPortal = cameraZ <= -5;
+
+//     if (shouldEnterPortal !== enteredPortalRef.current) {
+//       enteredPortalRef.current = shouldEnterPortal;
+
+//       setEnteredPortal(shouldEnterPortal);
+//     }
+
+//     if (waterRef.current) {
+//       waterRef.current.material.uniforms.time.value += delta * 0.18;
+//     }
+//   });
+
+//   return (
+//     <>
+//       <NeonRing waterY={WATER_Y} submersion={RING_SUBMERSION} />
+
+//       <FloatingCube waterY={WATER_Y} position={[-26.5, 0, -27]} size={7.4} />
+
+//       <EffectComposer multisampling={8}>
+//         <Bloom
+//           mipmapBlur
+//           intensity={2.9}
+//           luminanceThreshold={0.62}
+//           luminanceSmoothing={0.9}
+//           resolutionX={1024}
+//           resolutionY={1024}
+//         />
+//       </EffectComposer>
+//     </>
+//   );
+// };
+// const ScrollTracker = ({ onScrollChange }) => {
+//   const scroll = useThreeScroll();
+
+//   useFrame(() => {
+//     onScrollChange(scroll.offset);
+//   });
+
+//   return null;
+// };
 // const containerRef = useRef(null);
 
 // useEffect(() => {
@@ -1173,30 +1172,216 @@ const ScrollTracker = ({ onScrollChange }) => {
 
 // const { scrollY } = useScroll();
 // const y = useTransform(scrollY, (latest) => -latest * 0.5);
-function FSMark({ x, y, size = 80, rotation = 0 }) {
-  return (
-    <svg
-      x={x}
-      y={y}
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      overflow="visible"
+
+
+
+{
+  /* <div style={{ height: '100vh', width: '100vw' }}>
+      <Canvas camera={{ position: [0, 5, 30], fov: 50 }}>
+  <ambientLight intensity={0.5} />
+<pointLight position={[0, 0, 7]} intensity={0.1} color="#ff6b35" />
+    <ambientLight intensity={0.4} />
+    <directionalLight
+  position={[10, 15, 5]}
+  intensity={1.2}
+  color={"#ffe2c4"}  
+  castShadow
+/>
+  <ScrollControls pages={5} damping={0.1}>
+    <ScrollTracker onScrollChange={setScrollOffset} />
+
+    <OceanScene />
+    <Tunnel />
+  </ScrollControls>
+</Canvas>
+<div
+          style={{
+            position: "fixed",
+            top: "40%",
+            right: "37%",
+            transform: `translateY(${topTextTranslateY}px)`,
+            opacity,
+            zIndex: 10,
+            color: "white",
+            maxWidth: "350px",
+            textAlign: "left",
+
+            pointerEvents: "none",
+            transition:
+              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "16px",
+              lineHeight: "1.4",
+              marginBottom: "20px",
+              fontFamily: "Canela-ThinItalic",
+            }}
+          >
+            Every smile is a story. At our office, we guide
+            you through every step of your orthodontic journey — with advanced
+            treatment, personalized care, and results that go beyond the
+            ordinary.
+          </p>
+<div className="flex items-center gap-3">
+  <div className="text-[17px] font-canelathin">
+    Scroll To Discover
+  </div>
+  <div
+    style={{
+      width: "1.5em",
+      height: "1.5em",
+      borderRadius: "50%",
+      overflow: "hidden",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <video
+      id="holovideo"
+      loop
+      muted
+      autoPlay
+      playsInline
+      preload="metadata"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        transform: "scale(1.25)",
+        boxShadow: "0 0 50px #ebe6ff80",
+      }}
     >
-      <g fill="#000" transform={`rotate(${rotation} 8 8)`}>
-        <path d="M3,4.75h0c.55,0,1,.45,1,1v1h-1c-.55,0-1-.45-1-1h0c0-.55.45-1,1-1Z" />
-        <path d="M3,7h1v1c0,.55-.45,1-1,1h0c-.55,0-1-.45-1-1h0c0-.55.45-1,1-1Z" />
-        <path d="M3,9.25h1v1c0,.55-.45,1-1,1h-1v-1c0-.55.45-1,1-1Z" />
-        <path d="M5.25,4.75h1c.55,0,1,.45,1,1h0c0,.55-.45,1-1,1h-2v-1c0-.55.45-1,1-1Z" />
-        <path d="M4.25,7h1c.55,0,1,.45,1,1h0c0,.55-.45,1-1,1h-1v-2h0Z" />
-        <path d="M9.06,4.75h1.56v3.12h-1.56c-.86,0-1.56-.7-1.56-1.56h0c0-.86.7-1.56,1.56-1.56Z" />
-        <path d="M10.87,4.75h1.56c.86,0,1.56.7,1.56,1.56v1.56h-1.56c-.86,0-1.56-.7-1.56-1.56v-1.56h0Z" />
-        <path d="M7.5,8.12h1.56c.86,0,1.56.7,1.56,1.56v1.56h-1.56c-.86,0-1.56-.7-1.56-1.56v-1.56h0Z" />
-        <path d="M10.87,8.12h1.56c.86,0,1.56.7,1.56,1.56h0c0,.86-.7,1.56-1.56,1.56h-1.56v-3.13h0Z" />
-      </g>
-    </svg>
-  );
+      <source
+        src="https://cdn.refokus.com/ttr/speaking-ball.mp4"
+        type="video/mp4"
+      />
+      Your browser does not support the video tag.
+    </video>
+  </div>
+</div>
+        </div>
+
+        <div
+          style={{
+            position: "fixed",
+            top: "95%",
+            right: "10%",
+            transform: `translateY(${bottomTextTranslateY}px)`,
+            opacity: bottomTextOpacity,
+            transition: "all 0.2s linear",
+            zIndex: 10,
+            color: "white",
+            maxWidth: "400px",
+            textAlign: "left",
+            textTransform: "uppercase",
+            pointerEvents: "none",
+            transition:
+              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "12px",
+              lineHeight: "1.4",
+              marginBottom: "20px",
+              fontFamily: "KHTekaTrial-Light",
+            }}
+          >
+     
+     Modern care. Designed to move with you
+          </p>
+        </div>
+    </div> */
 }
+{
+  /* <div style={{ height: "200vh", margin: 0 }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 0,
+          }}
+        >
+          <Canvas>
+            <ScrollControls pages={3} damping={0.1}>
+              <ScrollTracker onScrollChange={setScrollOffset} />
+              <OceanScene />
+            </ScrollControls>
+          </Canvas>
+        </div>
+
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            right: "10%",
+            transform: `translateY(${topTextTranslateY}px)`,
+            opacity,
+            zIndex: 10,
+            color: "white",
+            maxWidth: "400px",
+            textAlign: "left",
+            textTransform: "uppercase",
+            pointerEvents: "none",
+            transition:
+              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "12px",
+              lineHeight: "1.4",
+              marginBottom: "20px",
+              fontFamily: "KHTekaTrial-Light",
+            }}
+          >
+            Behind every smile lies a story in progress. At our office, we guide
+            you through every step of your orthodontic journey — with advanced
+            treatment, personalized care, and results that go beyond the
+            ordinary.
+          </p>
+          <div className="font-khteka">Scroll To Discover</div>
+        </div>
+
+        <div
+          style={{
+            position: "fixed",
+            top: "95%",
+            right: "10%",
+            transform: `translateY(${bottomTextTranslateY}px)`,
+            opacity: bottomTextOpacity,
+            transition: "all 0.2s linear",
+            zIndex: 10,
+            color: "white",
+            maxWidth: "400px",
+            textAlign: "left",
+            textTransform: "uppercase",
+            pointerEvents: "none",
+            transition:
+              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "12px",
+              lineHeight: "1.4",
+              marginBottom: "20px",
+              fontFamily: "KHTekaTrial-Light",
+            }}
+          >
+     
+     Modern care. Designed to move with you
+          </p>
+        </div>
+      </div> */
+}
+
 function FreyMobileSkyMarquee() {
   const skyRef = useRef(null);
   const [maskReady, setMaskReady] = useState(false);
@@ -1279,34 +1464,250 @@ function FreyMobileSkyMarquee() {
     </div>
   );
 }
+const SKY_PRESETS = {
+  day: {
+    background: "#90b1e3",
+    ambient: 1.5,
+    directional: 2,
+    colors: ["#55BFFF", "#91D9FF", "#C5EEFF", "#78CAFF"],
+  },
+  night: {
+    background: "#171C26",
+    ambient: 0.35,
+    directional: 0.5,
+    colors: ["#263653", "#344362", "#202F4D", "#415071"],
+  },
+
+  sunset: {
+    background: "#E99A92",
+    ambient: 1.5,
+    directional: 2.0,
+    colors: ["#B97883", "#987B91", "#D58B88", "#F3BC91", "#AA7888", "#E9A59A"],
+  },
+};
+function RealisticMoon({ scale = 1.7 }) {
+  const moonRef = useRef();
+  const { viewport } = useThree();
+
+  const moonTexture = useTexture("/images/moon.png");
+  moonTexture.colorSpace = THREE.SRGBColorSpace;
+
+  const glowTexture = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext("2d");
+
+    const gradient = ctx.createRadialGradient(128, 128, 30, 128, 128, 128);
+
+    gradient.addColorStop(0, "rgba(235,242,255,0.45)");
+    gradient.addColorStop(0.3, "rgba(215,230,255,0.22)");
+    gradient.addColorStop(0.65, "rgba(195,215,255,0.07)");
+    gradient.addColorStop(1, "rgba(195,215,255,0)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    return new THREE.CanvasTexture(canvas);
+  }, []);
+
+  useEffect(() => {
+    return () => glowTexture.dispose();
+  }, [glowTexture]);
+
+  return (
+    <group position={[viewport.width * 0.18, viewport.height * 0.05, -10]}>
+      <group scale={scale}>
+        <sprite scale={[42, 42, 1]}>
+          <spriteMaterial
+            map={glowTexture}
+            transparent
+            opacity={0.8}
+            depthWrite={false}
+            depthTest={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </sprite>
+
+        <mesh ref={moonRef} renderOrder={1} scale={[0.85, 1, 1]}>
+          <sphereGeometry args={[8.5, 64, 64]} />
+
+          <meshStandardMaterial
+            map={moonTexture}
+            roughness={1}
+            metalness={0}
+            emissive="#B5BED0"
+            emissiveIntensity={0.18}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function MovingClouds({ skyMode = "day" }) {
+  const { viewport } = useThree();
+  const preset = SKY_PRESETS[skyMode] ?? SKY_PRESETS.day;
+
+  const cloudConfigs = [
+    {
+      x: 0.12,
+      y: 0.15,
+      z: -5,
+      size: 32,
+      opacity: 0.65,
+    },
+    {
+      x: 0.52,
+      y: -0.25,
+      z: -6,
+      size: 38,
+      opacity: 0.58,
+    },
+    {
+      x: 0.88,
+      y: 0.25,
+      z: -5,
+      size: 33,
+      opacity: 0.68,
+    },
+  ];
+  return (
+    <Clouds frustumCulled={false} limit={1000}>
+      {cloudConfigs.map((cloud, index) => (
+        <Cloud
+          key={index}
+          position={[(cloud.x - 0.5) * viewport.width, cloud.y, cloud.z]}
+          bounds={[cloud.size, 3, 2]}
+          volume={9}
+          color={preset.colors[index % preset.colors.length]}
+          opacity={cloud.opacity}
+          speed={0.3 + index * 0.05}
+          segments={14}
+        />
+      ))}
+    </Clouds>
+  );
+}
+
+const ALLENTOWN = {
+  latitude: 40.6084,
+  longitude: -75.4902,
+};
+
+function getPennsylvaniaSkyMode() {
+  const now = new Date();
+
+  const { sunrise, sunset, dusk } = SunCalc.getTimes(now, 40.6084, -75.4902);
+
+  const currentTime = now.getTime();
+
+  const sunriseTime = sunrise.getTime();
+  const sunsetTime = sunset.getTime();
+  const duskTime = dusk.getTime();
+
+  const sunsetStart = sunsetTime - 45 * 60 * 1000;
+
+  if (currentTime >= sunsetStart && currentTime < duskTime) {
+    return "sunset";
+  }
+
+  if (currentTime >= duskTime || currentTime < sunriseTime) {
+    return "night";
+  }
+
+  return "day";
+}
+
+function FreyCloudScene({ skyMode, moonScale = 1.7 }) {
+  const [autoSkyMode, setAutoSkyMode] = useState("day");
+
+  useEffect(() => {
+    const updateSky = () => {
+      setAutoSkyMode(getPennsylvaniaSkyMode());
+    };
+
+    updateSky();
+
+    const interval = setInterval(updateSky, 60_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeMode = skyMode ?? autoSkyMode;
+  const preset = SKY_PRESETS[activeMode] ?? SKY_PRESETS.day;
+
+  return (
+    <div style={{ width: "100%", height: "100%" }}>
+      <Canvas
+        dpr={[1, 2]}
+        camera={{
+          position: [0, 0, 12],
+          fov: 45,
+        }}
+        gl={{ alpha: false, antialias: true }}
+      >
+        <color attach="background" args={[preset.background]} />
+
+        <ambientLight intensity={preset.ambient} />
+
+        <directionalLight
+          position={[5, 8, 10]}
+          intensity={preset.directional}
+        />
+        <directionalLight position={[8, 5, 10]} intensity={2.5} />
+        {activeMode === "night" ? (
+          <>
+            <Stars
+              radius={80}
+              depth={50}
+              count={4200}
+              factor={2.2}
+              saturation={0}
+              fade={false}
+              speed={0.65}
+            />
+
+            <RealisticMoon scale={moonScale} />
+          </>
+        ) : (
+          <MovingClouds skyMode={activeMode} />
+        )}
+      </Canvas>
+    </div>
+  );
+}
+
+
+/* COPY FROM HERE */
 
 function FloatingBookButton() {
   return (
-<div className="fixed right-6 top-[10px] z-[100] md:right-[4vw] md:top-[10px]">
-  <Link
-    href="/book-now"
-    className="frey-orbit-button"
-    aria-label="Book Now"
-  >
-    {/* FROSTED GLASS DISC */}
-    <span className="frey-orbit-button__glass" aria-hidden="true" />
+    <div className="fixed right-6 top-[10px] z-[160] mix-blend-difference md:right-[4vw] md:top-[10px]">
+      <Link
+        href="/book-now"
+        className="frey-orbit-button"
+        aria-label="Book Now"
+      >
+        <span className="frey-orbit-button__glass" aria-hidden="true" />
 
-    {/* ORBITING DOTS */}
-    <span className="frey-orbit-button__loader" aria-hidden="true">
-      {Array.from({ length: 10 }, (_, index) => (
-        <span
-          key={index}
-          className="frey-orbit-button__ball"
-          style={{
-            animationDelay: `${index * -0.25}s`,
-          }}
-        />
-      ))}
-    </span>
+        <span className="frey-orbit-button__loader" aria-hidden="true">
+          {Array.from({ length: 10 }, (_, index) => (
+            <span
+              key={index}
+              className="frey-orbit-button__ball"
+              style={{
+                animationDelay: `${index * -0.25}s`,
+              }}
+            />
+          ))}
+        </span>
 
-    <span className="frey-orbit-button__label">Book Now</span>
-  </Link>
-</div>
+        <span className="frey-orbit-button__label">Book Now</span>
+      </Link>
+    </div>
   );
 }
 const COLORS = [
@@ -1654,7 +2055,6 @@ const Hero = () => {
             0,
           );
 
-      
           if (isMobile) {
             gsap.set(section, { yPercent: 0 });
           } else {
@@ -1835,13 +2235,13 @@ const Hero = () => {
             </div>
 
             <div className="frey-video-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-8 text-center text-white">
-              <h2 className="frey-video-headline -translate-x-16 max-w-[620px] font-neueroman text-[clamp(2.5rem,4.5vw,4.5rem)] leading-[0.95] tracking-[-0.025em]">
+              <h2 className="frey-video-headline -translate-x-16 max-w-[620px] font-neueroman text-[clamp(2.5rem,3.5vw,2.5rem)] leading-[0.95] tracking-[-0.025em]">
                 <LocationCharacterReveal
                   ready={videoReady}
                   delay={0.35}
                   stagger={0.045}
                 >
-                  Where smiles
+                  shaped here.
                 </LocationCharacterReveal>
 
                 <br />
@@ -1851,60 +2251,105 @@ const Hero = () => {
                   delay={0.8}
                   stagger={0.045}
                 >
-                  take shape
+                  smile everywhere
                 </LocationCharacterReveal>
               </h2>
             </div>
           </div>
 
+
 <div
   ref={editorialRef}
   className="
     absolute z-[5] hidden
-    md:grid
-    md:top-[32%]
+    md:flex md:flex-col
+    md:top-[17%]
+    md:left-[37%]
+    md:right-[5%]
     md:bottom-auto
-    md:left-[55%]
-    md:right-auto
-    md:w-[calc(45%-300px)]
-    md:grid-cols-1
-    md:gap-8
   "
 >
-            <div className="frey-editorial-column flex flex-col gap-3 text-[#f5f5f5]">
-              <span className="font-neuehaas45 text-[12px] uppercase leading-[1.35] tracking-[0.04em] md:text-[11px] md:tracking-[0.08em]">
-                (01) — OUR PHILOSOPHY
-              </span>
+  {/* Upper editorial row */}
+<div className="grid grid-cols-2 gap-x-12">
+  <div className="frey-editorial-column col-start-2 flex flex-col gap-4 text-[#f5f5f5]">
+    <span className="font-neuehaas45 text-[11px] uppercase leading-[1.35] tracking-[0.08em]">
+      (01) — OUR PHILOSOPHY
+    </span>
 
-              <p className="max-w-[320px] font-neuehaas45 text-[11px] leading-[1.4] tracking-[0.01em] text-[#f5f5f5] md:text-[clamp(0.75rem,0.95vw,0.95rem)] md:leading-[1.35] md:tracking-[0.02em]">
-                Every smile is a story. At our office, we guide you through
-                every step of your orthodontic journey
-              </p>
-            </div>
+    <p className="max-w-[360px] font-neuehaas45 text-[clamp(13px,1vw,16px)] leading-[1.45]">
+      Every smile is a story. At our office, we guide you
+      through every step of your orthodontic journey.
+    </p>
+  </div>
+</div>
 
-            <div className="frey-editorial-column flex flex-col gap-3 text-white">
-              <span className="font-neuehaas45 text-[12px] uppercase leading-[1.35] tracking-[0.04em] md:text-[11px] md:tracking-[0.08em]">
-                (02) — OUR PRACTICE
-              </span>
+  {/* DESKTOP */}
+<div className="frey-seo-index frey-seo-index--desktop mt-[clamp(100px,12vh,150px)] font-neueroman text-[#f5f5f5]">
+    <div className="frey-seo-index__grid">
+      <div className="frey-seo-index__group">
+        <span className="frey-seo-index__label">
+          / LOCATIONS
+        </span>
+        <div className="frey-seo-index__locations">
+          <span>ALLENTOWN</span>
+          <span>BETHLEHEM</span>
+          <span>LEHIGHTON</span>
+          <span>SCHNECKSVILLE</span>
+        </div>
+      </div>
 
-              <p className="max-w-[320px] font-neuehaas45 text-[11px] leading-[1.4] tracking-[0.01em] text-[#f5f5f5] md:text-[clamp(0.75rem,0.95vw,0.95rem)] md:leading-[1.35] md:tracking-[0.02em]">
-                with advanced treatment, personalized care, and results that go
-                beyond the ordinary.
-              </p>
-            </div>
-          </div>
+      <div className="frey-seo-index__group">
+        <span className="frey-seo-index__label">
+         / TREATMENTS
+        </span>
+        <div className="frey-seo-index__tags">
+          <span>/ CHILDREN & TEENS</span>
+          <span>/ ADULT ORTHODONTICS</span>
+          <span>/ INVISALIGN CLEAR ALIGNERS</span>
+          <span>/ SELF-LIGATING BRACES</span>
+          <span>/ CUSTOM APPLIANCES</span>
+        </div>
+      </div>
 
-<div
-  className="
+      <div className="frey-seo-index__group">
+        <span className="frey-seo-index__label">
+        / TECHNOLOGY
+        </span>
+        <div className="frey-seo-index__tags">
+          <span>/ 3D IMAGING</span>
+          <span>/ DIGITAL SCANNING</span>
+          <span>/ IN-HOUSE LAB</span>
+        </div>
+      </div>
+
+      <div className="frey-seo-index__group">
+        <span className="frey-seo-index__label">
+      / OUR ORTHODONTISTS
+        </span>
+        <div className="frey-seo-index__tags">
+          <span>/ DR. GREGG FREY</span>
+          <span>/ DR. DANIEL FREY</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="frey-seo-index__footer">
+      <span>DIAMOND PLUS INVISALIGN PROVIDER</span>
+    </div>
+  </div>
+</div>
+
+
+          <div
+            className="
     absolute bottom-[12%] left-[34%]  z-[5]
     hidden items-start gap-6 text-white
     md:flex
   "
->
-            <div className="shrink-0 scale-125 origin-center md:mt-[5px] md:scale-100">
-              <DotMatrix />
-            </div>
-
+          >
+        <div className="shrink-0 origin-center md:mt-[5px]">
+  <DotMatrix />
+</div>
             <h1
               className="
       m-0 font-neuehaas45 lowercase
@@ -1929,7 +2374,7 @@ const Hero = () => {
                   delay={1.45}
                   stagger={0.045}
                 >
-                  behind the smile.
+                  behind the smile
                 </LocationCharacterReveal>
               </div>
             </h1>
@@ -1990,31 +2435,34 @@ const Hero = () => {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 md:hidden">
             <FreyMobileSkyMarquee />
           </div> */}
-<div
-  ref={marqueeRef}
-  className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[180px] md:bottom-0 md:left-auto md:right-0 md:top-0 md:h-auto md:w-[300px]"
->
-  <div className="frey-image-marquee">
-    <div className="frey-image-marquee__track">
-      {[0, 1].map((copy) => (
-        <div className="frey-image-marquee__group" key={copy}>
-          {[
-            "/images/table_mockup.jpg",
-            "/images/bethlehem.jpg",
-            "/images/iphone-duo-mockup.jpg",
-            "/images/invisalignmockup1.jpg",
-            "/images/ajomockupchairupdated.png",
-            "/images/cardsonpalm.png"
-          ].map((src, index) => (
-            <div className="frey-image-marquee__card" key={`${copy}-${index}`}>
-              <img src={src} alt="" />
+          {/* <div
+            ref={marqueeRef}
+            className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[180px] md:bottom-0 md:left-auto md:right-0 md:top-0 md:h-auto md:w-[300px]"
+          >
+            <div className="frey-image-marquee">
+              <div className="frey-image-marquee__track">
+                {[0, 1].map((copy) => (
+                  <div className="frey-image-marquee__group" key={copy}>
+                    {[
+                      "/images/table_mockup.jpg",
+                      "/images/bethlehem.jpg",
+                      "/images/iphone-duo-mockup.jpg",
+                      "/images/invisalignmockup1.jpg",
+                      "/images/ajomockupchairupdated.png",
+                      "/images/cardsonpalm.png",
+                    ].map((src, index) => (
+                      <div
+                        className="frey-image-marquee__card"
+                        key={`${copy}-${index}`}
+                      >
+                        <img src={src} alt="" />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
+          </div> */}
         </section>
 
         <section
@@ -2070,51 +2518,101 @@ const Hero = () => {
             </div>
 
             {/* EDITORIAL COLUMNS */}
-            <div className="grid grid-cols-2 gap-6 border-t border-black/15 pt-6">
-              <div className="flex flex-col gap-3">
-                <span className="font-neuehaas45 text-[10px] uppercase leading-[1.35] tracking-[0.04em]">
-                  (01) — OUR PHILOSOPHY
-                </span>
 
-                <p className="font-neuehaas45 text-[12px] leading-[1.5]">
-                  Every smile is a story. At our office, we guide you through
-                  every step of your orthodontic journey.
-                </p>
-              </div>
+<div className="border-t border-black/15 pt-6 font-neuehaas45 text-[#151515]">
 
-              <div className="flex flex-col gap-3">
-                <span className="font-neuehaas45 text-[10px] uppercase leading-[1.35] tracking-[0.04em]">
-                  (02) — OUR PRACTICE
-                </span>
+  <div className="mb-8 flex flex-col gap-3">
+    <span className="text-[10px] uppercase leading-[1.35] tracking-[0.08em]">
+      OUR PHILOSOPHY
+    </span>
 
-                <p className="font-neuehaas45 text-[12px] leading-[1.5]">
-                  With advanced treatment, personalized care, and results that
-                  go beyond the ordinary.
-                </p>
-              </div>
-            </div>
+    <p className="font-neuehaas45 uppercase max-w-[450px] tracking-[0.05em] text-[13px] leading-[1.4]">
+      Every smile is a story. At our office, we guide you through
+      every step of your orthodontic journey.
+    </p>
+  </div>
+
+  {/* Practice */}
+  <div className="frey-seo-index frey-seo-index--mobile">
+
+
+    <div className="frey-seo-index__group">
+      <span className="frey-seo-index__label">
+        01 / LOCATIONS
+      </span>
+
+      <div className="frey-seo-index__locations">
+        <span>ALLENTOWN</span>
+        <span>BETHLEHEM</span>
+        <span>LEHIGHTON</span>
+        <span>SCHNECKSVILLE</span>
+      </div>
+    </div>
+
+    <div className="frey-seo-index__group">
+      <span className="frey-seo-index__label">
+        02 / TREATMENTS
+      </span>
+
+      <div className="frey-seo-index__tags">
+        <span>/ CHILDREN & TEENS</span>
+        <span>/ ADULT ORTHODONTICS</span>
+        <span>/ INVISALIGN CLEAR ALIGNERS</span>
+        <span>/ SELF-LIGATING BRACES</span>
+        <span>/ CUSTOM APPLIANCES</span>
+      </div>
+    </div>
+
+    <div className="frey-seo-index__group">
+      <span className="frey-seo-index__label">
+        03 / TECHNOLOGY
+      </span>
+
+      <div className="frey-seo-index__tags">
+        <span>/ 3D IMAGING</span>
+        <span>/ DIGITAL SCANNING</span>
+        <span>/ IN-HOUSE LAB</span>
+        <span>DIAMOND PLUS INVISALIGN PROVIDER</span>
+      </div>
+    </div>
+
+  <div className="frey-seo-index__group">
+  <span className="frey-seo-index__label">
+    04 / OUR ORTHODONTISTS
+  </span>
+
+  <div className="frey-seo-index__tags">
+    <span>/ DR. GREGG FREY</span>
+    <span>/ DR. DANIEL FREY</span>
+  </div>
+</div>
+
+
+  </div>
+</div>
+
           </div>
-<div className="relative flex h-auto w-full flex-col items-center justify-center gap-8 py-8 md:h-full md:translate-y-[4vh] md:flex-row md:gap-0 md:py-0">
-<div
-  className="relative mx-auto aspect-[4/3] w-[95vw] md:aspect-[2/1] md:w-[min(85vw,140vh)]"
-  style={{
-    clipPath: "url(#videoClip)",
-  }}
->
+          <div className="relative flex h-auto w-full flex-col items-center justify-center gap-8 py-8 md:h-full md:translate-y-[4vh] md:flex-row md:gap-0 md:py-0">
+            <div
+              className="relative mx-auto aspect-[4/3] w-[95vw] md:aspect-[2/1] md:w-[min(85vw,140vh)]"
+              style={{
+                clipPath: "url(#videoClip)",
+              }}
+            >
               <div
-                className="relative h-full w-full overflow-hidden "
+                className="relative h-full w-full overflow-hidden  "
                 style={{
                   clipPath: "url(#moving-fluted-clip)",
                 }}
               >
             <FlutedGlassEffect
   className="absolute inset-0 h-full w-full "
-                  src="/videos/silhouettealigner.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                />
+  src="/videos/invisman.mp4"
+  autoPlay
+  loop
+  muted
+  playsInline
+/>
               </div>
             </div>
 
@@ -2191,13 +2689,13 @@ function DotMatrix({ color = "white" }) {
   }, []);
 
   return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 100 100"
-      className="block h-[44px] w-[44px] overflow-hidden"
-      fill={color}
-      aria-hidden="true"
-    >
+<svg
+  ref={svgRef}
+  viewBox="0 0 100 100"
+  className="block h-[50px] w-[50px] -translate-x-[10px] overflow-hidden md:h-[44px] md:w-[44px] md:translate-x-0"
+  fill={color}
+  aria-hidden="true"
+>
       <defs>
         <mask id="contact-dot-mask">
           <rect width="10" height="10" fill="white" />
@@ -2256,240 +2754,6 @@ function TransitionAnimatedCopy({
   });
 }
 
-{
-  /* <div style={{ height: '100vh', width: '100vw' }}>
-      <Canvas camera={{ position: [0, 5, 30], fov: 50 }}>
-  <ambientLight intensity={0.5} />
-<pointLight position={[0, 0, 7]} intensity={0.1} color="#ff6b35" />
-    <ambientLight intensity={0.4} />
-    <directionalLight
-  position={[10, 15, 5]}
-  intensity={1.2}
-  color={"#ffe2c4"}  
-  castShadow
-/>
-  <ScrollControls pages={5} damping={0.1}>
-    <ScrollTracker onScrollChange={setScrollOffset} />
-
-    <OceanScene />
-    <Tunnel />
-  </ScrollControls>
-</Canvas>
-<div
-          style={{
-            position: "fixed",
-            top: "40%",
-            right: "37%",
-            transform: `translateY(${topTextTranslateY}px)`,
-            opacity,
-            zIndex: 10,
-            color: "white",
-            maxWidth: "350px",
-            textAlign: "left",
-
-            pointerEvents: "none",
-            transition:
-              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "16px",
-              lineHeight: "1.4",
-              marginBottom: "20px",
-              fontFamily: "Canela-ThinItalic",
-            }}
-          >
-            Every smile is a story. At our office, we guide
-            you through every step of your orthodontic journey — with advanced
-            treatment, personalized care, and results that go beyond the
-            ordinary.
-          </p>
-<div className="flex items-center gap-3">
-  <div className="text-[17px] font-canelathin">
-    Scroll To Discover
-  </div>
-  <div
-    style={{
-      width: "1.5em",
-      height: "1.5em",
-      borderRadius: "50%",
-      overflow: "hidden",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <video
-      id="holovideo"
-      loop
-      muted
-      autoPlay
-      playsInline
-      preload="metadata"
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        transform: "scale(1.25)",
-        boxShadow: "0 0 50px #ebe6ff80",
-      }}
-    >
-      <source
-        src="https://cdn.refokus.com/ttr/speaking-ball.mp4"
-        type="video/mp4"
-      />
-      Your browser does not support the video tag.
-    </video>
-  </div>
-</div>
-        </div>
-
-        <div
-          style={{
-            position: "fixed",
-            top: "95%",
-            right: "10%",
-            transform: `translateY(${bottomTextTranslateY}px)`,
-            opacity: bottomTextOpacity,
-            transition: "all 0.2s linear",
-            zIndex: 10,
-            color: "white",
-            maxWidth: "400px",
-            textAlign: "left",
-            textTransform: "uppercase",
-            pointerEvents: "none",
-            transition:
-              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "12px",
-              lineHeight: "1.4",
-              marginBottom: "20px",
-              fontFamily: "KHTekaTrial-Light",
-            }}
-          >
-     
-     Modern care. Designed to move with you
-          </p>
-        </div>
-    </div> */
-}
-{
-  /* <div style={{ height: "200vh", margin: 0 }}>
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            zIndex: 0,
-          }}
-        >
-          <Canvas>
-            <ScrollControls pages={3} damping={0.1}>
-              <ScrollTracker onScrollChange={setScrollOffset} />
-              <OceanScene />
-            </ScrollControls>
-          </Canvas>
-        </div>
-
-        <div
-          style={{
-            position: "fixed",
-            top: "50%",
-            right: "10%",
-            transform: `translateY(${topTextTranslateY}px)`,
-            opacity,
-            zIndex: 10,
-            color: "white",
-            maxWidth: "400px",
-            textAlign: "left",
-            textTransform: "uppercase",
-            pointerEvents: "none",
-            transition:
-              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "12px",
-              lineHeight: "1.4",
-              marginBottom: "20px",
-              fontFamily: "KHTekaTrial-Light",
-            }}
-          >
-            Behind every smile lies a story in progress. At our office, we guide
-            you through every step of your orthodontic journey — with advanced
-            treatment, personalized care, and results that go beyond the
-            ordinary.
-          </p>
-          <div className="font-khteka">Scroll To Discover</div>
-        </div>
-
-        <div
-          style={{
-            position: "fixed",
-            top: "95%",
-            right: "10%",
-            transform: `translateY(${bottomTextTranslateY}px)`,
-            opacity: bottomTextOpacity,
-            transition: "all 0.2s linear",
-            zIndex: 10,
-            color: "white",
-            maxWidth: "400px",
-            textAlign: "left",
-            textTransform: "uppercase",
-            pointerEvents: "none",
-            transition:
-              "opacity 0.2s linear, transform 0.2s linear, filter 0.2s linear",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "12px",
-              lineHeight: "1.4",
-              marginBottom: "20px",
-              fontFamily: "KHTekaTrial-Light",
-            }}
-          >
-     
-     Modern care. Designed to move with you
-          </p>
-        </div>
-      </div> */
-}
-
-const LOCATIONS = [
-  {
-    name: "Allentown",
-    lat: 40.56587,
-    lng: -75.516663,
-    angle: 0,
-  },
-  {
-    name: "Bethlehem",
-    lat: 40.6639457,
-    lng: -75.2956125,
-    angle: Math.PI / 2,
-  },
-  {
-    name: "Schnecksville",
-    lat: 40.6608497,
-    lng: -75.599212,
-    angle: Math.PI,
-  },
-  {
-    name: "Lehighton",
-    lat: 40.817125,
-    lng: -75.730209,
-    angle: (Math.PI * 3) / 2,
-  },
-];
-
 export default function LandingComponent() {
   const shapeRef = useRef(null);
   return (
@@ -2501,7 +2765,7 @@ export default function LandingComponent() {
 
       <NewSection />
       <CTA />
-      {/* <HeroMinimapIntro /> */}
+
 
       {/* <Locations /> */}
       {/* <GiftCards /> */}
@@ -2560,76 +2824,9 @@ function Tooth() {
   );
 }
 
-function FS() {
-  const group = useRef();
-  const { scene } = useGLTF(
-    "/models/FreySmiles-logo-3D-spin-frosted-smoked-glass.glb",
-  );
-
-  const logo = useMemo(() => {
-    const meshes = [];
-    const combined = new THREE.Group();
-
-    scene.updateMatrixWorld(true);
-
-    scene.traverse((child) => {
-      if (!child.isMesh) return;
-
-      const geometry = child.geometry.clone();
-      geometry.applyMatrix4(child.matrixWorld);
-
-      const mesh = new THREE.Mesh(geometry, child.material);
-      combined.add(mesh);
-      meshes.push(mesh);
-    });
-
-    const box = new THREE.Box3().setFromObject(combined);
-    const center = box.getCenter(new THREE.Vector3());
-
-    meshes.forEach((mesh) => {
-      mesh.geometry.translate(-center.x, -center.y, -center.z);
-    });
-
-    return combined;
-  }, [scene]);
-
-  useFrame((state, delta) => {
-    if (group.current) {
-      group.current.rotation.y += delta * 0.3;
-    }
-  });
-
-  return (
-    <group ref={group}>
-      <primitive object={logo} scale={20} />
-    </group>
-  );
-}
-function FSScene() {
-  return (
-    <div className="relative h-[600px] w-full">
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 35 }}
-        gl={{ antialias: true, alpha: true }}
-        dpr={[1, 2]}
-      >
-        <ambientLight intensity={1.5} />
-
-        <directionalLight position={[3, 5, 5]} intensity={3} />
-
-        <directionalLight position={[-4, 1, -3]} intensity={1.5} />
-
-        <Suspense fallback={null}>
-          <FS />
-          <Environment preset="studio" />
-        </Suspense>
-      </Canvas>
-    </div>
-  );
-}
 function ToothScene() {
   return (
-    <div className="relative h-[500px] w-[500px] md:h-[600px] md:w-[600px]">
+    <div className="relative h-[500px] w-[500px] md:h-[900px] md:w-[900px]">
       <Canvas
         camera={{
           position: [0, 0, 5],
@@ -2642,9 +2839,7 @@ function ToothScene() {
         dpr={[1, 2]}
       >
         <ambientLight intensity={1.5} />
-
         <directionalLight position={[3, 5, 5]} intensity={3} />
-
         <directionalLight position={[-4, 1, -3]} intensity={1.5} />
 
         <Suspense fallback={null}>
@@ -2658,492 +2853,6 @@ function ToothScene() {
   );
 }
 
-const INTRO_IMAGES = [
-  "/images/aligner.jpg",
-  "/images/random.png",
-  "/images/dentaltest.png",
-  "/images/bwpatientcircle.png",
-  "/images/iphone-duo-mockup.jpg",
-];
-
-function HeroMinimapIntro({ onComplete }) {
-  const trackRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    let cancelled = false;
-    let ctx;
-
-    const startAnimation = async () => {
-      const images = Array.from(track.querySelectorAll("img"));
-
-      await Promise.all(
-        images.map(async (img) => {
-          try {
-            await img.decode();
-          } catch {}
-        }),
-      );
-
-      if (cancelled) return;
-
-      ctx = gsap.context(() => {
-        // gsap.fromTo(
-        //   track,
-        //   {
-        //     yPercent: 0,
-        //   },
-        //   {
-        //     yPercent: -80,
-        //     duration: 1.5,
-        //     ease: "none",
-        //     force3D: true,
-        //     onComplete: () => onComplete?.(),
-        //   },
-        // );
-      }, track);
-    };
-
-    startAnimation();
-
-    return () => {
-      cancelled = true;
-      ctx?.revert();
-    };
-  }, [onComplete]);
-
-  return (
-    <div className="h-screen grid grid-cols-2 bg-[#f5f5f5]">
-      {/* <LocationsOrbit /> */}
-      <ToothScene />
-
-      {/* <div className="hero-minimap">
-      <div className="hero-minimap-left">
-        <div className="flex items-center gap-[2px]" aria-label="01">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="block h-[6px] w-[6px] rounded-full bg-[#f5f5f5]"
-            />
-          ))}
-        </div>
-        <span>FREYSMILES</span>
-      </div>
-
-      <div className="hero-minimap-preview">
-        <svg
-          className="hero-minimap-clip-def"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 1827 721"
-          aria-hidden="true"
-        >
-          <defs>
-            <clipPath
-              id="hero-minimap-oval-clip"
-              clipPathUnits="objectBoundingBox"
-              transform="scale(0.000547345, 0.001386963)"
-            >
-              <path d="M960.045 604.522C1392.6 523.179 1722.77 348.268 1697.49 213.848C1672.21 79.4279 1301.06 36.4008 868.505 117.744C435.948 199.087 105.784 373.998 131.062 508.418C156.34 642.838 527.488 685.865 960.045 604.522Z" />
-            </clipPath>
-
-            <clipPath
-              id="hero-minimap-oval-clip-mobile"
-              clipPathUnits="objectBoundingBox"
-            >
-              <path
-                transform="matrix(0.000575 0 0 0.00143 -0.025 -0.015)"
-                d="M960.045 604.522C1392.6 523.179 1722.77 348.268 1697.49 213.848C1672.21 79.4279 1301.06 36.4008 868.505 117.744C435.948 199.087 105.784 373.998 131.062 508.418C156.34 642.838 527.488 685.865 960.045 604.522Z"
-              />
-            </clipPath>
-          </defs>
-        </svg>
-
-        <div className="hero-minimap-oval">
-          <div className="hero-minimap-image-mask">
-            <div ref={trackRef} className="hero-minimap-track">
-              {INTRO_IMAGES.map((src) => (
-                <div className="hero-minimap-slide" key={src}>
-                  <img src={src} alt="" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="hero-minimap-right">
-        <span>ORTHODONTICS</span>
-        <span>2026</span>
-      </div>
-    </div> */}
-    </div>
-  );
-}
-
-const SKY_PRESETS = {
-  day: {
-    background: "#90b1e3",
-    ambient: 1.5,
-    directional: 2,
-    colors: ["#55BFFF", "#91D9FF", "#C5EEFF", "#78CAFF"],
-  },
-  night: {
-    background: "#171C26",
-    ambient: 0.35,
-    directional: 0.5,
-    colors: ["#263653", "#344362", "#202F4D", "#415071"],
-  },
-
-  sunset: {
-    background: "#E99A92",
-    ambient: 1.5,
-    directional: 2.0,
-    colors: ["#B97883", "#987B91", "#D58B88", "#F3BC91", "#AA7888", "#E9A59A"],
-  },
-};
-function RealisticMoon({ scale = 1.7 }) {
-  const moonRef = useRef();
-  const { viewport } = useThree();
-
-  const moonTexture = useTexture("/images/moon.png");
-  moonTexture.colorSpace = THREE.SRGBColorSpace;
-
-  const glowTexture = useMemo(() => {
-    const size = 256;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-
-    const ctx = canvas.getContext("2d");
-
-    const gradient = ctx.createRadialGradient(128, 128, 30, 128, 128, 128);
-
-    gradient.addColorStop(0, "rgba(235,242,255,0.45)");
-    gradient.addColorStop(0.3, "rgba(215,230,255,0.22)");
-    gradient.addColorStop(0.65, "rgba(195,215,255,0.07)");
-    gradient.addColorStop(1, "rgba(195,215,255,0)");
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-
-    return new THREE.CanvasTexture(canvas);
-  }, []);
-
-  useEffect(() => {
-    return () => glowTexture.dispose();
-  }, [glowTexture]);
-
-  return (
-    <group position={[viewport.width * 0.18, viewport.height * 0.05, -10]}>
-      <group scale={scale}>
-        <sprite scale={[42, 42, 1]}>
-          <spriteMaterial
-            map={glowTexture}
-            transparent
-            opacity={0.8}
-            depthWrite={false}
-            depthTest={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-
-        <mesh ref={moonRef} renderOrder={1} scale={[0.85, 1, 1]}>
-          <sphereGeometry args={[8.5, 64, 64]} />
-
-          <meshStandardMaterial
-            map={moonTexture}
-            roughness={1}
-            metalness={0}
-            emissive="#B5BED0"
-            emissiveIntensity={0.18}
-          />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-function MovingClouds({ skyMode = "day" }) {
-  const { viewport } = useThree();
-  const preset = SKY_PRESETS[skyMode] ?? SKY_PRESETS.day;
-
-  const cloudConfigs = [
-    {
-      x: 0.12,
-      y: 0.15,
-      z: -5,
-      size: 32,
-      opacity: 0.65,
-    },
-    {
-      x: 0.52,
-      y: -0.25,
-      z: -6,
-      size: 38,
-      opacity: 0.58,
-    },
-    {
-      x: 0.88,
-      y: 0.25,
-      z: -5,
-      size: 33,
-      opacity: 0.68,
-    },
-  ];
-  return (
-    <Clouds frustumCulled={false} limit={1000}>
-      {cloudConfigs.map((cloud, index) => (
-        <Cloud
-          key={index}
-          position={[(cloud.x - 0.5) * viewport.width, cloud.y, cloud.z]}
-          bounds={[cloud.size, 3, 2]}
-          volume={9}
-          color={preset.colors[index % preset.colors.length]}
-          opacity={cloud.opacity}
-          speed={0.3 + index * 0.05}
-          segments={14}
-        />
-      ))}
-    </Clouds>
-  );
-}
-
-const ALLENTOWN = {
-  latitude: 40.6084,
-  longitude: -75.4902,
-};
-
-function getPennsylvaniaSkyMode() {
-  const now = new Date();
-
-  const { sunrise, sunset, dusk } = SunCalc.getTimes(now, 40.6084, -75.4902);
-
-  const currentTime = now.getTime();
-
-  const sunriseTime = sunrise.getTime();
-  const sunsetTime = sunset.getTime();
-  const duskTime = dusk.getTime();
-
-  const sunsetStart = sunsetTime - 45 * 60 * 1000;
-
-  if (currentTime >= sunsetStart && currentTime < duskTime) {
-    return "sunset";
-  }
-
-  if (currentTime >= duskTime || currentTime < sunriseTime) {
-    return "night";
-  }
-
-  return "day";
-}
-
-function FreyCloudScene({ skyMode, moonScale = 1.7 }) {
-  const [autoSkyMode, setAutoSkyMode] = useState("day");
-
-  useEffect(() => {
-    const updateSky = () => {
-      setAutoSkyMode(getPennsylvaniaSkyMode());
-    };
-
-    updateSky();
-
-    const interval = setInterval(updateSky, 60_000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const activeMode = skyMode ?? autoSkyMode;
-  const preset = SKY_PRESETS[activeMode] ?? SKY_PRESETS.day;
-
-  return (
-    <div style={{ width: "100%", height: "100%" }}>
-      <Canvas
-        dpr={[1, 2]}
-        camera={{
-          position: [0, 0, 12],
-          fov: 45,
-        }}
-        gl={{ alpha: false, antialias: true }}
-      >
-        <color attach="background" args={[preset.background]} />
-
-        <ambientLight intensity={preset.ambient} />
-
-        <directionalLight
-          position={[5, 8, 10]}
-          intensity={preset.directional}
-        />
-        <directionalLight position={[8, 5, 10]} intensity={2.5} />
-        {activeMode === "night" ? (
-          <>
-            <Stars
-              radius={80}
-              depth={50}
-              count={4200}
-              factor={2.2}
-              saturation={0}
-              fade={false}
-              speed={0.65}
-            />
-
-            <RealisticMoon scale={moonScale} />
-          </>
-        ) : (
-          <MovingClouds skyMode={activeMode} />
-        )}
-      </Canvas>
-    </div>
-  );
-}
-
-{
-  /* <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "4vw",
-          }}
-        >
-          <div
-            ref={containerRef}
-            className="pointer-events-none"
-            style={{
-              width: "80%",
-              height: "80%",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          />
-        </div> */
-}
-
-{
-  /* <svg
-          viewBox="0 0 96 1332"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="absolute top-0 h-full transform -translate-x-1/2 left-1/2"
-        >
-          <path
-            d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
-            stroke="white"
-            strokeOpacity="0.2"
-            strokeWidth="1"
-          ></path>
-
-          <svg
-            viewBox="0 0 96 1332"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="absolute top-0 h-full transform -translate-x-1/2 left-1/2"
-          >
-            <defs>
-              <filter
-                id="glow-effect"
-                x="-50%"
-                y="-50%"
-                width="200%"
-                height="200%"
-              >
-                <feGaussianBlur stdDeviation="8" result="coloredBlur" />
-                <feFlood
-                  floodColor="white"
-                  floodOpacity="0.8"
-                  result="glowColor"
-                />
-                <feComposite
-                  in="glowColor"
-                  in2="coloredBlur"
-                  operator="in"
-                  result="softGlow"
-                />
-                <feMerge>
-                  <feMergeNode in="softGlow" />
-                  <feMergeNode in="softGlow" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            <motion.path
-              d="M1.00003 1332L1.00006 726.469C1.00007 691.615 18.8257 659.182 48.25 640.5V640.5C77.6744 621.818 95.5 589.385 95.5 554.531L95.5 0"
-              stroke="white"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeOpacity="0.4"
-              filter="url(#glow-effect)"
-              strokeDasharray="620, 1332"
-              strokeDashoffset="1952"
-              animate={{
-                strokeDashoffset: [1952, 0],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 4.5,
-                ease: "linear",
-              }}
-            />
-          </svg>
-        </svg> */
-}
-
-{
-  /* <div className="vision-dot-background" aria-hidden="true">
-                      <WordmarkDots />
-          </div> */
-}
-
-{
-  /* <main ref={mainRef}>
-            <svg
-              style={{ transform: "translateX(120px)" }}
-              className="stroke_wide "
-              preserveAspectRatio="xMidYMid slice"
-              fill-rule="evenodd"
-              stroke-miterlimit="1.5"
-              clip-rule="evenodd"
-              viewBox="0 1000 8500 14948.91"
-            >
-              <defs>
-                <linearGradient
-                  id="strokeGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor="#3339F1" />
-                  <stop offset="50%" stopColor="#000AFF" />
-                </linearGradient>
-              </defs>
-              <path
-                ref={strokeRef}
-                class="stroke_wide"
-                d="M4462.32,625c0,0 14.613,622.459 -463.862,807.768c-481.301,186.404 -1447.09,-126.375 -1575.51,541.543c-124.818,649.224 959.032,311.455 1893.1,826.688c1089.01,600.699 -524.942,1127.57 -1302.17,1453.96c-951.997,399.786 -995.709,1421.16 -230.78,1308.47c1157.75,-170.555 2955.04,-369.639 2625.82,434.977c-258.167,630.956 -1834.68,308.013 -1915.59,964.376c-123.736,1003.78 785.635,859.091 1309.31,778.296c976.475,-150.654 1261.08,579.399 1203.78,1013.11c-62.259,471.302 -669.89,1009.61 -1534.75,1125.17c-1019.84,136.266 -2356.12,174.662 -2200.88,942.9c130.32,644.912 1957.69,378.097 2999.78,691.136c860.372,258.452 772.286,1223.59 346.923,1696.49c-769.812,855.852 -852.502,1355.35 -852.502,1355.35"
-              />
-            </svg>
-          </main> */
-}
-{
-  /* <div className="vision-glass">
-  <div className="vision-glass-content text-[#1D64EF]">
-    <p className="uppercase text-[12px] font-semibold font-helvetica-neue-light tracking-widest">
-      Vision
-    </p>
-
-    <h2 className="font-neue-montreal text-[20px] md:text-[20px] font-neuehaas35 leading-none mt-4">
-      At Frey Smiles, we blend artistry and precision to craft smiles as
-      unique as the individuals who wear them. Guided by expertise and
-      innovation—we shape confidence one smile at a time.
-    </h2>
-  </div>
-</div> */
-}
 
 class FluidSimulation {
   constructor(canvas, { image, background = "#f5f5f5" }) {
@@ -3246,7 +2955,7 @@ class FluidSimulation {
       uTexelSize: { value: new THREE.Vector2() },
       uDt: { value: 0.016 },
       uDissipation: { value: 1 },
-      uDrift: { value: new THREE.Vector2(0, 0) },
+uDrift: { value: new THREE.Vector2(0, 0) },
     });
     const placeholder = new THREE.DataTexture(
       new Uint8Array([245, 245, 245, 255]),
@@ -3403,11 +3112,11 @@ class FluidSimulation {
     const forceY = THREE.MathUtils.clamp(dy * 1.5, -0.6, 0.6);
     const speed = Math.hypot(dx, dy);
 
-    const radiusPx = THREE.MathUtils.lerp(
-      28.93,
-      61.99,
-      THREE.MathUtils.clamp(speed * 0.15, 0, 1),
-    );
+const radiusPx = THREE.MathUtils.lerp(
+  37.61,
+  80.59,
+  THREE.MathUtils.clamp(speed * 0.15, 0, 1),
+);
 
     const radius = radiusPx / this.height;
     const marginX = radiusPx / this.width;
@@ -3516,7 +3225,8 @@ class FluidSimulation {
       dt * 60,
     );
 
-    this.advectionMaterial.uniforms.uDrift.value.set(0.08, 0.12);
+// Faster drift toward the upper right.
+this.advectionMaterial.uniforms.uDrift.value.set(0.06, 0.095);
 
     this.renderMaterial(this.advectionMaterial, this.velocity.write);
 
@@ -3640,7 +3350,7 @@ function GooeyReveal({
       const rawDx = (x - pointer.x) / elapsed;
       const rawDy = (y - pointer.y) / elapsed;
 
-      const smoothing = 1 - Math.exp(-elapsed * 24);
+const smoothing = 1 - Math.exp(-elapsed * 48);
 
       pointer.vx += (rawDx - pointer.vx) * smoothing;
       pointer.vy += (rawDy - pointer.vy) * smoothing;
@@ -3648,7 +3358,7 @@ function GooeyReveal({
       const dx = pointer.vx;
       const dy = pointer.vy;
 
-      simulation.addPointer(x, y, dx * 0.08, dy * 0.08);
+simulation.addPointer(x, y, dx * 0.12, dy * 0.12);
 
       pointer.x = x;
       pointer.y = y;
@@ -3701,7 +3411,7 @@ function GooeyReveal({
     return () => {
       cancelAnimationFrame(frameId);
 
-window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointermove", onPointerMove);
 
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
@@ -3795,92 +3505,6 @@ function TestimonialMarquee() {
         <defs>
           <path id={staticPathId} d={circlePath} />
         </defs>
-
-
-      </svg>
-    </div>
-  );
-}
-function GooeyFlowerSVG() {
-  return (
-    <div className="pointer-events-none absolute right-0 top-0 z-0 w-[58vw] max-w-[300px] md:hidden">
-      <svg
-        viewBox="0 0 300 500"
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-auto w-full overflow-visible"
-        aria-hidden="true"
-      >
-        <defs>
-          <filter
-            id="flower-goo"
-            x="-30%"
-            y="-30%"
-            width="160%"
-            height="160%"
-            colorInterpolationFilters="sRGB"
-          >
-            <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="
-                1 0 0 0 0
-                0 1 0 0 0
-                0 0 1 0 0
-                0 0 0 24 -11
-              "
-            />
-          </filter>
-
-          <mask
-            id="flower-mask"
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width="300"
-            height="500"
-          >
-            <g filter="url(#flower-goo)" fill="white">
-              <ellipse cx="160" cy="110" rx="65" ry="90" />
-              <ellipse cx="115" cy="185" rx="55" ry="90" />
-              <ellipse cx="195" cy="240" rx="85" ry="95" />
-              <ellipse cx="165" cy="330" rx="70" ry="90" />
-              <ellipse cx="235" cy="385" rx="60" ry="65" />
-
-              {/* Smaller connected shapes */}
-              <circle cx="100" cy="70" r="25" />
-              <ellipse cx="245" cy="155" rx="35" ry="55" />
-
-              {/* Detached droplets */}
-              <ellipse
-                cx="65"
-                cy="35"
-                rx="13"
-                ry="22"
-                transform="rotate(-35 65 35)"
-              />
-              <ellipse
-                cx="130"
-                cy="25"
-                rx="27"
-                ry="12"
-                transform="rotate(-20 130 25)"
-              />
-              <circle cx="75" cy="260" r="7" />
-            </g>
-          </mask>
-        </defs>
-
-        {/* Flower image appears only inside the gooey shape */}
-        <image
-          href="/images/flower.jpeg"
-          x="0"
-          y="0"
-          width="300"
-          height="500"
-          preserveAspectRatio="xMidYMid slice"
-          mask="url(#flower-mask)"
-        />
       </svg>
     </div>
   );
@@ -3905,11 +3529,6 @@ const GRID_ROWS = [
   ["#FF9945", "#ED74A2", "#E5E2DC", "#FFCD00", "#E5CE80", "#F1EAE0", "#FFE18A"],
   ["#F0EDE8", "#FF6A57", "#F0EDE8", "#FFDB19", "#FF9B42", "#F0EDE8"],
   ["#E5DED4", "#F4EFE9", "#A6B8A5", "#69B6E0", "#F0E8DB", "#FFAF73", "#FF5759"],
-];
-
-const OFFICE_COPY = [
-  "A DIFFERENT KIND OF ORTHODONTIC EXPERIENCE",
-  "GET IN THE KNOW",
 ];
 
 function OfficeColorGrid() {
@@ -4167,6 +3786,7 @@ function TestimonialCard({
     </div>
   );
 }
+
 function TransmissionText({ children, className = "" }) {
   const elementRef = useRef(null);
   const [display, setDisplay] = useState(String(children));
@@ -4206,9 +3826,7 @@ function TransmissionText({ children, className = "" }) {
 
       frame = 0;
 
-      let current = chars.map((char) =>
-        char === " " ? " " : randomChar()
-      );
+      let current = chars.map((char) => (char === " " ? " " : randomChar()));
 
       intervalId = setInterval(() => {
         if (!visible || cancelled) {
@@ -4230,12 +3848,10 @@ function TransmissionText({ children, className = "" }) {
 
         frame += 1;
 
-        const resolvedCount = Math.floor(
-          (frame / 35) * chars.length
-        );
+        const resolvedCount = Math.floor((frame / 35) * chars.length);
 
         current = current.map((char, index) =>
-          index < resolvedCount ? chars[index] : char
+          index < resolvedCount ? chars[index] : char,
         );
 
         setDisplay(current.join(""));
@@ -4260,7 +3876,7 @@ function TransmissionText({ children, className = "" }) {
           stop();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(element);
@@ -4285,48 +3901,47 @@ function TransmissionText({ children, className = "" }) {
 
 function MobileTestimonials() {
   const sectionRef = useRef(null);
- 
+
   const mainRef = useRef(null);
   const strokeRef = useRef(null);
   const PATIENT_IDS = ["4DD3", "A7F2", "09XK", "B6Q1"];
 
-useLayoutEffect(() => {
-  const main = mainRef.current;
-  const stroke = strokeRef.current;
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    const stroke = strokeRef.current;
 
-  if (!main || !stroke) return;
+    if (!main || !stroke) return;
 
-  const ctx = gsap.context(() => {
-    const length = stroke.getTotalLength();
+    const ctx = gsap.context(() => {
+      const length = stroke.getTotalLength();
 
-    gsap.set(stroke, {
-      strokeDasharray: length,
-      strokeDashoffset: length,
-    });
+      gsap.set(stroke, {
+        strokeDasharray: length,
+        strokeDashoffset: length,
+      });
 
-    const progress = { value: 0 };
+      const progress = { value: 0 };
 
-    gsap.to(progress, {
-      value: 1,
-      ease: "none",
+      gsap.to(progress, {
+        value: 1,
+        ease: "none",
 
-      onUpdate: () => {
-        stroke.style.strokeDashoffset =
-          length * (1 - progress.value);
-      },
+        onUpdate: () => {
+          stroke.style.strokeDashoffset = length * (1 - progress.value);
+        },
 
-      scrollTrigger: {
-        trigger: main,
-        start: "top bottom",
-  end: "bottom 50%",
-        scrub: .25,
-        invalidateOnRefresh: true,
-      },
-    });
-  }, main);
+        scrollTrigger: {
+          trigger: main,
+          start: "top bottom",
+          end: "bottom 50%",
+          scrub: 0.25,
+          invalidateOnRefresh: true,
+        },
+      });
+    }, main);
 
-  return () => ctx.revert();
-}, []);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <>
@@ -4373,88 +3988,88 @@ useLayoutEffect(() => {
         </defs>
       </svg>
       <section ref={sectionRef} className="mobile-testimonials lg:hidden">
+        <main ref={mainRef} className="mobile-testimonials__path">
+          <svg
+            className="mobile-testimonials__path-svg"
+            preserveAspectRatio="xMidYMid slice"
+       viewBox="0 1000 8500 18000"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient
+                id="testimonialStrokeGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
+                <stop offset="0%" stopColor="#3339F1" />
+                <stop offset="50%" stopColor="#000AFF" />
+              </linearGradient>
+            </defs>
 
-          <main ref={mainRef} className="mobile-testimonials__path">
-            <svg
-              className="mobile-testimonials__path-svg"
-              preserveAspectRatio="xMidYMid slice"
-              viewBox="0 1000 8500 14948.91"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient
-                  id="testimonialStrokeGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor="#3339F1" />
-                  <stop offset="50%" stopColor="#000AFF" />
-                </linearGradient>
-              </defs>
-
-              <path
-                ref={strokeRef}
-                d="M4462.32,625c0,0 14.613,622.459 -463.862,807.768c-481.301,186.404 -1447.09,-126.375 -1575.51,541.543c-124.818,649.224 959.032,311.455 1893.1,826.688c1089.01,600.699 -524.942,1127.57 -1302.17,1453.96c-951.997,399.786 -995.709,1421.16 -230.78,1308.47c1157.75,-170.555 2955.04,-369.639 2625.82,434.977c-258.167,630.956 -1834.68,308.013 -1915.59,964.376c-123.736,1003.78 785.635,859.091 1309.31,778.296c976.475,-150.654 1261.08,579.399 1203.78,1013.11c-62.259,471.302 -669.89,1009.61 -1534.75,1125.17c-1019.84,136.266 -2356.12,174.662 -2200.88,942.9c130.32,644.912 1957.69,378.097 2999.78,691.136c860.372,258.452 772.286,1223.59 346.923,1696.49c-769.812,855.852 -852.502,1355.35 -852.502,1355.35
+            <path
+              ref={strokeRef}
+              d="M4462.32,625c0,0 14.613,622.459 -463.862,807.768c-481.301,186.404 -1447.09,-126.375 -1575.51,541.543c-124.818,649.224 959.032,311.455 1893.1,826.688c1089.01,600.699 -524.942,1127.57 -1302.17,1453.96c-951.997,399.786 -995.709,1421.16 -230.78,1308.47c1157.75,-170.555 2955.04,-369.639 2625.82,434.977c-258.167,630.956 -1834.68,308.013 -1915.59,964.376c-123.736,1003.78 785.635,859.091 1309.31,778.296c976.475,-150.654 1261.08,579.399 1203.78,1013.11c-62.259,471.302 -669.89,1009.61 -1534.75,1125.17c-1019.84,136.266 -2356.12,174.662 -2200.88,942.9c130.32,644.912 1957.69,378.097 2999.78,691.136c860.372,258.452 772.286,1223.59 346.923,1696.49c-769.812,855.852 -852.502,1355.35 -852.502,1355.35
 c-220,420 380,850 1150,1050
 c950,250 1500,600 1050,1200
 c-350,600 -1450,450 -1900,900
-c-450,450 250,950 1200,1200"
-                fill="none"
-         stroke="#000AFF"
-                strokeWidth="90"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </main>
+c-450,450 250,950 1200,1200
+c900,300 1500,750 1100,1350
+c-400,650 -1600,500 -2100,1100"
+              fill="none"
+              stroke="#000AFF"
+              strokeWidth="90"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </main>
 
-          <div className="mobile-testimonials__stack">
-            {TESTIMONIALS.slice(0, 4).map((testimonial, index) => (
-              <div
-                key={testimonial.number}
-             
-                className={`mobile-testimonials__item mobile-testimonials__item--${index}`}
-              >
-                <article className="mobile-ticket">
-                  <div className="mobile-ticket__header">
-                    <TransmissionText>FREYSMILES®</TransmissionText>
+        <div className="mobile-testimonials__stack">
+          {TESTIMONIALS.slice(0, 4).map((testimonial, index) => (
+            <div
+              key={testimonial.number}
+              className={`mobile-testimonials__item mobile-testimonials__item--${index}`}
+            >
+              <article className="mobile-ticket">
+                <div className="mobile-ticket__header">
+                  <TransmissionText>FREYSMILES®</TransmissionText>
 
-                    <TransmissionText>
-                      {`ID / ${PATIENT_IDS[index]}`}
-                    </TransmissionText>
+                  <TransmissionText>
+                    {`ID / ${PATIENT_IDS[index]}`}
+                  </TransmissionText>
+                </div>
+
+                <div className="mobile-ticket__index">
+                  <div>
+                    <TransmissionText>PATIENT NAME</TransmissionText>
                   </div>
 
-                  <div className="mobile-ticket__index">
-                    <div>
-                      <TransmissionText>PATIENT NAME</TransmissionText>
-                    </div>
-
-                    <div>
-                      <TransmissionText>{testimonial.name}</TransmissionText>
-                    </div>
+                  <div>
+                    <TransmissionText>{testimonial.name}</TransmissionText>
                   </div>
+                </div>
 
-                  <blockquote className="mobile-ticket__quote holographic-quote">
-                    “{testimonial.quote}”
-                  </blockquote>
+                <blockquote className="mobile-ticket__quote holographic-quote">
+                  “{testimonial.quote}”
+                </blockquote>
 
-                  <div className="mobile-ticket__signature">
-                    <TransmissionText>
-                      {`TESTIMONIAL / ${testimonial.number}`}
-                    </TransmissionText>
-                    <TransmissionText>F / S — EST. 2004</TransmissionText>
-                  </div>
-                </article>
-              </div>
-            ))}
-          </div>
-   
+                <div className="mobile-ticket__signature">
+                  <TransmissionText>
+                    {`TESTIMONIAL / ${testimonial.number}`}
+                  </TransmissionText>
+                  <TransmissionText>F / S — EST. 2004</TransmissionText>
+                </div>
+              </article>
+            </div>
+          ))}
+        </div>
       </section>
     </>
   );
 }
+
 const NewSection = () => {
   const containerRef = useRef(null);
   const awardsHeadingRef = useRef(null);
@@ -4776,31 +4391,30 @@ const NewSection = () => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
-          start: "top 75%",
+          start: "top 98%",
           toggleActions: "play none none none",
         },
       });
-      tl.to(lines, {
-        scaleX: 1,
-        duration: 1.9,
-        ease: "power3.inOut",
-        stagger: {
-          amount: 0.65,
-        },
-      });
+tl.to(lines, {
+  scaleX: 1,
+  duration: 0.5,
+  ease: "power3.inOut",
+  stagger: {
+    amount: 0.3,
+  },
+});
 
-      // TEXT REVEAL
-      tl.to(
-        texts,
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "power3.out",
-          stagger: 0.06,
-        },
-        "-=1.4",
-      );
+tl.to(
+  texts,
+  {
+    opacity: 1,
+    y: 0,
+    duration: 0.45,
+    ease: "power3.out",
+    stagger: 0.035,
+  },
+  "-=0.65",
+);
     }, container);
 
     return () => ctx.revert();
@@ -4878,12 +4492,9 @@ const NewSection = () => {
     <>
       <div className="relative w-full isolate bg-[#f5f5f5]">
         <section className="relative isolate flex min-h-screen flex-col items-center px-8 pt-0 pb-20 md:px-16">
-<div className="pointer-events-none absolute inset-x-0 top-0 -bottom-[100vh] z-0 hidden md:block">
+<div className="pointer-events-none absolute inset-x-0 top-0 bottom-0 z-0 hidden md:block">
   <div className="pointer-events-auto relative h-full w-full">
-    <GooeyReveal
-      image="/images/flower.jpeg"
-      background="#f5f5f5"
-    />
+    <GooeyReveal image="/images/flower.jpeg" background="#f5f5f5" />
   </div>
 </div>
           <div
@@ -4958,7 +4569,7 @@ const NewSection = () => {
             ref={awardsHeadingRef}
             className="relative mt-20 w-full -translate-x-3 pb-12 md:mt-32 md:translate-x-0 md:pb-20"
           >
-            <h2 className="flex flex-col font-neueroman text-[clamp(3.825rem,10.2vw,11.05rem)] font-[800] leading-[0.78] tracking-[-0.015em] text-black">
+            <h2 className="flex flex-col font-neueroman text-[#222222] text-[clamp(3.825rem,10.2vw,11.05rem)] font-[800] leading-[0.78] tracking-[-0.015em] text-black">
               {/* AWARDS + STAR */}
               <span className="flex items-center gap-[0.12em] pl-[23%]">
                 <span>Awards</span>
@@ -4984,9 +4595,9 @@ const NewSection = () => {
 
               <span className="block pl-[3%]">&amp; Recog-</span>
 
-<span className="relative top-[0.15em] md:top-0 block pl-[43%]">
-  nitions
-</span>
+              <span className="relative top-[0.15em] md:top-0 block pl-[43%]">
+                nitions
+              </span>
             </h2>
           </div>
         </section>
@@ -4994,7 +4605,7 @@ const NewSection = () => {
 
         <div
           ref={testimonialContentRef}
-          className="pointer-events-none absolute z-40 overflow-visible bg-black"
+          className="pointer-events-none absolute z-40 overflow-visible bg-[#222222]"
           style={{
             top: "-50vh",
             bottom: "-50vh",
@@ -5016,10 +4627,10 @@ const NewSection = () => {
         </div>
         <OfficeColorGrid />
 
-<section
-  ref={testimonialsSectionRef}
-  className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[1vh] pb-20 lg:px-16 lg:pb-0"
->
+        <section
+          ref={testimonialsSectionRef}
+          className="relative z-10 min-h-screen w-full bg-transparent px-4 pt-[1vh] pb-12 lg:px-16 lg:pb-0"
+        >
           <div className="relative isolate z-20 mt-2 w-full">
             {/* DESKTOP — SPECTRUM BACKGROUND */}
             <div className="testimonial-background-mask pointer-events-none absolute inset-0 z-0 hidden lg:block">
@@ -5039,7 +4650,7 @@ const NewSection = () => {
                 <br />
                 IS THE SUCCESS
                 <br />
-                OF OUR PATIENTS.
+                OF OUR PATIENTS
               </h2>
             </div>
             <MobileTestimonials />
@@ -5100,10 +4711,10 @@ const NewSection = () => {
 const LOGO_SOURCES = [
   "/images/movingbannerfiles/diamondplus.svg",
   "/images/movingbannerfiles/readers.png",
-  "/images/movingbannerfiles/damonsystem.svg",
+  "/images/movingbannerfiles/orthoclassic.png",
   "/images/movingbannerfiles/topDentist_logo.png",
   "/images/movingbannerfiles/invisalign_invert.png",
-  "/images/movingbannerfiles/ajodo.svg",
+  "/images/movingbannerfiles/ymod.svg",
   "/images/movingbannerfiles/ABO_invert.png",
   "/images/movingbannerfiles/ABO_invert.png",
   "/images/movingbannerfiles/valley.png",
@@ -5594,460 +5205,6 @@ const LogoGrid = ({ active = false, circleGeometry }) => {
     />
   );
 };
-const DynamicBackground = ({ logoPath = "/images/fspetallogo.png" }) => {
-  const canvasRef = useRef(null);
-  const animationFrameRef = useRef(null);
-  const programRef = useRef(null);
-  const glRef = useRef(null);
-  const geometryRef = useRef(null);
-  const particleGridRef = useRef([]);
-  const posArrayRef = useRef(null);
-  const colorArrayRef = useRef(null);
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const execCountRef = useRef(0);
-  const isCleanedUpRef = useRef(false);
-  const isMobileRef = useRef(false);
-  const CONFIG = {
-    logoSize: 800,
-    logoColor: "#000000",
-    distortionRadius: 144,
-    forceStrength: 2.4,
-    maxDisplacement: 56,
-    returnForce: 0.045,
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const checkMobile = () => window.innerWidth < 1000;
-    isMobileRef.current = checkMobile();
-
-    if (isMobileRef.current) {
-      return;
-    }
-
-    isCleanedUpRef.current = false;
-    const container = canvas.parentElement;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    const rect = container.getBoundingClientRect();
-
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-
-    const gl = canvas.getContext("webgl", {
-      alpha: true,
-      depth: false,
-      stencil: false,
-      antialias: true,
-      powerPreference: "high-performance",
-      premultipliedAlpha: false,
-    });
-
-    if (!gl) {
-      console.error("WebGL not supported");
-      return;
-    }
-
-    glRef.current = gl;
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    function hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result
-        ? {
-            r: parseInt(result[1], 16) / 255,
-            g: parseInt(result[2], 16) / 255,
-            b: parseInt(result[3], 16) / 255,
-          }
-        : { r: 1, g: 1, b: 1 };
-    }
-
-    const vertexShaderSource = `
-      precision highp float;
-      uniform vec2 u_resolution;
-      attribute vec2 a_position;
-      attribute vec4 a_color;
-      varying vec4 v_color;
-      void main() {
-         vec2 zeroToOne = a_position / u_resolution;
-         vec2 clipSpace = (zeroToOne * 2.0 - 1.0);
-         v_color = a_color;
-         gl_Position = vec4(clipSpace * vec2(1.0, -1.0), 0.0, 1.0);
-         gl_PointSize = 3.5;
-     }
-    `;
-
-    const fragmentShaderSource = `
-      precision highp float;
-      varying vec4 v_color;
-      void main() {
-          if (v_color.a < 0.01) discard;
-          
-          vec2 coord = gl_PointCoord - vec2(0.5);
-          float dist = length(coord);
-          float alpha = 1.0 - smoothstep(0.46, 0.5, dist);
-          
-          gl_FragColor = vec4(v_color.rgb, v_color.a * alpha);
-      }
-    `;
-
-    function createShader(gl, type, source) {
-      if (!gl || isCleanedUpRef.current) return null;
-
-      const shader = gl.createShader(type);
-      if (!shader) return null;
-
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error("Error compiling shader:", gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-      }
-
-      return shader;
-    }
-
-    function createProgram(gl, vertexShader, fragmentShader) {
-      if (!gl || !vertexShader || !fragmentShader || isCleanedUpRef.current)
-        return null;
-
-      const program = gl.createProgram();
-      if (!program) return null;
-
-      gl.attachShader(program, vertexShader);
-      gl.attachShader(program, fragmentShader);
-      gl.linkProgram(program);
-
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error("Error linking program:", gl.getProgramInfoLog(program));
-        gl.deleteProgram(program);
-        return null;
-      }
-
-      return program;
-    }
-
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    const fragmentShader = createShader(
-      gl,
-      gl.FRAGMENT_SHADER,
-      fragmentShaderSource,
-    );
-
-    if (!vertexShader || !fragmentShader) return;
-
-    const program = createProgram(gl, vertexShader, fragmentShader);
-    if (!program) return;
-
-    programRef.current = program;
-
-    const positionAttributeLocation = gl.getAttribLocation(
-      program,
-      "a_position",
-    );
-    const colorAttributeLocation = gl.getAttribLocation(program, "a_color");
-    const resolutionUniformLocation = gl.getUniformLocation(
-      program,
-      "u_resolution",
-    );
-
-    const loadLogo = () => {
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-
-      image.onload = () => {
-        if (isCleanedUpRef.current) return;
-
-        const tempCanvas = document.createElement("canvas");
-        const tempCtx = tempCanvas.getContext("2d");
-        tempCanvas.width = CONFIG.logoSize;
-        tempCanvas.height = CONFIG.logoSize;
-
-        tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
-
-        const scale = 0.9;
-        const scaledSize = CONFIG.logoSize * scale;
-        const offset = (CONFIG.logoSize - scaledSize) / 2;
-
-        tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
-        const imageData = tempCtx.getImageData(
-          0,
-          0,
-          CONFIG.logoSize,
-          CONFIG.logoSize,
-        );
-
-        initParticleSystem(imageData.data, CONFIG.logoSize);
-      };
-
-      image.onerror = () => {
-        console.error("Failed to load logo image:", logoPath);
-      };
-
-      image.src = logoPath;
-    };
-
-    function initParticleSystem(pixels, dim) {
-      if (isCleanedUpRef.current) return;
-
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-
-      particleGridRef.current = [];
-      const validParticles = [];
-      const validPositions = [];
-      const validColors = [];
-
-      const logoTint = hexToRgb(CONFIG.logoColor);
-
-      for (let i = 0; i < dim; i++) {
-        for (let j = 0; j < dim; j++) {
-          const pixelIndex = (i * dim + j) * 4;
-          const alpha = pixels[pixelIndex + 3];
-
-          if (alpha > 10) {
-            const x = centerX + (j - dim / 2) * 1.0;
-            const y = centerY + (i - dim / 2) * 1.0;
-
-            validPositions.push(x, y);
-
-            const originalR = pixels[pixelIndex] / 255;
-            const originalG = pixels[pixelIndex + 1] / 255;
-            const originalB = pixels[pixelIndex + 2] / 255;
-            const originalA = pixels[pixelIndex + 3] / 255;
-
-            validColors.push(logoTint.r, logoTint.g, logoTint.b, 1);
-
-            validParticles.push({
-              ox: x,
-              oy: y,
-              vx: 0,
-              vy: 0,
-            });
-          }
-        }
-      }
-
-      particleGridRef.current = validParticles;
-      posArrayRef.current = new Float32Array(validPositions);
-      colorArrayRef.current = new Float32Array(validColors);
-
-      const positionBuffer = gl.createBuffer();
-      const colorBuffer = gl.createBuffer();
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, posArrayRef.current, gl.DYNAMIC_DRAW);
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, colorArrayRef.current, gl.STATIC_DRAW);
-
-      geometryRef.current = {
-        positionBuffer,
-        colorBuffer,
-        vertexCount: validParticles.length,
-      };
-
-      console.log(`Created ${validParticles.length} particles`);
-      startAnimation();
-    }
-
-    function startAnimation() {
-      function animate() {
-        if (
-          isCleanedUpRef.current ||
-          !gl ||
-          !programRef.current ||
-          !geometryRef.current
-        ) {
-          return;
-        }
-
-        if (execCountRef.current > 0) {
-          execCountRef.current -= 1;
-
-          const mx = mouseRef.current.x;
-          const my = mouseRef.current.y;
-
-          for (let i = 0, len = particleGridRef.current.length; i < len; i++) {
-            const x = posArrayRef.current[i * 2];
-            const y = posArrayRef.current[i * 2 + 1];
-            const d = particleGridRef.current[i];
-
-            const dx = x - mx;
-            const dy = y - my;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            const radius =
-              CONFIG.distortionRadius *
-              Math.min(window.devicePixelRatio || 1, 2);
-
-            if (distance > 0.001 && distance < radius) {
-              const influence = 1 - distance / radius;
-              const force = influence * CONFIG.forceStrength;
-
-              d.vx += (dx / distance) * force;
-              d.vy += (dy / distance) * force;
-            }
-
-            const newX = x + (d.vx *= 0.82) + (d.ox - x) * CONFIG.returnForce;
-            const newY = y + (d.vy *= 0.82) + (d.oy - y) * CONFIG.returnForce;
-
-            const dx_origin = newX - d.ox;
-            const dy_origin = newY - d.oy;
-            const distFromOrigin = Math.sqrt(
-              dx_origin * dx_origin + dy_origin * dy_origin,
-            );
-
-            if (distFromOrigin > CONFIG.maxDisplacement) {
-              const excess = distFromOrigin - CONFIG.maxDisplacement;
-              const scale = CONFIG.maxDisplacement / distFromOrigin;
-              const dampedScale =
-                scale + (1 - scale) * Math.exp(-excess * 0.02);
-
-              posArrayRef.current[i * 2] = d.ox + dx_origin * dampedScale;
-              posArrayRef.current[i * 2 + 1] = d.oy + dy_origin * dampedScale;
-
-              d.vx *= 0.7;
-              d.vy *= 0.7;
-            } else {
-              posArrayRef.current[i * 2] = newX;
-              posArrayRef.current[i * 2 + 1] = newY;
-            }
-          }
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.positionBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 0, posArrayRef.current);
-        }
-
-        gl.viewport(0, 0, canvas.width, canvas.height);
-
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        gl.useProgram(programRef.current);
-
-        gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.positionBuffer);
-        gl.enableVertexAttribArray(positionAttributeLocation);
-        gl.vertexAttribPointer(
-          positionAttributeLocation,
-          2,
-          gl.FLOAT,
-          false,
-          0,
-          0,
-        );
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.colorBuffer);
-        gl.enableVertexAttribArray(colorAttributeLocation);
-        gl.vertexAttribPointer(
-          colorAttributeLocation,
-          4,
-          gl.FLOAT,
-          false,
-          0,
-          0,
-        );
-
-        gl.drawArrays(gl.POINTS, 0, geometryRef.current.vertexCount);
-
-        animationFrameRef.current = requestAnimationFrame(animate);
-      }
-
-      animate();
-    }
-
-    const handleMouseMove = (event) => {
-      if (isCleanedUpRef.current) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      mouseRef.current.x = (event.clientX - rect.left) * dpr;
-      mouseRef.current.y = (event.clientY - rect.top) * dpr;
-      execCountRef.current = 300;
-    };
-
-    const handleResize = () => {
-      if (isCleanedUpRef.current) return;
-
-      const rect = container.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("resize", handleResize);
-
-    loadLogo();
-
-    return () => {
-      isCleanedUpRef.current = true;
-
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
-      document.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("resize", handleResize);
-
-      if (gl && !gl.isContextLost()) {
-        try {
-          if (geometryRef.current) {
-            if (geometryRef.current.positionBuffer) {
-              gl.deleteBuffer(geometryRef.current.positionBuffer);
-            }
-            if (geometryRef.current.colorBuffer) {
-              gl.deleteBuffer(geometryRef.current.colorBuffer);
-            }
-            geometryRef.current = null;
-          }
-
-          if (programRef.current) {
-            const shaders = gl.getAttachedShaders(programRef.current);
-            if (shaders) {
-              shaders.forEach((shader) => {
-                gl.detachShader(programRef.current, shader);
-                gl.deleteShader(shader);
-              });
-            }
-            gl.deleteProgram(programRef.current);
-            programRef.current = null;
-          }
-        } catch (error) {
-          console.warn("Error during WebGL cleanup:", error);
-        }
-      }
-
-      particleGridRef.current = [];
-      posArrayRef.current = null;
-      colorArrayRef.current = null;
-      mouseRef.current = { x: 0, y: 0 };
-      execCountRef.current = 0;
-    };
-  }, [logoPath]);
-
-  return (
-    <div className="dynamic-background">
-      <canvas ref={canvasRef} />
-    </div>
-  );
-};
 
 function CTAParagraphReveal({
   children,
@@ -6089,28 +5246,28 @@ function CTAParagraphReveal({
 }
 
 function CTA() {
-  const BLOCKS = [
-    {
-      title: "Beyond Board Standards",
-      content:
-        "We strive to attain finished results consistent with the American Board of Orthodontics (ABO) qualitative standards. Our doctors place great priority on the certification and recertification process, ensuring that all diagnostic records adhere to ABO standards.",
-    },
-    {
-      title: "Board Certification Process",
-      content:
-        "Currently, Dr. Gregg Frey is a certified orthodontist and is preparing cases for recertification. Dr. Daniel Frey is in the final stages of obtaining his initial certification.",
-    },
-    {
-      title: "Diagnostic Record Accuracy",
-      content:
-        "To complement our use of cutting-edge diagnostic technology, we uphold the highest standards for our records, ensuring accuracy and precision throughout the treatment process.",
-    },
-    {
-      title: "Trusted Expertise",
-      content:
-        "Our office holds the distinction of being the longest-standing, active board-certified orthodontic office in the area. With four offices in the Lehigh Valley, we have been providing unparalleled orthodontic care for over four decades.",
-    },
-  ];
+const BLOCKS = [
+{
+title: "Precisely You in 3D",
+content:
+"Every FreySmiles office is equipped with 3D imaging, intraoral 3D scanning, and access to in-house 3D printing. That means no messy impressions and faster, more informed treatment planning. Drawing on training with the American Academy of Facial Esthetics, our doctors choose the combination of custom clear aligners and precision-engineered modern braces that best fits your case. The result: fewer visits and a smile that suits you in real life.",
+},
+{
+title: "Beyond Board Standards",
+content:
+"We meet the American Board of Orthodontics (ABO) diagnostic standards and strive to go beyond. While the standard still allows 2D X-rays and plaster models, we plan in 3D with less waste, using digital records that hold their true form. We also photograph your face and smile from more angles. Our doctors plan with both board standards and facial aesthetics, because no one sees numbers when they look at your smile.",
+},
+{
+title: "Ahead Since Day One",
+content:
+"Our doctors respect classical orthodontic principles and were among the first in the area to adopt impressionless digital scanning, Invisalign, and self-ligating braces. We were the Lehigh Valley's first Invisalign Diamond Plus provider and the first to offer it for early, Phase 1 treatment in children. With offices in Allentown, Bethlehem, Lehighton, and Schnecksville, we've provided exceptional orthodontic care for teens, adults, and children alike for over four decades.",
+},
+{
+title: "Two Generations, One Name",
+content:
+"We've cared for thousands of local families. Dr. Gregg Frey and Dr. Daniel Frey bring a combined 60 years of orthodontic experience to every patient, with one standard of care. Your doctor guides your treatment from start to finish. Outside the office, we're proud to support local teams and organizations that make up our community. Join us and experience the FreySmiles difference.",
+},
+];
   const bookingContentRef = useRef(null);
   const sectionRef = useRef(null);
   const wheelRef = useRef(null);
@@ -6123,6 +5280,7 @@ function CTA() {
   const whiteCircleRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const bookingInnerRef = useRef(null);
+  const toothEntranceRef = useRef(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -6487,13 +5645,13 @@ function CTA() {
           preventDefault: true,
           tolerance: 10,
 
-onDown: () => {
-  showStep(1);
-},
+          onDown: () => {
+            showStep(1);
+          },
 
-onUp: () => {
-  showStep(-1);
-},
+          onUp: () => {
+            showStep(-1);
+          },
         });
 
         observer.disable();
@@ -6648,20 +5806,49 @@ onUp: () => {
     return () => ctx.revert();
   }, []);
 
+useLayoutEffect(() => {
+  const section = sectionRef.current;
+  const tooth = toothEntranceRef.current;
+
+  if (!section || !tooth) return;
+
+  const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(max-width: 767px)", () => {
+      gsap.fromTo(
+        tooth,
+        {
+          scale: 0.6,
+          autoAlpha: 0,
+        },
+        {
+          scale: 1,
+          autoAlpha: 1,
+          duration: 1.3,
+          ease: "power3.out",
+          transformOrigin: "center center",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 80%",
+            toggleActions: "play none none none",
+            once: true,
+          },
+        }
+      );
+    });
+  }, section);
+
+  return () => ctx.revert();
+}, []);
+
   return (
     <>
       <div ref={transitionRef} className="cta-expansion">
         <div ref={blueCircleRef} className="cta-expansion__blue" />
 
         <div ref={whiteCircleRef} className="cta-expansion__white" />
-        {/* <div className="mb-12 flex flex-col items-center text-center">
-
-<div className="relative h-[400px] w-full">
-  <DynamicBackground logoPath="/images/fspetallogo.png" />
-</div>
-
-
-      </div> */}
+     
         <div ref={bookingContentRef} className="cta-expansion__content">
           <div
             ref={bookingInnerRef}
@@ -6671,23 +5858,26 @@ onUp: () => {
           </div>
         </div>
       </div>
-      <section
-        ref={sectionRef}
-        className="cta-orbit relative h-screen w-full overflow-hidden bg-black text-white"
-      >
-        <div className="absolute left-[3vw] top-[9vh] z-20 w-[94vw]">
+<section
+  ref={sectionRef}
+  className="cta-orbit relative z-0 h-screen w-full overflow-hidden bg-[#222222] text-white"
+>
+<div className="absolute left-[3vw] top-[19vh] z-20 w-[94vw] md:top-[12vh]">
           <h2 className="flex flex-col font-neueroman text-[clamp(2.625rem,6vw,6.75rem)] font-[800] leading-[0.82] tracking-[-0.035em] text-white">
             <span className="block pl-[0%]">Excellence</span>
 
-            <span className="block pl-[15%]">Is in the</span>
+            <span className="block pl-[15%]">Is In the</span>
 
-            <span className="block pl-[.6%]">Details.</span>
+            <span className="block pl-[.6%]">Details</span>
           </h2>
         </div>
 
-        <div className="pointer-events-none absolute right-[3vw] top-[7vh] z-10">
-          <ToothScene />
-        </div>
+<div
+  ref={toothEntranceRef}
+  className="pointer-events-none absolute right-[-22vw] top-[5vh] z-10 md:right-[3vw] md:top-[-5vh]"
+>
+  <ToothScene />
+</div>
         <div ref={wheelEntranceRef} className="cta-orbit__viewport">
           <div ref={wheelRef} className="cta-orbit__wheel">
             <div className="cta-orbit__ring" />
@@ -6725,8 +5915,8 @@ onUp: () => {
               }}
               className="cta-orbit__content-block"
             >
-              <div className="mx-auto flex w-full max-w-[700px] flex-col items-center text-center">
-                <h3 className="cta-orbit__title w-full font-neuehaas45 uppercase text-[clamp(16px,1.25vw,16px)] font-normal leading-[1.3] tracking-[0.05em]">
+              <div className="mx-auto flex w-full max-w-[700px] flex-col items-center">
+                <h3 className="text-center cta-orbit__title w-full font-neuehaas45 uppercase text-[clamp(16px,1.25vw,16px)] font-normal leading-[1.3] tracking-[0.05em]">
                   <CTAParagraphReveal
                     ready={activeIndex === index}
                     delay={0}
@@ -6736,7 +5926,7 @@ onUp: () => {
                     {block.title}
                   </CTAParagraphReveal>
                 </h3>
-                <p className="cta-orbit__paragraph mt-6 w-full max-w-[600px] font-neuehaas45 text-[clamp(14px,0.85vw,16px)] leading-[1.45] tracking-[0.04em] text-white">
+                <p className="cta-orbit__paragraph max-w-[650px] mt-6 w-full font-neuehaas45 tracking-[.1em] text-[13px] md:text-[15px] leading-[1.45] text-white">
                   <CTAParagraphReveal
                     ready={activeIndex === index}
                     delay={0}
@@ -6761,6 +5951,306 @@ onUp: () => {
     </>
   );
 }
+
+function PixelRevealImage({ src, alt, className = "" }) {
+  const wrapperRef = useRef(null);
+  const imageRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const image = imageRef.current;
+    const canvas = canvasRef.current;
+
+    if (!wrapper || !image || !canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const buffer = document.createElement("canvas");
+    const bctx = buffer.getContext("2d");
+
+    if (!ctx || !bctx) return;
+
+    let tween;
+    let fadeTween;
+    let pending = false;
+    let cancelled = false;
+
+    let width = 0;
+    let height = 0;
+
+    const prepare = () => {
+      width = wrapper.clientWidth;
+      height = wrapper.clientHeight;
+
+      if (!width || !height || !image.naturalWidth) return false;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      return true;
+    };
+
+    const drawPixelated = (pixelSize) => {
+      const block = Math.max(1, pixelSize);
+
+      const columns = Math.max(1, Math.ceil(width / block));
+      const rows = Math.max(1, Math.ceil(height / block));
+
+      if (buffer.width !== columns) buffer.width = columns;
+      if (buffer.height !== rows) buffer.height = rows;
+
+      const scale = Math.max(
+        width / image.naturalWidth,
+        height / image.naturalHeight,
+      );
+
+      const drawWidth = image.naturalWidth * scale;
+      const drawHeight = image.naturalHeight * scale;
+
+      bctx.clearRect(0, 0, columns, rows);
+
+      bctx.drawImage(
+        image,
+        (width - drawWidth) / (2 * block),
+        (height - drawHeight) / (2 * block),
+        drawWidth / block,
+        drawHeight / block,
+      );
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(buffer, 0, 0, width, height);
+    };
+
+    const drawGlitch = (progress) => {
+      if (progress < 0.38 || progress > 0.46) return;
+
+      const bandY = height * 0.45;
+      const bandHeight = 12;
+      const offset = 12;
+
+      ctx.drawImage(
+        canvas,
+        0,
+        bandY,
+        width,
+        bandHeight,
+        offset,
+        bandY,
+        width,
+        bandHeight,
+      );
+    };
+
+    const render = (progress) => {
+      let pixelSize;
+
+      if (progress < 0.2) {
+        pixelSize = 50;
+      } else {
+        const t = (progress - 0.2) / 0.8;
+        const eased = 1 - Math.pow(1 - t, 3);
+
+        pixelSize = 50 - 49 * eased;
+      }
+
+      drawPixelated(pixelSize);
+      drawGlitch(progress);
+    };
+    const start = () => {
+      if (cancelled) return;
+
+      if (!image.complete || !image.naturalWidth) {
+        pending = true;
+        return;
+      }
+
+      tween?.kill();
+      fadeTween?.kill();
+
+      if (!prepare()) return;
+
+      pending = false;
+
+      gsap.set(image, { opacity: 0 });
+      gsap.set(canvas, { opacity: 1 });
+
+      const state = { progress: 0 };
+
+      render(0);
+
+      tween = gsap.to(state, {
+        progress: 1,
+        duration: 0.8,
+        ease: "none",
+        onUpdate: () => render(state.progress),
+        onComplete: () => {
+          fadeTween = gsap.timeline();
+
+          fadeTween.to(
+            image,
+            {
+              opacity: 1,
+              duration: 0.3,
+            },
+            0,
+          );
+
+          fadeTween.to(
+            canvas,
+            {
+              opacity: 0,
+              duration: 0.3,
+            },
+            0,
+          );
+        },
+      });
+    };
+
+    const onReveal = () => start();
+
+    const onLoad = () => {
+      if (pending) start();
+    };
+
+    window.addEventListener("frey-pixel-reveal", onReveal);
+    image.addEventListener("load", onLoad);
+
+    return () => {
+      cancelled = true;
+      tween?.kill();
+      fadeTween?.kill();
+
+      window.removeEventListener("frey-pixel-reveal", onReveal);
+      image.removeEventListener("load", onLoad);
+    };
+  }, [src]);
+
+  return (
+    <div ref={wrapperRef} className={className}>
+      <img
+        ref={imageRef}
+        src={src}
+        alt={alt}
+        className="absolute inset-0 h-full w-full object-cover opacity-0"
+      />
+
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
+function Locations() {
+  return (
+    <main className="min-h-screen w-full bg-white text-[#111]">
+      <div className="frey-consult-marquee locations-reveal">
+        <div className="frey-consult-marquee__content">
+          {[0, 1].map((group) => (
+            <div
+              key={group}
+              className="frey-consult-marquee__group"
+              aria-hidden={group === 1}
+            >
+              {[0, 1].map((i) => (
+                <div key={i} className="frey-consult-marquee__sentence-pair">
+                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
+                    No referral needed.
+                  </span>
+
+                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
+                    Your initial consultation is complimentary.
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <section className="px-[3vw] pt-5 pb-30">
+        <div className="grid min-h-screen grid-cols-1 gap-y-16 border-t border-[#999] pt-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-x-[3vw]">
+          {/* LEFT COLUMN */}
+          <div className="flex flex-col items-start">
+            <div className="locations-reveal flex flex-col items-start gap-8">
+              <h1 className="m-0 max-w-[420px] font-neueroman text-[12px] leading-[1.4] uppercase">
+                Find a FreySmiles location near you. We're proud to serve
+                patients throughout the Lehigh Valley and surrounding
+                communities.
+              </h1>
+
+              <Link
+                href="#locations-list"
+                className="font-neueroman text-[12px] uppercase underline underline-offset-4 transition-opacity duration-300 hover:opacity-50"
+              >
+                Explore Our Locations
+              </Link>
+            </div>
+
+            <PixelRevealImage
+              src="/images/signonmetalrack.png"
+              alt="FreySmiles orthodontics office"
+              className="locations-reveal relative mt-16 aspect-[4/5] w-full overflow-hidden md:mt-[40px] md:ml-[5%] md:w-[78%]"
+            />
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex w-full items-start">
+            <div className="w-full">
+              {/* <span className="mb-5 text-center font-neuehaas45 text-[12px] uppercase tracking-[0.14em] text-black">
+          Your smile starts here
+        </span> */}
+              <div className="locations-reveal relative h-[750px] w-full overflow-hidden rounded-2xl bg-white md:h-[850px]">
+                <iframe
+                  src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
+                  title="Schedule Appointment"
+                  className="block h-full w-full border-0"
+                  allow="payment"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/* STOP HERE */
+
+// const ease = (x) => x * x * (3 - 2 * x);
+
+// function GiftCards() {
+//   return (
+//     <>
+//       <section className="relative min-h-screen group hover:cursor-pointer">
+//         <div className="absolute inset-0 w-full h-full flex justify-start items-start bg-[#FFF560] bg-opacity-80 text-white [clip-path:circle(50%_at_0%_0%)] lg:[clip-path:circle(30%_at_0%_0%)] lg:group-hover:[clip-path:circle(35%_at_0%_0%)] group-hover:bg-opacity-100 motion-safe:transition-[clip-path] motion-safe:duration-[2s] ease-out" />
+//         <Link
+//           href={`${process.env.NEXT_PUBLIC_SQUARE_GIFT_CARDS_URL}`}
+//           target="_blank"
+//           className="text-2xl font-neue-montreal absolute inset-0 w-full h-full pl-[12%] pt-[18%] lg:pl-[6%] lg:pt-[8%] lg:group-hover:pl-[8%] lg:group-hover:pt-[12%] group-hover:duration-[1s]"
+//         >
+//           Send a Gift Card
+//         </Link>
+//         <img
+//           src="../images/mockupgiftcardtest.png"
+//           alt="gift cards mockup"
+//           className="absolute inset-0 object-cover object-center w-full h-full -z-10"
+//         />
+//       </section>
+//     </>
+//   );
+// }
+
+
 
 // function Locations() {
 //   const ref = useRef(null);
@@ -7273,298 +6763,3 @@ onUp: () => {
 //     </>
 //   );
 // }
-
-function PixelRevealImage({ src, alt, className = "" }) {
-  const wrapperRef = useRef(null);
-  const imageRef = useRef(null);
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const image = imageRef.current;
-    const canvas = canvasRef.current;
-
-    if (!wrapper || !image || !canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const buffer = document.createElement("canvas");
-    const bctx = buffer.getContext("2d");
-
-    if (!ctx || !bctx) return;
-
-    let tween;
-    let fadeTween;
-    let pending = false;
-    let cancelled = false;
-
-    let width = 0;
-    let height = 0;
-
-    const prepare = () => {
-      width = wrapper.clientWidth;
-      height = wrapper.clientHeight;
-
-      if (!width || !height || !image.naturalWidth) return false;
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      return true;
-    };
-
-    const drawPixelated = (pixelSize) => {
-      const block = Math.max(1, pixelSize);
-
-      const columns = Math.max(1, Math.ceil(width / block));
-      const rows = Math.max(1, Math.ceil(height / block));
-
-      if (buffer.width !== columns) buffer.width = columns;
-      if (buffer.height !== rows) buffer.height = rows;
-
-      const scale = Math.max(
-        width / image.naturalWidth,
-        height / image.naturalHeight,
-      );
-
-      const drawWidth = image.naturalWidth * scale;
-      const drawHeight = image.naturalHeight * scale;
-
-      bctx.clearRect(0, 0, columns, rows);
-
-      bctx.drawImage(
-        image,
-        (width - drawWidth) / (2 * block),
-        (height - drawHeight) / (2 * block),
-        drawWidth / block,
-        drawHeight / block,
-      );
-
-      ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(buffer, 0, 0, width, height);
-    };
-
-    const drawGlitch = (progress) => {
-      if (progress < 0.38 || progress > 0.46) return;
-
-      const bandY = height * 0.45;
-      const bandHeight = 12;
-      const offset = 12;
-
-      ctx.drawImage(
-        canvas,
-        0,
-        bandY,
-        width,
-        bandHeight,
-        offset,
-        bandY,
-        width,
-        bandHeight,
-      );
-    };
-
-    const render = (progress) => {
-      let pixelSize;
-
-      if (progress < 0.2) {
-        pixelSize = 50;
-      } else {
-        const t = (progress - 0.2) / 0.8;
-        const eased = 1 - Math.pow(1 - t, 3);
-
-        pixelSize = 50 - 49 * eased;
-      }
-
-      drawPixelated(pixelSize);
-      drawGlitch(progress);
-    };
-    const start = () => {
-      if (cancelled) return;
-
-      if (!image.complete || !image.naturalWidth) {
-        pending = true;
-        return;
-      }
-
-      tween?.kill();
-      fadeTween?.kill();
-
-      if (!prepare()) return;
-
-      pending = false;
-
-      gsap.set(image, { opacity: 0 });
-      gsap.set(canvas, { opacity: 1 });
-
-      const state = { progress: 0 };
-
-      render(0);
-
-      tween = gsap.to(state, {
-        progress: 1,
-        duration: 0.8,
-        ease: "none",
-        onUpdate: () => render(state.progress),
-        onComplete: () => {
-          fadeTween = gsap.timeline();
-
-          fadeTween.to(
-            image,
-            {
-              opacity: 1,
-              duration: 0.3,
-            },
-            0,
-          );
-
-          fadeTween.to(
-            canvas,
-            {
-              opacity: 0,
-              duration: 0.3,
-            },
-            0,
-          );
-        },
-      });
-    };
-
-    const onReveal = () => start();
-
-    const onLoad = () => {
-      if (pending) start();
-    };
-
-    window.addEventListener("frey-pixel-reveal", onReveal);
-    image.addEventListener("load", onLoad);
-
-    return () => {
-      cancelled = true;
-      tween?.kill();
-      fadeTween?.kill();
-
-      window.removeEventListener("frey-pixel-reveal", onReveal);
-      image.removeEventListener("load", onLoad);
-    };
-  }, [src]);
-
-  return (
-    <div ref={wrapperRef} className={className}>
-      <img
-        ref={imageRef}
-        src={src}
-        alt={alt}
-        className="absolute inset-0 h-full w-full object-cover opacity-0"
-      />
-
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full"
-      />
-    </div>
-  );
-}
-
-function Locations() {
-  return (
-    <main className="min-h-screen w-full bg-white text-[#111]">
-      <div className="frey-consult-marquee locations-reveal">
-        <div className="frey-consult-marquee__content">
-          {[0, 1].map((group) => (
-            <div
-              key={group}
-              className="frey-consult-marquee__group"
-              aria-hidden={group === 1}
-            >
-              {[0, 1].map((i) => (
-                <div key={i} className="frey-consult-marquee__sentence-pair">
-                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
-                    No referral needed.
-                  </span>
-
-                  <span className="frey-consult-marquee__text font-neueroman text-[clamp(20px,3vw,20px)] leading-none tracking-[-0.035em] text-black">
-                    Your initial consultation is complimentary.
-                  </span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-      <section className="px-[3vw] pt-5 pb-30">
-        <div className="grid min-h-screen grid-cols-1 gap-y-16 border-t border-[#999] pt-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-x-[3vw]">
-          {/* LEFT COLUMN */}
-          <div className="flex flex-col items-start">
-            <div className="locations-reveal flex flex-col items-start gap-8">
-              <h1 className="m-0 max-w-[420px] font-neueroman text-[12px] leading-[1.4] uppercase">
-                Find a FreySmiles location near you. We're proud to serve
-                patients throughout the Lehigh Valley and surrounding
-                communities.
-              </h1>
-
-              <Link
-                href="#locations-list"
-                className="font-neueroman text-[12px] uppercase underline underline-offset-4 transition-opacity duration-300 hover:opacity-50"
-              >
-                Explore Our Locations
-              </Link>
-            </div>
-
-            <PixelRevealImage
-              src="/images/signonmetalrack.png"
-              alt="FreySmiles orthodontics office"
-              className="locations-reveal relative mt-16 aspect-[4/5] w-full overflow-hidden md:mt-[40px] md:ml-[5%] md:w-[78%]"
-            />
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="flex w-full items-start">
-            <div className="w-full">
-              {/* <span className="mb-5 text-center font-neuehaas45 text-[12px] uppercase tracking-[0.14em] text-black">
-          Your smile starts here
-        </span> */}
-              <div className="locations-reveal relative h-[750px] w-full overflow-hidden rounded-2xl bg-white md:h-[850px]">
-                <iframe
-                  src="https://app.acuityscheduling.com/schedule.php?owner=37690830"
-                  title="Schedule Appointment"
-                  className="block h-full w-full border-0"
-                  allow="payment"
-                  loading="lazy"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
-const ease = (x) => x * x * (3 - 2 * x);
-
-function GiftCards() {
-  return (
-    <>
-      <section className="relative min-h-screen group hover:cursor-pointer">
-        <div className="absolute inset-0 w-full h-full flex justify-start items-start bg-[#FFF560] bg-opacity-80 text-white [clip-path:circle(50%_at_0%_0%)] lg:[clip-path:circle(30%_at_0%_0%)] lg:group-hover:[clip-path:circle(35%_at_0%_0%)] group-hover:bg-opacity-100 motion-safe:transition-[clip-path] motion-safe:duration-[2s] ease-out" />
-        <Link
-          href={`${process.env.NEXT_PUBLIC_SQUARE_GIFT_CARDS_URL}`}
-          target="_blank"
-          className="text-2xl font-neue-montreal absolute inset-0 w-full h-full pl-[12%] pt-[18%] lg:pl-[6%] lg:pt-[8%] lg:group-hover:pl-[8%] lg:group-hover:pt-[12%] group-hover:duration-[1s]"
-        >
-          Send a Gift Card
-        </Link>
-        <img
-          src="../images/mockupgiftcardtest.png"
-          alt="gift cards mockup"
-          className="absolute inset-0 object-cover object-center w-full h-full -z-10"
-        />
-      </section>
-    </>
-  );
-}

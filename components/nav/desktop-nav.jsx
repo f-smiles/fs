@@ -910,10 +910,16 @@ export default function Navbar() {
           aria-controls={menuId}
           aria-label={isOpen ? "Close menu" : "Open menu"}
         >
-          <span className="frey-nav__toggle-text">
-            <span>Menu</span>
-            <span>Close</span>
-          </span>
+<span className="frey-nav__toggle-text">
+  <span>
+<img
+  src="/images/fspetallogo.png"
+  alt=""
+  className="block h-[28px] w-[28px] object-contain mix-blend-difference"
+/>
+  </span>
+  <span>Close</span>
+</span>
 
           <span className="frey-nav__toggle-icon">
             <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -975,11 +981,27 @@ export default function Navbar() {
                   >
                     <span className="frey-nav__link-number">{item.number}</span>
 
-                    <span className="frey-nav__link-clip">
-                      <span className="frey-nav__link-inner">{item.label}</span>
-                    </span>
+               <span className="frey-nav__link-clip">
+  <span className="frey-nav__link-inner">
+    {Array.from(item.label).map((char, index) => (
+      <span
+        className="frey-nav__char"
+        key={index}
+        style={{ "--char-index": index }}
+      >
+        <span className="frey-nav__char-original">
+          {char === " " ? "\u00A0" : char}
+        </span>
 
-                    <span className="frey-nav__link-arrow">↗</span>
+        <span className="frey-nav__char-duplicate" aria-hidden="true">
+          {char === " " ? "\u00A0" : char}
+        </span>
+      </span>
+    ))}
+  </span>
+</span>
+
+        <span className="frey-nav__link-arrow font-neuehaas35">↗</span>
                   </Link>
                 </li>
               ))}
@@ -1015,15 +1037,7 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* BOTTOM CTA */}
-              <Link
-                href="/book-now"
-                onClick={() => setIsOpen(false)}
-                className="font-neuehaas35 frey-nav__consultation"
-              >
-                <span>Book a Consultation</span>
-                <span>↗</span>
-              </Link>
+
             </div>
           </div>
         </div>

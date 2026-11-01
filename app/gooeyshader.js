@@ -231,21 +231,39 @@ uniform vec2 uTexelSize;
 
   varying vec2 vUv;
 
-  // Image equivalent of CSS object-fit: cover.
-  vec2 coverUV(vec2 uv, vec2 imageSize) {
-    vec2 safeSize = max(imageSize, vec2(1.0));
+// Image equivalent of CSS object-fit: contain.
+vec2 containUV(vec2 uv, vec2 imageSize) {
+  vec2 safeSize = max(imageSize, vec2(1.0));
 
-    vec2 scale = uResolution / safeSize;
-    float factor = max(scale.x, scale.y);
+  vec2 scale = uResolution / safeSize;
+  float factor = min(scale.x, scale.y);
 
-    vec2 scaledSize = safeSize * factor;
-    vec2 offset = (uResolution - scaledSize) * 0.5;
+  vec2 scaledSize = safeSize * factor;
+  vec2 offset = (uResolution - scaledSize) * 0.5;
 
-    return (
-      uv * uResolution - offset
-    ) / scaledSize;
-  }
+  return (
+    uv * uResolution - offset
+  ) / scaledSize;
+}
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
 
+float edgeNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+
+  // Less smoothing = more angular irregularities
+  vec2 u = f * f * (3.0 - 2.0 * f);
+
+  return mix(
+    mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
+    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
   void main() {
     vec2 uv = vUv;
 
@@ -254,57 +272,72 @@ uniform vec2 uTexelSize;
 
     // Gentle broad variation in the threshold.
     // This affects the silhouette, not the image.
-    float organic =
-      sin(uv.x * 8.0 + uTime * 0.32) *
-      cos(uv.y * 6.0 - uTime * 0.27) *
-      0.018;
-
-    organic +=
-      sin(uv.x * 15.0 - uTime * 0.23) *
-      cos(uv.y * 12.0 + uTime * 0.19) *
-      0.007;
-
-    float field = dye + organic * smoothstep(
-      0.12,
-      0.45,
-      dye
-    );
-
-vec2 inset = vec2(45.0, 45.0) * uTexelSize;
-
-// Different clearance for each edge, in pixels
-float leftInset = 45.0;
-float rightInset = 45.0;
-float bottomInset = 45.0;
-float topInset = 12.0;
-
-float fadeWidth = 2.0;
-float left = smoothstep(
-  leftInset * uTexelSize.x,
-  (leftInset + fadeWidth) * uTexelSize.x,
-  vUv.x
+// Large irregular contours
+float coarse = edgeNoise(
+  uv * 12.0 + vec2(uTime * 0.08, 0.0)
 );
 
-float right = smoothstep(
-  rightInset * uTexelSize.x,
-  (rightInset + fadeWidth) * uTexelSize.x,
-  1.0 - vUv.x
+// Medium-sized jagged contours
+float medium = edgeNoise(
+  uv * 45.0 - vec2(0.0, uTime * 0.12)
 );
 
-float bottom = smoothstep(
-  bottomInset * uTexelSize.y,
-  (bottomInset + fadeWidth) * uTexelSize.y,
-  vUv.y
+// Fine, sharper irregularities
+float fine = edgeNoise(
+  uv * 115.0 + vec2(uTime * 0.05, -uTime * 0.07)
 );
 
-float top = smoothstep(
-  topInset * uTexelSize.y,
-  (topInset + fadeWidth) * uTexelSize.y,
-  1.0 - vUv.y
-);
-float boundary = left * right * bottom * top;
+// Make fine detail appear in patches
+float patches = smoothstep(0.35, 0.7, coarse);
 
-field *= boundary;
+float organic =
+  (coarse - 0.5) * 0.07 +
+  (medium - 0.5) * 0.065 +
+  (fine - 0.5) * patches * 0.035;
+
+// Keep irregularity in stronger dye regions,
+// but remove it as the dye becomes faint.
+float organicStrength = smoothstep(
+  0.48,
+  0.85,
+  dye
+);
+
+// Distort the painted silhouette
+float field = dye + organic * organicStrength;
+
+// Cleanly suppress the last remnants of the blob
+float cleanup = smoothstep(
+  0.46,
+  0.58,
+  dye
+);
+
+field *= cleanup;
+
+// Distance to the permitted edges, measured in pixels.
+vec2 pixel = vUv / uTexelSize;
+
+vec2 canvasSize = 1.0 / uTexelSize;
+
+float leftDistance = pixel.x - 45.0;
+float rightDistance = canvasSize.x - pixel.x - 45.0;
+float bottomDistance = pixel.y - 45.0;
+float topDistance = canvasSize.y - pixel.y - 12.0;
+
+float edgeDistance = min(
+  min(leftDistance, rightDistance),
+  min(bottomDistance, topDistance)
+);
+
+float edgeFade = 1.0 - smoothstep(
+  0.0,
+  35.0,
+  edgeDistance
+);
+
+field -= edgeFade * 0.25;
+
 
 float reveal = smoothstep(
   0.48,
@@ -312,21 +345,22 @@ float reveal = smoothstep(
   field
 );
 
-// Calculate the image coordinates
-vec2 imageUV = coverUV(
-  uv,
-  uImageSize
-);
-
+vec2 imageUV = containUV(uv, uImageSize);
 vec3 imageColor = texture2D(
   uImage,
   imageUV
 ).rgb;
 
+float insideImage =
+  step(0.0, imageUV.x) *
+  step(imageUV.x, 1.0) *
+  step(0.0, imageUV.y) *
+  step(imageUV.y, 1.0);
+
 vec3 finalColor = mix(
   uBackgroundColor,
   imageColor,
-  reveal
+  reveal * insideImage
 );
 
 gl_FragColor = vec4(finalColor, 1.0);

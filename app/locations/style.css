@@ -216,7 +216,7 @@
 .locations-spotlight {
   position: relative;
   width: 100%;
-  min-height: 100svh;
+  min-height: 0;
 
   background: transparent;
 
@@ -229,7 +229,7 @@
 }
 
 .locations-spotlight > * {
-  transform: translateY(-12vh);
+  transform: none;
 }
 
 /* ---------- Card ---------- */
@@ -1120,17 +1120,22 @@
 
 .locations-route-section {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   background: #e9eae9;
   isolation: isolate;
+}
+.locations-route-svg-layer,
+.locations-route-cards {
+  grid-area: 1 / 1;
 }
 @media (max-width: 1000px) {
   .locations-spotlight {
     min-height: 0;
     flex-direction: column;
-    padding: 20svh 0 5svh;
+    padding: 2svh 0 5svh;
     overflow: visible;
   }
-
 }
 @media (max-width: 900px) {
   .location-detail-page {
@@ -1380,87 +1385,6 @@
   position: relative;
   z-index: 1;
   min-width: 0;
-}
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
-.locations-route-section {
-  background: #e9eae9;
-}
-
-.locations-route-section::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: #e9eae9;
-  z-index: -1;
-  pointer-events: none;
-}
-  /* SVG behind cards */
-  .locations-route-svg-layer {
-    z-index: 0;
-    align-items: flex-start;
-    justify-content: center;
-  }
-
-  .locations-route-svg {
-    width: 420px;
-    height: auto;
-    max-width: none;
-    flex-shrink: 0;
-    transform: translateY(0);
-  }
-
-  /* Center the card row */
-  .locations-route-cards {
-    grid-area: 1 / 1;
-    position: relative;
-    z-index: 2;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 100%;
-    min-height: 100svh;
-    padding: 16px 24px;
-    box-sizing: border-box;
-  }
-
-.locations-route-cards .locations-spotlight {
-  display: grid !important;
-  grid-template-columns: repeat(4, 180px) !important;
-  grid-template-rows: auto !important;
-transform: translateX(-40px);
-  column-gap: 25px !important;
-  row-gap: 0;
-
-  justify-content: center !important;
-  justify-items: center !important;
-  align-items: center;
-
-  width: 100%;
-  max-width: none;
-  margin: 0 auto;
-
-  padding: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-}
-
-.locations-route-cards .location-card {
-  position: relative !important;
-  grid-column: auto !important;
-  grid-row: auto !important;
-
-  width: 200px;
-  max-width: none;
-  min-width: 0;
-
-  margin: 0;
-
-  transform: scale(0.65) !important;
-  transform-origin: center center;
 }
 }
 

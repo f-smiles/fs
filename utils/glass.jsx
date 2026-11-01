@@ -9,6 +9,7 @@ void main() {
 }
 `
 
+
 const fragmentShader = `
 uniform sampler2D uTexture;
 uniform vec2 uResolution;
@@ -27,7 +28,9 @@ vec2 getCoverUV(vec2 uv, vec2 textureSize) {
   if (textureSize.x < 1.0 || textureSize.y < 1.0) return uv;
 
   vec2 s = uResolution / textureSize;
-  float scale = min(s.x, s.y);
+
+  // Cover: fill the container without exposing empty edges.
+  float scale = max(s.x, s.y);
 
   vec2 scaledSize = textureSize * scale;
   vec2 offset = (uResolution - scaledSize) * 0.5;
@@ -36,23 +39,37 @@ vec2 getCoverUV(vec2 uv, vec2 textureSize) {
 }
 
 float displacement(float x, float num_stripes, float strength) {
-  float modulus = 1.0 / num_stripes;
+  float modulus = 1.0 / max(num_stripes, 0.001);
   return mod(x, modulus) * strength;
 }
 
 float fractalGlass(float x) {
   float d = 0.0;
+
   for (int i = -5; i <= 5; i++) {
-    d += displacement(x + float(i) * uglassSmoothness, ustripesFrequency, uGlassStrength);
+    d += displacement(
+      x + float(i) * uglassSmoothness,
+      ustripesFrequency,
+      uGlassStrength
+    );
   }
-  d = d / 11.0;
+
+  d /= 11.0;
+
   return x + d;
 }
 
 float smoothEdge(float x, float padding) {
-  float edge = padding;
-  if (x < edge) return smoothstep(0.0, edge, x);
-  if (x > 1.0 - edge) return smoothstep(1.0, 1.0 - edge, x);
+  float edge = clamp(padding, 0.001, 0.5);
+
+  if (x < edge) {
+    return smoothstep(0.0, edge, x);
+  }
+
+  if (x > 1.0 - edge) {
+    return 1.0 - smoothstep(1.0 - edge, 1.0, x);
+  }
+
   return 1.0;
 }
 
@@ -62,43 +79,67 @@ void main() {
   float originalX = uv.x;
   float edgeFactor = smoothEdge(originalX, uEdgePadding);
 
+  // Glass distortion
   float distortedX = fractalGlass(originalX);
+
   uv.x = mix(originalX, distortedX, edgeFactor);
 
   float distortionFactor = uv.x - originalX;
+
+  // Mouse parallax
   float parallaxDirection = -sign(0.5 - uMouse.x);
 
   vec2 parallaxOffset = vec2(
-    parallaxDirection * abs(uMouse.x - 0.5) * uParallaxStrength * (1.0 + abs(distortionFactor) * uDistortionMultiplier),
+    parallaxDirection *
+    abs(uMouse.x - 0.5) *
+    uParallaxStrength *
+    (1.0 + abs(distortionFactor) * uDistortionMultiplier),
     0.0
   );
 
   parallaxOffset *= edgeFactor;
-  
 
   uv += parallaxOffset;
-  
-vec2 coverUV = getCoverUV(uv, uTextureSize);
 
-// Shift only the video image to the left
-coverUV.x += 0.14;
+  // Video positioning
+  vec2 coverUV = getCoverUV(uv, uTextureSize);
 
-coverUV = clamp(coverUV, 0.0, 1.0);
+  // Zoom in to create room for horizontal repositioning.
+  float zoom = 1.05;
 
-vec4 color = texture2D(uTexture, coverUV);
+  // Positive values shift the image visually left.
+  float shiftX = 0.02;
 
-color.rgb *= 1.35;
+  coverUV = (coverUV - 0.5) / zoom + 0.5;
+  coverUV.x += shiftX;
 
-// compress contrast toward highlights (prevents muddy mids)
-color.rgb = mix(color.rgb, vec3(1.0), 0.12);
+  // Sample the video.
+  vec4 color = texture2D(uTexture, coverUV);
 
-color.rgb = pow(color.rgb, vec3(0.85));
+  // Brightness and color treatment
+  color.rgb *= 1.35;
 
-color.rgb = mix(color.rgb, vec3(0.97, 0.98, 1.0), 0.08);
+  color.rgb = mix(
+    color.rgb,
+    vec3(1.0),
+    0.12
+  );
 
-gl_FragColor = color;
+  color.rgb = pow(
+    max(color.rgb, vec3(0.0)),
+    vec3(0.85)
+  );
+
+  color.rgb = mix(
+    color.rgb,
+    vec3(0.97, 0.98, 1.0),
+    0.08
+  );
+
+  gl_FragColor = color;
 }
-`
+`;
+
 
 const config = {
   lerpFactor: 0.035,

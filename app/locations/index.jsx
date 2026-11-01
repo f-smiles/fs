@@ -1569,6 +1569,7 @@ useLayoutEffect(() => {
 
   return (
     <>
+<div className="min-h-[100svh] bg-[#e9eae9]">
 <DitherCursorTrail
   pixelSize={8}
   color="#1757e8"
@@ -1578,7 +1579,7 @@ useLayoutEffect(() => {
   decayDuration={250}
 />
 
-      <div className="bg-[#e9eae9] text-black">
+      <div className=" text-black">
 
 
         <header className="relative h-[260px] px-12 py-10">
@@ -1754,6 +1755,7 @@ preserveAspectRatio="xMidYMin meet"
   </div>
 </div>
 
+</div>
 {/* <SEOList /> */}
 
 
