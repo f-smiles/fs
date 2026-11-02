@@ -912,11 +912,11 @@ export default function Navbar() {
         >
 <span className="frey-nav__toggle-text">
   <span>
-<img
-  src="/images/fspetallogo.png"
-  alt=""
-  className="block h-[28px] w-[28px] object-contain mix-blend-difference"
-/>
+    <img
+      src="/images/fspetallogo.png"
+      alt=""
+      className="block object-contain mix-blend-difference"
+    />
   </span>
   <span>Close</span>
 </span>
@@ -968,7 +968,7 @@ export default function Navbar() {
           <div ref={contentRef} className="frey-nav__content">
             <div className="frey-nav__eyebrow">
               <span>EXPLORE FREYSMILES</span>
-              <span>EST. 2004</span>
+              <span>EST. 1977</span>
             </div>
 
             <ul className="frey-nav__list">

@@ -2241,7 +2241,7 @@ const Hero = () => {
                   delay={0.35}
                   stagger={0.045}
                 >
-                  shaped here.
+              where smile
                 </LocationCharacterReveal>
 
                 <br />
@@ -2251,7 +2251,7 @@ const Hero = () => {
                   delay={0.8}
                   stagger={0.045}
                 >
-                  smile everywhere
+              takes shape
                 </LocationCharacterReveal>
               </h2>
             </div>
@@ -2364,7 +2364,7 @@ const Hero = () => {
                   delay={0.1}
                   stagger={0.045}
                 >
-                  We understand the art
+          the art
                 </LocationCharacterReveal>
               </div>
 
@@ -4501,7 +4501,7 @@ tl.to(
             ref={containerRef}
             className="relative mx-auto w-full max-w-7xl text-[11px]"
           >
-            {/* MOBILE — grouped awards */}
+            {/* MOBILE awards */}
             <div className="relative z-10 mx-auto w-[94%] font-neueroman md:hidden">
               {mobileAwardGroups.map((group) => (
                 <div

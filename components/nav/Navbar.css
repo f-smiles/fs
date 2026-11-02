@@ -45,6 +45,9 @@
   letter-spacing: .05em;
 }
 .frey-nav__toggle {
+  position: relative;
+  top: -26px;
+
   display: flex;
   align-items: center;
   gap: 14px;
@@ -54,11 +57,10 @@
   background: transparent;
   color: white;
   cursor: pointer;
-
-
 }
+
 .frey-nav__toggle-text {
-  height: 28px;
+  height: 44px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -72,26 +74,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  flex: 0 0 28px;
+  height: 44px;
+  flex: 0 0 44px;
   transition: transform 0.55s cubic-bezier(.65, .05, 0, 1);
 }
 
 .frey-nav__toggle-text img {
   display: block;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
-
   filter: brightness(0) invert(1);
 }
-
 
 .frey-nav__toggle.is-open .frey-nav__toggle-text > span {
   transform: translateY(-100%);
 }
 
 .frey-nav__toggle-icon {
+  position: relative;
+  left: -10px;
+
   width: 14px;
   height: 14px;
   display: block;
