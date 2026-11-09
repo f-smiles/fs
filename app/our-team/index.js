@@ -1233,12 +1233,7 @@ const switchDuration = 1
 tl.to(
   stackRef.current,
   {
-    /*
-     * Mobile: move Daniel in from the
-     * right and push Gregg left.
-     *
-     * Desktop: retain the vertical stack.
-     */
+
     xPercent: () =>
       isMobile() ? -100 : 0,
 
@@ -1438,6 +1433,7 @@ tl.to(
     <>
       <div className="h-screen w-screen">
 {/* <WillemLoader /> */}
+<AsciiInstanced />
       <div
         ref={pinRef}
         className="relative w-full h-screen overflow-hidden bg-[#17181C]"

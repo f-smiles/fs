@@ -264,52 +264,69 @@ float edgeNoise(vec2 p) {
     u.y
   );
 }
+  vec2 tectonicWarp(vec2 uv) {
+  vec2 p = uv * vec2(4.0, 5.0);
+
+  float x = edgeNoise(
+    p + vec2(12.7, 4.3)
+  );
+
+  float y = edgeNoise(
+    p + vec2(5.2, 19.1)
+  );
+
+  return vec2(x, y) * 2.0 - 1.0;
+}
   void main() {
     vec2 uv = vUv;
 
-    // Read the fluid's dye density.
-    float dye = texture2D(uDye, uv).r;
+ // Large-scale tectonic deformation
+vec2 warp = tectonicWarp(uv);
 
-    // Gentle broad variation in the threshold.
-    // This affects the silhouette, not the image.
-// Large irregular contours
-float coarse = edgeNoise(
-  uv * 12.0 + vec2(uTime * 0.08, 0.0)
+// Distort the underlying dye coordinates.
+// This changes the silhouette itself.
+vec2 warpedUV = uv + warp * 0.065;
+
+// Read the warped fluid density.
+float dye = texture2D(
+  uDye,
+  clamp(warpedUV, vec2(0.0), vec2(1.0))
+).r;
+
+
+// Broad landmass variation
+float continental = edgeNoise(
+  uv * 5.0 + vec2(7.3, 2.1)
 );
 
-// Medium-sized jagged contours
-float medium = edgeNoise(
-  uv * 45.0 - vec2(0.0, uTime * 0.12)
+// Medium-scale coastline variation
+float coastline = edgeNoise(
+  uv * 17.0 + vec2(3.7, 11.2)
 );
 
-// Fine, sharper irregularities
-float fine = edgeNoise(
-  uv * 115.0 + vec2(uTime * 0.05, -uTime * 0.07)
+// Small irregularities
+float detail = edgeNoise(
+  uv * 52.0 + vec2(8.4, 5.6)
 );
 
-// Make fine detail appear in patches
-float patches = smoothstep(0.35, 0.7, coarse);
 
-float organic =
-  (coarse - 0.5) * 0.07 +
-  (medium - 0.5) * 0.065 +
-  (fine - 0.5) * patches * 0.035;
+// Combine the scales.
+// Broad shapes dominate, small details are secondary.
+float tectonic =
+  (continental - 0.5) * 0.22 +
+  (coastline - 0.5) * 0.12 +
+  (detail - 0.5) * 0.025;
 
-// Keep irregularity in stronger dye regions,
-// but remove it as the dye becomes faint.
-float organicStrength = smoothstep(
-  0.48,
-  0.85,
-  dye
-);
 
-// Distort the painted silhouette
-float field = dye + organic * organicStrength;
+// Apply deformation directly to the density field.
+float field = dye + tectonic;
 
-// Cleanly suppress the last remnants of the blob
+
+// Suppress weak remnants without erasing
+// the irregularities at the visible boundary.
 float cleanup = smoothstep(
-  0.46,
-  0.58,
+  0.30,
+  0.43,
   dye
 );
 
@@ -340,8 +357,8 @@ field -= edgeFade * 0.25;
 
 
 float reveal = smoothstep(
-  0.48,
-  0.485,
+  0.46,
+  0.465,
   field
 );
 

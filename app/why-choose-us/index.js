@@ -2547,7 +2547,7 @@ BLAH BLAH BLAH
 {/* <MoreThanSmiles /> */}
 
 {/* <LivingLine /> */}
-             {/* <FluidSimulation /> */}
+             <FluidSimulation />
 
           <div className="relative w-full h-screen" style={{ zIndex: 1 }}>
             <Canvas

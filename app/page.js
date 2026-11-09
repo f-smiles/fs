@@ -3226,7 +3226,7 @@ const radiusPx = THREE.MathUtils.lerp(
     );
 
 // Faster drift toward the upper right.
-this.advectionMaterial.uniforms.uDrift.value.set(0.06, 0.095);
+this.advectionMaterial.uniforms.uDrift.value.set(0.31, 0.25);
 
     this.renderMaterial(this.advectionMaterial, this.velocity.write);
 
@@ -3244,7 +3244,7 @@ this.advectionMaterial.uniforms.uDrift.value.set(0.06, 0.095);
     );
 
     // Drift toward the upper right.
-    this.advectionMaterial.uniforms.uDrift.value.set(0.035, 0.055);
+    this.advectionMaterial.uniforms.uDrift.value.set(0.31, 0.025);
 
     this.renderMaterial(this.advectionMaterial, this.dye.write);
 
@@ -5250,7 +5250,7 @@ const BLOCKS = [
 {
 title: "Precisely You in 3D",
 content:
-"Every FreySmiles office is equipped with 3D imaging, intraoral 3D scanning, and access to in-house 3D printing. That means no messy impressions and faster, more informed treatment planning. Drawing on training with the American Academy of Facial Esthetics, our doctors choose the combination of custom clear aligners and precision-engineered modern braces that best fits your case. The result: fewer visits and a smile that suits you in real life.",
+"Every FreySmiles office is equipped with 3D imaging, intraoral 3D scanning, and access to in-house 3D printing. That means no messy impressions and faster, more informed treatment planning. Drawing on training with the American Academy of Facial Esthetics, our doctors choose the combination of custom clear aligners and precision-engineered modern braces that best fits your case. The result: fewer visits and treatment with some bite.",
 },
 {
 title: "Beyond Board Standards",

@@ -1055,7 +1055,7 @@ useEffect(() => {
     <AtmosphereBackground />
 
 
-<div className="h-screen w-full">
+{/* <div className="h-screen w-full">
 
 
     <Canvas
@@ -1080,7 +1080,7 @@ useEffect(() => {
   </ScrollControls>
 </Canvas>
 
-</div>
+</div> */}
 
       {/* <div className=" font-neuehaas35 min-h-screen px-8 pt-32 relative text-black "> */}
 
@@ -2373,6 +2373,7 @@ bg *= 1.04;
 
 vec3 col = bg;
 
+
 float bandNoise = snoise(uv0 * 0.25 + vec2(uTime * 0.01, 0.0));
 bandNoise = bandNoise * 0.5 + 0.5;
 
@@ -2521,6 +2522,41 @@ vec3 babyBlue = mix(ribbonLight, vec3(1.0), 0.8);
 vec3 iceMilk  = mix(vec3(0.94, 0.97, 1.0), babyBlue, 0.4);
 
 col = mix(col, iceMilk, 0.07 + milkNoise * 0.06);
+// SOFT DIFFUSED ORANGE ORB
+
+// Center of the glow (0.5 = center of screen)
+vec2 orbCenter = vec2(0.50, 0.49);
+
+// Aspect-corrected distance, so the orb stays circular
+vec2 orbUV = vUv - orbCenter;
+orbUV.x *= uResolution.x / uResolution.y;
+
+// Gentle atmospheric movement
+vec2 drift = vec2(
+  sin(uTime * 0.13) * 0.025,
+  cos(uTime * 0.10) * 0.018
+);
+
+float orbDist = length(orbUV - drift);
+
+// Wide, diffused atmospheric halo
+float outerGlow = exp(-pow(orbDist / 0.55, 2.0));
+
+// Warm inner illumination
+float innerGlow = exp(-pow(orbDist / 0.24, 2.0));
+
+// Small, luminous center
+float orbCore = exp(-pow(orbDist / 0.075, 2.0));
+
+// Colors
+vec3 haloColor = vec3(1.0, 0.66, 0.46);
+vec3 innerColor = vec3(1.0, 0.77, 0.58);
+vec3 coreColor = vec3(1.0, 0.94, 0.78);
+
+// Blend softly into the atmosphere
+col = mix(col, haloColor, outerGlow * 0.20);
+col = mix(col, innerColor, innerGlow * 0.34);
+col = mix(col, coreColor, orbCore * 0.40);
     col = clamp(col, 0.0, 1.0);
     col = pow(col, vec3(0.97)); // Slightly less contrast
     gl_FragColor = vec4(col, 1.0);
