@@ -5245,174 +5245,159 @@ function CTAParagraphReveal({
   );
 }
 
-function CTA() {
 const BLOCKS = [
-{
-title: "Precisely You in 3D",
-content:
-"Every FreySmiles office is equipped with 3D imaging, intraoral 3D scanning, and access to in-house 3D printing. That means no messy impressions and faster, more informed treatment planning. Drawing on training with the American Academy of Facial Esthetics, our doctors choose the combination of custom clear aligners and precision-engineered modern braces that best fits your case. The result: fewer visits and treatment with some bite.",
-},
-{
-title: "Beyond Board Standards",
-content:
-"We meet the American Board of Orthodontics (ABO) diagnostic standards and strive to go beyond. While the standard still allows 2D X-rays and plaster models, we plan in 3D with less waste, using digital records that hold their true form. We also photograph your face and smile from more angles. Our doctors plan with both board standards and facial aesthetics, because no one sees numbers when they look at your smile.",
-},
-{
-title: "Ahead Since Day One",
-content:
-"Our doctors respect classical orthodontic principles and were among the first in the area to adopt impressionless digital scanning, Invisalign, and self-ligating braces. We were the Lehigh Valley's first Invisalign Diamond Plus provider and the first to offer it for early, Phase 1 treatment in children. With offices in Allentown, Bethlehem, Lehighton, and Schnecksville, we've provided exceptional orthodontic care for teens, adults, and children alike for over four decades.",
-},
-{
-title: "Two Generations, One Name",
-content:
-"We've cared for thousands of local families. Dr. Gregg Frey and Dr. Daniel Frey bring a combined 60 years of orthodontic experience to every patient, with one standard of care. Your doctor guides your treatment from start to finish. Outside the office, we're proud to support local teams and organizations that make up our community. Join us and experience the FreySmiles difference.",
-},
+  {
+    title: "Precisely You in 3D",
+    content:
+      "Every FreySmiles office is equipped with 3D imaging, intraoral 3D scanning, and access to in-house 3D printing. That means no messy impressions and faster, more informed treatment planning. Drawing on training with the American Academy of Facial Esthetics, our doctors choose the combination of custom clear aligners and precision-engineered modern braces that best fits your case. The result: fewer visits and treatment with some bite.",
+  },
+  {
+    title: "Beyond Board Standards",
+    content:
+      "We meet the American Board of Orthodontics (ABO) diagnostic standards and strive to go beyond. While the standard still allows 2D X-rays and plaster models, we plan in 3D with less waste, using digital records that hold their true form. We also photograph your face and smile from more angles. Our doctors plan with both board standards and facial aesthetics, because no one sees numbers when they look at your smile.",
+  },
+  {
+    title: "Ahead Since Day One",
+    content:
+      "Our doctors respect classical orthodontic principles and were among the first in the area to adopt impressionless digital scanning, Invisalign, and self-ligating braces. We were the Lehigh Valley's first Invisalign Diamond Plus provider and the first to offer it for early, Phase 1 treatment in children. With offices in Allentown, Bethlehem, Lehighton, and Schnecksville, we've provided exceptional orthodontic care for teens, adults, and children alike for over four decades.",
+  },
+  {
+    title: "Two Generations, One Name",
+    content:
+      "We've cared for thousands of local families. Dr. Gregg Frey and Dr. Daniel Frey bring a combined 60 years of orthodontic experience to every patient, with one standard of care. Your doctor guides your treatment from start to finish. Outside the office, we're proud to support local teams and organizations that make up our community. Join us and experience the FreySmiles difference.",
+  },
 ];
-  const bookingContentRef = useRef(null);
+
+function CTA() {
+  const N = BLOCKS.length;
   const sectionRef = useRef(null);
   const wheelRef = useRef(null);
   const wheelEntranceRef = useRef(null);
-  const markerRefs = useRef([]);
   const contentRefs = useRef([]);
   const fourthPinRef = useRef(null);
   const transitionRef = useRef(null);
   const blueCircleRef = useRef(null);
   const whiteCircleRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const bookingContentRef = useRef(null);
   const bookingInnerRef = useRef(null);
   const toothEntranceRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const section = sectionRef.current;
     const wheel = wheelRef.current;
-
     if (!section || !wheel) return;
+
+    const html = document.documentElement;
+    const bookingContent = bookingContentRef.current;
 
     const ctx = gsap.context(() => {
       gsap.set(wheel, { rotation: 0 });
+      gsap.set(contentRefs.current, { autoAlpha: 0, y: 16 });
+      gsap.set(contentRefs.current[0], { autoAlpha: 1, y: 0 });
+      gsap.set([transitionRef.current, bookingContentRef.current], {
+        autoAlpha: 0,
+      });
 
       gsap.fromTo(
         wheelEntranceRef.current,
-        {
-          scale: 0.5,
-        },
+        { scale: 0.5 },
         {
           scale: 1,
           duration: 1.2,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: sectionRef.current,
+            trigger: section,
             start: "top 85%",
             toggleActions: "play none none reverse",
           },
         },
       );
 
-      gsap.set(contentRefs.current, {
-        autoAlpha: 0,
-        y: 16,
-      });
+      //  split pin into two phases:
+      //   1. LEAD: a dead zone. The section is pinned and nothing changes, so
+      //      the user clearly sees it lock in place before anything happens.
+      //   2. STEPS: short distances, so each block advances with a light swipe.
+      // Tune these two numbers (multiples of screen height).
+const metrics = () => {
+  const vh = window.innerHeight;
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
 
-      gsap.set(contentRefs.current[0], {
-        autoAlpha: 1,
-        y: 0,
-      });
+  return {
+    lead: vh * 0.45,
+    step: vh * (isTouch ? 0.8 : 1.5),
+  };
+};
 
-      let currentIndex = 0;
-      let animating = false;
-      let expanded = false;
+      let current = 0; // last committed state
+      let expansion = null;
+      let activeCall = null;
+      let openCall = null;
+      let stopCall = null;
+      let st = null;
 
-      let transition;
-      let expansion;
-      let observer;
-      let scrollTrigger;
-
-      const handleBookingWheel = (event) => {
-        if (!expanded || animating) return;
-
-        const content = bookingContentRef.current;
-        if (!content) return;
-
-        if (event.deltaY < 0 && content.scrollTop <= 2) {
-          event.preventDefault();
-
-          content.scrollTop = 0;
-
-          closeBookingSection();
-        }
+      const lockPage = (lock) => {
+        html.style.overflow = lock ? "hidden" : "";
       };
 
-      let touchStartY = null;
-      let touchStartX = null;
-      let touchTriggered = false;
-
-      const handleBookingTouchStart = (event) => {
-        if (!expanded || animating) return;
-        if (event.touches.length !== 1) return;
-
-        touchStartY = event.touches[0].clientY;
-        touchStartX = event.touches[0].clientX;
-        touchTriggered = false;
-      };
-
-      const handleBookingTouchMove = (event) => {
-        if (!expanded || animating || touchTriggered) return;
-        if (touchStartY === null || touchStartX === null) return;
-        if (event.touches.length !== 1) return;
-
-        const content = bookingContentRef.current;
-        if (!content) return;
-
-        const deltaY = event.touches[0].clientY - touchStartY;
-        const deltaX = event.touches[0].clientX - touchStartX;
-
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-
-        if (content.scrollTop <= 1 && deltaY > 45) {
-          event.preventDefault();
-
-          touchTriggered = true;
-          touchStartY = null;
-          touchStartX = null;
-
-          closeBookingSection();
-        }
-      };
-
-      const handleBookingTouchEnd = () => {
-        touchStartY = null;
-        touchStartX = null;
-        touchTriggered = false;
-      };
-      const releaseScroll = (direction) => {
-        observer?.disable();
-
-        const destination =
-          direction > 0 ? scrollTrigger.end + 2 : scrollTrigger.start - 2;
-
-        window.scrollTo({
-          top: destination,
-          behavior: "instant",
+      const showText = (index) => {
+        contentRefs.current.forEach((el, i) => {
+          if (!el) return;
+          if (i === index) {
+            gsap.fromTo(
+              el,
+              { y: 12 },
+              {
+                autoAlpha: 1,
+                y: 0,
+                duration: 0.45,
+                delay: 0.45,
+                ease: "power3.out",
+                overwrite: true,
+              },
+            );
+          } else {
+            gsap.to(el, {
+              autoAlpha: 0,
+              y: -12,
+              duration: 0.2,
+              ease: "power2.in",
+              overwrite: true,
+            });
+          }
         });
-      };
-      const openBookingSection = () => {
-        if (animating || expanded || !fourthPinRef.current) return;
 
-        animating = true;
+        gsap.to(wheel, {
+          rotation: -90 * index,
+          duration: 0.85,
+          ease: "power3.inOut",
+          overwrite: "auto",
+        });
+
+        activeCall?.kill();
+        activeCall = gsap.delayedCall(0.6, () => setActiveIndex(index));
+      };
+
+      const openBooking = () => {
+        if (!fourthPinRef.current || !transitionRef.current) return;
+        if (st && st.scroll() > st.end - 1) {
+          st.scroll(st.end - 1);
+          ScrollTrigger.update();
+        }
+
+        lockPage(true);
+
+        if (expansion && expansion.progress() > 0) {
+          expansion.timeScale(1).play();
+          return;
+        }
+        expansion?.kill();
 
         const rect = fourthPinRef.current.getBoundingClientRect();
+        const containerRect = transitionRef.current.getBoundingClientRect();
 
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-
-        const x = (centerX / window.innerWidth) * 100;
-        const y = (centerY / window.innerHeight) * 100;
-
-        const containerRect = transitionRef.current.getBoundingClientRect();
-
-        const circleX = centerX - containerRect.left - 50;
-        const circleY = centerY - containerRect.top - 50;
-
         const originX = centerX - containerRect.left;
         const originY = centerY - containerRect.top;
 
@@ -5425,430 +5410,310 @@ content:
             containerRect.height - originY,
           ),
         );
-
         const finalScale = (maxRadius * 2 + 100) / 100;
 
         gsap.set([blueCircleRef.current, whiteCircleRef.current], {
-          x: circleX,
-          y: circleY,
+          x: originX - 50,
+          y: originY - 50,
           scale: 0,
         });
+        gsap.set(transitionRef.current, { autoAlpha: 1 });
 
-        gsap.set(transitionRef.current, {
-          autoAlpha: 1,
-        });
-
-        expansion?.kill();
-
-        expansion = gsap.timeline({
-          onComplete: () => {
-            expanded = true;
-            animating = false;
-
-            observer?.disable();
-          },
-
-          onReverseComplete: () => {
-            expanded = false;
-            animating = false;
-
-            gsap.set(transitionRef.current, {
-              autoAlpha: 0,
-            });
-
-            observer?.enable();
-          },
-        });
-        expansion.to(
-          blueCircleRef.current,
-          {
-            scale: finalScale,
-            duration: 1.35,
-            ease: "power3.inOut",
-          },
-          0,
-        );
-
-        expansion.to(
-          whiteCircleRef.current,
-          {
-            scale: finalScale,
-            duration: 1.2,
-            ease: "power3.inOut",
-          },
-          0.6,
-        );
-        expansion.to(
-          bookingContentRef.current,
-          {
-            autoAlpha: 1,
-            duration: 0.2,
-            ease: "power2.out",
-          },
-          1.85,
-        );
         const revealItems =
           bookingInnerRef.current.querySelectorAll(".locations-reveal");
+        gsap.set(revealItems, { autoAlpha: 0, y: 20 });
 
-        gsap.set(revealItems, {
-          autoAlpha: 0,
-          y: 20,
-        });
-
-        expansion.to(
-          revealItems,
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 1.2,
-            stagger: 0.12,
-            ease: "power3.out",
-          },
-          1.95,
-        );
-        expansion.call(
-          () => {
-            window.dispatchEvent(new Event("frey-pixel-reveal"));
-          },
-          [],
-          2.19,
-        );
-      };
-      const closeBookingSection = () => {
-        if (animating || !expanded || !expansion) return;
-
-        animating = true;
-
-        if (bookingContentRef.current) {
-          bookingContentRef.current.scrollTop = 0;
-        }
-
-        expansion.timeScale(1.8).reverse();
-      };
-      const showStep = (direction) => {
-        // alert(
-        //   `direction: ${direction}
-        //    index: ${currentIndex}
-        //    animating: ${animating}
-        //    expanded: ${expanded}`
-        // );
-        if (animating) return;
-
-        if (expanded) {
-          if (direction < 0) {
-            closeBookingSection();
-          }
-
-          return;
-        }
-
-        const nextIndex = currentIndex + direction;
-
-        if (nextIndex >= BLOCKS.length) {
-          openBookingSection();
-          return;
-        }
-
-        // Allow the user to scroll backward before pin 1.
-        if (nextIndex < 0) {
-          releaseScroll(-1);
-          return;
-        }
-
-        animating = true;
-        currentIndex = nextIndex;
-
-        const outgoing = contentRefs.current[nextIndex - direction];
-        const incoming = contentRefs.current[nextIndex];
-
-        transition?.kill();
-
-        transition = gsap.timeline({
-          onComplete: () => {
-            animating = false;
+        expansion = gsap.timeline({
+          onReverseComplete: () => {
+            gsap.set(transitionRef.current, { autoAlpha: 0 });
           },
         });
 
-        // Hide the previous content.
-        transition.to(
-          outgoing,
-          {
-            autoAlpha: 0,
-            y: -12,
-            duration: 0.2,
-            ease: "power2.in",
-          },
-          0,
-        );
-
-        // Rotate exactly 90 degrees.
-        transition.to(
-          wheel,
-          {
-            rotation: -90 * nextIndex,
-            duration: 0.85,
-            ease: "power3.inOut",
-          },
-          0,
-        );
-
-        // Start the character reveals as the pin arrives.
-        transition.call(
-          () => {
-            setActiveIndex(nextIndex);
-          },
-          [],
-          0.75,
-        );
-
-        // Reveal the incoming text.
-        transition.fromTo(
-          incoming,
-          {
-            autoAlpha: 0,
-            y: 12,
-          },
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.45,
-            ease: "power3.out",
-          },
-          0.75,
-        );
-      };
-      const bookingContent = bookingContentRef.current;
-
-      if (bookingContent) {
-        bookingContent.addEventListener("wheel", handleBookingWheel, {
-          passive: false,
-        });
-
-        bookingContent.addEventListener("touchstart", handleBookingTouchStart, {
-          passive: true,
-        });
-
-        bookingContent.addEventListener("touchmove", handleBookingTouchMove, {
-          passive: false,
-        });
-
-        bookingContent.addEventListener("touchend", handleBookingTouchEnd);
-
-        bookingContent.addEventListener("touchcancel", handleBookingTouchEnd);
-      }
-      const mm = gsap.matchMedia();
-
-      mm.add("(min-width: 768px)", () => {
-        observer = Observer.create({
-          target: section,
-          type: "wheel,touch",
-          preventDefault: true,
-          tolerance: 10,
-
-          onDown: () => {
-            showStep(1);
-          },
-
-          onUp: () => {
-            showStep(-1);
-          },
-        });
-
-        observer.disable();
-
-        const syncObserver = (self) => {
-          if (self.isActive && !expanded) {
-            observer.enable();
-          } else {
-            observer.disable();
-          }
-        };
-
-        scrollTrigger = ScrollTrigger.create({
-          trigger: section,
-          start: "top top",
-          end: "+=300%",
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-
-          onToggle: syncObserver,
-          onRefresh: syncObserver,
-          onUpdate: syncObserver,
-        });
-
-        return () => {
-          observer.kill();
-        };
-      });
-
-      mm.add("(max-width: 767px)", () => {
-        let displayedIndex = 0;
-
-        const updateMobileStep = (progress) => {
-          if (expanded || animating) return;
-
-          const nextIndex = Math.min(
-            BLOCKS.length - 1,
-            Math.max(0, Math.floor(progress * BLOCKS.length)),
-          );
-
-          if (nextIndex === displayedIndex) return;
-
-          const previousIndex = displayedIndex;
-
-          displayedIndex = nextIndex;
-          currentIndex = nextIndex;
-          animating = true;
-
-          const outgoing = contentRefs.current[previousIndex];
-          const incoming = contentRefs.current[nextIndex];
-
-          transition?.kill();
-
-          transition = gsap.timeline({
-            onComplete: () => {
-              animating = false;
-            },
-          });
-
-          transition.to(
-            outgoing,
-            {
-              autoAlpha: 0,
-              y: -12,
-              duration: 0.2,
-              ease: "power2.in",
-            },
+        expansion
+          .to(
+            blueCircleRef.current,
+            { scale: finalScale, duration: 1.35, ease: "power3.inOut" },
             0,
-          );
-
-          transition.to(
-            wheel,
-            {
-              rotation: -90 * nextIndex,
-              duration: 0.85,
-              ease: "power3.inOut",
-            },
-            0,
-          );
-
-          transition.call(
-            () => {
-              setActiveIndex(nextIndex);
-            },
-            [],
-            0.75,
-          );
-
-          transition.fromTo(
-            incoming,
-            {
-              autoAlpha: 0,
-              y: 12,
-            },
+          )
+          .to(
+            whiteCircleRef.current,
+            { scale: finalScale, duration: 1.2, ease: "power3.inOut" },
+            0.6,
+          )
+          .to(
+            bookingContentRef.current,
+            { autoAlpha: 1, duration: 0.2, ease: "power2.out" },
+            1.85,
+          )
+          .to(
+            revealItems,
             {
               autoAlpha: 1,
               y: 0,
-              duration: 0.45,
+              duration: 1.2,
+              stagger: 0.12,
               ease: "power3.out",
             },
-            0.75,
+            1.95,
+          )
+          .call(
+            () => window.dispatchEvent(new Event("frey-pixel-reveal")),
+            [],
+            2.19,
           );
-        };
+      };
 
-        scrollTrigger = ScrollTrigger.create({
-          trigger: section,
-          start: "top top",
-          end: "+=350%",
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onLeave: () => {
-            if (!expanded && !animating) {
-              openBookingSection();
-            }
+      const goTo = (index) => {
+        if (index === current) return;
+
+        const prev = current;
+        current = index;
+
+
+        openCall?.kill();
+        openCall = null;
+
+        if (index === N) {
+          // Only animate to the fourth marker if we aren't already there.
+          if (prev !== N - 1) {
+            showText(N - 1);
+          }
+
+const wheelTweens = gsap.getTweensOf(wheel);
+
+const remainingTime = wheelTweens.reduce((max, tween) => {
+  if (!tween.isActive()) return max;
+
+  return Math.max(
+    max,
+    (tween.duration() - tween.time()) / tween.timeScale()
+  );
+}, 0);
+
+const startExpansion = () => {
+  if (current !== N) return;
+
+  gsap.set(wheel, {
+    rotation: -90 * (N - 1),
+  });
+
+  openBooking();
+};
+
+if (remainingTime > 0.02) {
+  openCall = gsap.delayedCall(remainingTime, startExpansion);
+} else {
+  startExpansion();
+}
+
+          return;
+        }
+
+        // Returning from the booking overlay.
+        if (prev === N) {
+          lockPage(false);
+          expansion?.timeScale(1.8).reverse();
+        }
+
+        showText(index);
+      };
+
+      const closeBooking = () => {
+        if (current !== N) return;
+
+        lockPage(false);
+        if (bookingContent) bookingContent.scrollTop = 0;
+
+        if (st) {
+          const { lead, step } = metrics();
+          st.scroll(st.start + lead + (N - 1) * step);
+        }
+        goTo(N - 1);
+      };
+
+let stopUntil = 0;
+const hardStop = () => {
+  if (current === N || !st) return;
+
+  const now = performance.now();
+  if (now < stopUntil) return;
+  stopUntil = now + 900;
+
+  stopCall?.kill();
+  st.scroll(st.start + 1);
+
+        if (window.matchMedia("(pointer: coarse)").matches) {
+          lockPage(true);
+          stopCall = gsap.delayedCall(0.4, () => {
+            if (current !== N) lockPage(false);
+          });
+        }
+      };
+
+      /* ---------- the ScrollTrigger ---------- */
+      st = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: () => {
+          const { lead, step } = metrics();
+          return "+=" + Math.round(lead + N * step);
+        },
+        pin: true,
+        invalidateOnRefresh: true,
+
+        // Snap points: pin start, then the lead, then each step.
+        snap: {
+          snapTo: (value) => {
+            const { lead, step } = metrics();
+            const total = lead + N * step;
+            const points = [0];
+            for (let k = 0; k <= N; k++) points.push((lead + k * step) / total);
+            return gsap.utils.snap(points, value);
           },
-          onUpdate: (self) => {
-            updateMobileStep(self.progress);
-          },
-        });
+          duration: { min: 0.15, max: 0.4 },
+          delay: 0.08,
+          ease: "power1.out",
+        },
+
+        onEnter: hardStop,
+
+        onUpdate: (self) => {
+          const { lead, step } = metrics();
+          const y = self.scroll() - self.start;
+          const index = Math.max(0, Math.min(N, Math.round((y - lead) / step)));
+          goTo(index);
+        },
+
+        // A fast fling can jump past the end of the pin in a single frame.
+        // Pull it straight back so the section never scrolls away.
+        onLeave: () => {
+          st.scroll(st.end - 1);
+        },
       });
+
+      // wrap pin section in a pin-space div. If the spacer is
+      // transparent, any frame where the pin lags shows the white page behind.
+      if (section.parentNode) {
+        section.parentNode.style.backgroundColor = "#222222";
+      }
+      const refresh = () => {
+        if (current !== N) ScrollTrigger.refresh();
+      };
+      window.addEventListener("load", refresh);
+      document.fonts?.ready.then(refresh);
+      const refreshCall = gsap.delayedCall(1.5, refresh);
+
+      const handleWheel = (event) => {
+        if (current !== N || !bookingContent) return;
+        if (event.deltaY < 0 && bookingContent.scrollTop <= 2) {
+          event.preventDefault();
+          closeBooking();
+        }
+      };
+
+      let touchStartY = null;
+      let touchStartX = null;
+
+      const handleTouchStart = (event) => {
+        if (current !== N || event.touches.length !== 1) return;
+        touchStartY = event.touches[0].clientY;
+        touchStartX = event.touches[0].clientX;
+      };
+
+      const handleTouchMove = (event) => {
+        if (current !== N || touchStartY === null) return;
+        if (event.touches.length !== 1 || !bookingContent) return;
+
+        const dy = event.touches[0].clientY - touchStartY;
+        const dx = event.touches[0].clientX - touchStartX;
+        if (Math.abs(dx) > Math.abs(dy)) return;
+
+        if (bookingContent.scrollTop <= 1 && dy > 45) {
+          event.preventDefault();
+          touchStartY = null;
+          touchStartX = null;
+          closeBooking();
+        }
+      };
+
+      const handleTouchEnd = () => {
+        touchStartY = null;
+        touchStartX = null;
+      };
+
+      if (bookingContent) {
+        bookingContent.addEventListener("wheel", handleWheel, {
+          passive: false,
+        });
+        bookingContent.addEventListener("touchstart", handleTouchStart, {
+          passive: true,
+        });
+        bookingContent.addEventListener("touchmove", handleTouchMove, {
+          passive: false,
+        });
+        bookingContent.addEventListener("touchend", handleTouchEnd);
+        bookingContent.addEventListener("touchcancel", handleTouchEnd);
+      }
 
       return () => {
         if (bookingContent) {
-          bookingContent.removeEventListener("wheel", handleBookingWheel);
-
-          bookingContent.removeEventListener(
-            "touchstart",
-            handleBookingTouchStart,
-          );
-
-          bookingContent.removeEventListener(
-            "touchmove",
-            handleBookingTouchMove,
-          );
-
-          bookingContent.removeEventListener("touchend", handleBookingTouchEnd);
-
-          bookingContent.removeEventListener(
-            "touchcancel",
-            handleBookingTouchEnd,
-          );
+          bookingContent.removeEventListener("wheel", handleWheel);
+          bookingContent.removeEventListener("touchstart", handleTouchStart);
+          bookingContent.removeEventListener("touchmove", handleTouchMove);
+          bookingContent.removeEventListener("touchend", handleTouchEnd);
+          bookingContent.removeEventListener("touchcancel", handleTouchEnd);
         }
-
-        mm.revert();
-        transition?.kill();
+        activeCall?.kill();
+        openCall?.kill();
+        stopCall?.kill();
         expansion?.kill();
+        refreshCall.kill();
+        window.removeEventListener("load", refresh);
+        lockPage(false);
       };
     }, section);
 
     return () => ctx.revert();
   }, []);
 
-useLayoutEffect(() => {
-  const section = sectionRef.current;
-  const tooth = toothEntranceRef.current;
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const tooth = toothEntranceRef.current;
+    if (!section || !tooth) return;
 
-  if (!section || !tooth) return;
+    const ctx = gsap.context(() => {
+      const mm = gsap.matchMedia();
 
-  const ctx = gsap.context(() => {
-    const mm = gsap.matchMedia();
-
-    mm.add("(max-width: 767px)", () => {
-      gsap.fromTo(
-        tooth,
-        {
-          scale: 0.6,
-          autoAlpha: 0,
-        },
-        {
-          scale: 1,
-          autoAlpha: 1,
-          duration: 1.3,
-          ease: "power3.out",
-          transformOrigin: "center center",
-          scrollTrigger: {
-            trigger: section,
-            start: "top 80%",
-            toggleActions: "play none none none",
-            once: true,
+      mm.add("(max-width: 767px)", () => {
+        gsap.fromTo(
+          tooth,
+          { scale: 0.6, autoAlpha: 0 },
+          {
+            scale: 1,
+            autoAlpha: 1,
+            duration: 1.3,
+            ease: "power3.out",
+            transformOrigin: "center center",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 80%",
+              toggleActions: "play none none none",
+              once: true,
+            },
           },
-        }
-      );
-    });
-  }, section);
+        );
+      });
+    }, section);
 
-  return () => ctx.revert();
-}, []);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <>
       <div ref={transitionRef} className="cta-expansion">
         <div ref={blueCircleRef} className="cta-expansion__blue" />
-
         <div ref={whiteCircleRef} className="cta-expansion__white" />
-     
+
         <div ref={bookingContentRef} className="cta-expansion__content">
           <div
             ref={bookingInnerRef}
@@ -5858,26 +5723,52 @@ useLayoutEffect(() => {
           </div>
         </div>
       </div>
-<section
-  ref={sectionRef}
-  className="cta-orbit relative z-0 h-screen w-full overflow-hidden bg-[#222222] text-white"
->
+
+      <section
+        ref={sectionRef}
+        className="cta-orbit relative z-0 h-[100svh] w-full overflow-hidden bg-[#222222] text-white"
+      >
 <div className="absolute left-[3vw] top-[19vh] z-20 w-[94vw] md:top-[12vh]">
-          <h2 className="flex flex-col font-neueroman text-[clamp(2.625rem,6vw,6.75rem)] font-[800] leading-[0.82] tracking-[-0.035em] text-white">
-            <span className="block pl-[0%]">Excellence</span>
+  <h2
+    className="
+      grid w-max
+      grid-cols-[max-content_max-content]
+      font-neueroman
+      text-[clamp(2.625rem,6vw,6.75rem)]
+      font-[800]
+      leading-[0.82]
+      tracking-[-0.035em]
+      text-white
+    "
+  >
+    {/* Row 1 — second l in Excellence */}
+    <span className="col-start-1 row-start-1 text-right">
+      Excel
+    </span>
+    <span className="col-start-2 row-start-1">
+      lence
+    </span>
 
-            <span className="block pl-[15%]">Is In the</span>
+<span className="col-start-2 row-start-2 -translate-x-[0.02em] whitespace-nowrap">
+  Is In the
+</span>
 
-            <span className="block pl-[.6%]">Details</span>
-          </h2>
+    <span className="col-start-1 row-start-3 text-right">
+      Detai
+    </span>
+    <span className="col-start-2 row-start-3">
+      ls
+    </span>
+  </h2>
+</div>
+
+        <div
+          ref={toothEntranceRef}
+          className="pointer-events-none absolute right-[-22vw] top-[5vh] z-10 md:right-[3vw] md:top-[-5vh]"
+        >
+          <ToothScene />
         </div>
 
-<div
-  ref={toothEntranceRef}
-  className="pointer-events-none absolute right-[-22vw] top-[5vh] z-10 md:right-[3vw] md:top-[-5vh]"
->
-  <ToothScene />
-</div>
         <div ref={wheelEntranceRef} className="cta-orbit__viewport">
           <div ref={wheelRef} className="cta-orbit__wheel">
             <div className="cta-orbit__ring" />
@@ -5888,10 +5779,10 @@ useLayoutEffect(() => {
                 className="cta-orbit__marker"
                 style={{
                   transform: `
-            translate(-50%, -50%)
-            rotate(${index * 90}deg)
-            translateY(calc(var(--orbit-radius) * -1))
-          `,
+                    translate(-50%, -50%)
+                    rotate(${index * 90}deg)
+                    translateY(calc(var(--orbit-radius) * -1))
+                  `,
                 }}
               >
                 <span
@@ -5899,7 +5790,6 @@ useLayoutEffect(() => {
                   className="cta-orbit__marker-dot"
                 />
                 <span className="cta-orbit__marker-stem" />
-
                 <span className="cta-orbit__marker-number">{index + 1}</span>
               </div>
             ))}

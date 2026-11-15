@@ -753,237 +753,63 @@ const images = [
   "https://cdn.prod.website-files.com/6915bbf51d482439010ee790/6915bc3ac9fe346a924724b0_minimalist-architecture-1.avif",
 ];
 
-function WillemLoader() {
-  const containerRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const ctx = gsap.context(() => {
-      const loadingLetters = gsap.utils.toArray(
-        ".willem__letter"
-      );
-
-      const box = container.querySelector(
-        ".willem-loader__box"
-      );
-
-      const growingImage = container.querySelector(
-        ".willem__growing-image"
-      );
-
-      const headingStart = container.querySelector(
-        ".willem__h1-start"
-      );
-
-      const headingEnd = container.querySelector(
-        ".willem__h1-end"
-      );
-
-      const extraImages = gsap.utils.toArray(
-        ".willem__cover-image-extra"
-      );
-
-      const headerLetters = gsap.utils.toArray(
-        ".willem__letter-white"
-      );
-
-      const navLinks = gsap.utils.toArray(
-        ".willen-nav a, .osmo-credits__p"
-      );
-
-      const tl = gsap.timeline({
-        defaults: {
-          ease: "expo.inOut",
-        },
-      });
-
-      // 1. Reveal initial letters
-      tl.from(loadingLetters, {
-        yPercent: 100,
-        stagger: 0.025,
-        duration: 1.25,
-      });
-
-      // 2. Open the space between the word
-      tl.fromTo(
-        box,
-        { width: "0em" },
-        { width: "1em", duration: 1.25 },
-        "<1.25"
-      );
-
-      // 3. Reveal the image inside the gap
-      tl.fromTo(
-        growingImage,
-        { width: "0%" },
-        { width: "100%", duration: 1.25 },
-        "<"
-      );
-
-      // 4. Slightly separate both word halves
-      tl.fromTo(
-        headingStart,
-        { x: "0em" },
-        { x: "-0.05em", duration: 1.25 },
-        "<"
-      );
-
-      tl.fromTo(
-        headingEnd,
-        { x: "0em" },
-        { x: "0.05em", duration: 1.25 },
-        "<"
-      );
-
-      // 5. Cycle through architectural images
-      tl.to(
-        extraImages,
-        {
-          opacity: 0,
-          duration: 0.05,
-          ease: "none",
-          stagger: 0.5,
-        },
-        "-=0.05"
-      );
-
-      // 6. Expand image to full viewport
-      tl.to(
-        growingImage,
-        {
-          width: "100vw",
-          height: "100dvh",
-          duration: 2,
-        },
-        "<1.25"
-      );
-
-      tl.to(
-        box,
-        {
-          width: "110vw",
-          duration: 2,
-        },
-        "<"
-      );
-
-      // 7. Reveal final hero typography
-      tl.from(
-        headerLetters,
-        {
-          yPercent: 100,
-          duration: 1.25,
-          ease: "expo.out",
-          stagger: 0.025,
-        },
-        "<1.2"
-      );
-
-      // 8. Reveal navigation
-      tl.from(
-        navLinks,
-        {
-          yPercent: 100,
-          duration: 1.25,
-          ease: "expo.out",
-          stagger: 0.1,
-        },
-        "<"
-      );
-    }, container);
-
-    return () => ctx.revert();
-  }, []);
-
+const CirclePulse = forwardRef(function CirclePulse(props, ref) {
   return (
-    <section className="willem-header" ref={containerRef}>
-      {/* Initial loading composition */}
-      <div className="willem-loader">
-        <div className="willem__h1">
-          <div className="willem__h1-start">
-            {"Our".split("").map((letter, i) => (
-              <span className="willem__letter" key={i}>
-                {letter}
-              </span>
-            ))}
-          </div>
-
-          <div className="willem-loader__box">
-            <div className="willem-loader__box-inner">
-              <div className="willem__growing-image">
-                <div className="willem__growing-image-wrap">
-                  {images.map((src, i) => (
-                    <img
-                      key={src}
-                      src={src}
-                      alt=""
-                      className={
-                        i < 3
-                          ? `willem__cover-image-extra is--${i + 1}`
-                          : "willem__cover-image"
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="willem__h1-end">
-            {"Team".split("").map((letter, i) => (
-              <span className="willem__letter" key={i}>
-                {letter}
-              </span>
-            ))}
-          </div>
-        </div>
+    <div ref={ref} className="circle-pulse-container">
+      <div className="circle-pulse">
+     <div className="particles">
+  {Array.from({ length: 8 }).map((_, index) => (
+    <div key={index} className="particle-anchor">
+      <div className="particle" />
+    </div>
+  ))}
+</div>
       </div>
 
-      {/* Final hero composition */}
-      <div className="willem-header__content">
-        <div className="willem-header__top">
-          <nav className="willen-nav">
-            <div className="willem-nav__start">
-              <a href="/">Osmo ©</a>
-            </div>
+      <style jsx>{`
+        .circle-pulse-container {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          pointer-events: none;
+        }
 
-            <div className="willem-nav__end">
-              <div className="willem-nav__links">
-                <a href="#projects">Projects,</a>
-                <a href="#services">Services,</a>
-                <a href="#blog">Blog (13)</a>
-              </div>
+        .circle-pulse {
+          position: relative;
+          width: 240px;
+          height: 240px;
+          overflow: visible;
+        }
 
-              <a href="#contact">Get in touch</a>
-            </div>
-          </nav>
-        </div>
-
-        <div className="willem-header__bottom">
-          <div className="willem__h1">
-         {"Our Team".split("").map((letter, i) => (
-  <span className="willem__letter-white" key={i}>
-    {letter === " " ? "\u00A0" : letter}
-  </span>
-))}
-            <span className="willem__letter-white is--space">
-              ©
-            </span>
-          </div>
-
-          <p className="osmo-credits__p">
-            Resource by{" "}
-            <a href="https://www.osmo.supply/">
-              Osmo
-            </a>
-          </p>
-        </div>
-      </div>
-    </section>
-  );
+      .particles {
+  position: absolute;
+  inset: 0;
 }
+
+.particle-anchor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  left: -24px;
+  top: -24px;
+  border-radius: 50%;
+  background: #00F5A0;
+}
+      `}</style>
+    </div>
+  );
+});
 export default function OurTeam() {
   const [showContent, setShowContent] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -1006,8 +832,9 @@ export default function OurTeam() {
   const col2Ref = useRef(null);
   const col3Ref = useRef(null);
   const leftColumnRef = useRef(null);
-
+  const giantImageRef = useRef(null);
   const isTouchDevice = "ontouchstart" in window;
+  const circlePulseRef = useRef(null);
 
   useEffect(() => {
     gsap.set(panelRefs.current, { y: "0%" });
@@ -1163,227 +990,497 @@ export default function OurTeam() {
     });
   }, []);
 
-  useLayoutEffect(() => {
-    if (
-      !pinRef.current ||
-      !trackRef.current ||
-      !scrollRef.current ||
-      !stackRef.current ||
-      !newSectionRef.current
+
+useLayoutEffect(() => {
+ if (
+  !pinRef.current ||
+  !trackRef.current ||
+  !scrollRef.current ||
+  !stackRef.current ||
+  !newSectionRef.current
+) {
+  return;
+}
+  const ctx = gsap.context(() => {
+    // ---------------------------------------
+    // INITIAL STATES
+    // ---------------------------------------
+
+    if (largeDanRef.current) {
+      gsap.set(largeDanRef.current, { x: "-100%" });
+    }
+
+    if (smallGreggRef.current) {
+      gsap.set(smallGreggRef.current, { x: "-100%" });
+    }
+
+    if (smallDanRef.current) {
+      gsap.set(smallDanRef.current, { x: "0%" });
+    }
+
+    if (danNameRef.current) {
+      gsap.set(danNameRef.current, { opacity: 0 });
+    }
+
+    gsap.set(trackRef.current, { xPercent: 0 });
+
+    gsap.set(stackRef.current, {
+      xPercent: 0,
+      y: 0,
+    });
+
+    const getTargetY = () => {
+      const viewportH = scrollRef.current.clientHeight;
+      const contentH = stackRef.current.scrollHeight;
+
+      return Math.max(0, contentH - viewportH);
+    };
+
+    const isMobile = () =>
+      window.matchMedia("(max-width: 900px)").matches;
+
+    // ---------------------------------------
+    // GRID CONFIGURATION
+    // ---------------------------------------
+
+    const rowHeight = () => newSectionRef.current.clientHeight / 3;
+
+    const col1Cells = Array.from(
+      col1Ref.current.querySelectorAll(".cell")
+    );
+
+    const col2Cells = Array.from(
+      col2Ref.current.querySelectorAll(".cell")
+    );
+
+    const col3Cells = Array.from(
+      col3Ref.current.querySelectorAll(".cell")
+    );
+
+    // Column 2 begins two rows above the viewport.
+    // Its visible rows are therefore indices 2, 3, 4.
+    gsap.set(col1Ref.current, {
+      y: 0,
+      yPercent: 0,
+    });
+
+    gsap.set(col2Ref.current, {
+      y: () => -rowHeight() * 2,
+      yPercent: 0,
+    });
+
+    // Column 3 now has three additional cards above
+    // its original visible cards.
+    gsap.set(col3Ref.current, {
+      y: () => -rowHeight() * 3,
+      yPercent: 0,
+    });
+
+const imageCells = giantImageRef.current.querySelectorAll(
+  ".giant-image-cell"
+);
+
+gsap.set(giantImageRef.current, { y: 0 });
+gsap.set(imageCells, { opacity: 0 });
+
+    // ---------------------------------------
+    // REVEAL ORDER
+    // ---------------------------------------
+
+    const lateralCells = [];
+
+    const maxRows = Math.max(
+      col1Cells.length,
+      col2Cells.length,
+      col3Cells.length
+    );
+
+    for (let i = 0; i < maxRows; i++) {
+      if (col1Cells[i]) lateralCells.push(col1Cells[i]);
+      if (col2Cells[i]) lateralCells.push(col2Cells[i]);
+      if (col3Cells[i]) lateralCells.push(col3Cells[i]);
+    }
+
+    // Don't fade the transparent image placeholders
+    // as if they were real cards.
+    const visibleCells = lateralCells.filter(
+      (cell) => !cell.classList.contains("image-slot")
+    );
+
+    gsap.set(visibleCells, { opacity: 0 });
+    // ---------------------------------------
+// GREEN CIRCLE INITIAL STATE
+// ---------------------------------------
+
+const pulseParticles = circlePulseRef.current
+  ? Array.from(
+      circlePulseRef.current.querySelectorAll(".particle-anchor")
     )
-      return;
+  : [];
 
-    const ctx = gsap.context(() => {
-      if (largeDanRef.current) gsap.set(largeDanRef.current, { x: "-100%" });
-      if (smallGreggRef.current)
-        gsap.set(smallGreggRef.current, { x: "-100%" });
-      if (smallDanRef.current) gsap.set(smallDanRef.current, { x: "0%" });
-      if (danNameRef.current) gsap.set(danNameRef.current, { opacity: 0 });
-
-      gsap.set(trackRef.current, { xPercent: 0 });
-      gsap.set(stackRef.current, {
-  xPercent: 0,
+gsap.set(pulseParticles, {
+  x: 0,
   y: 0,
-})
+  scale: 1,
+  opacity: 1,
+});
+console.log("Pulse particles found:", pulseParticles.length);
 
-      const getTargetY = () => {
-        const viewportH = scrollRef.current.clientHeight;
-        const contentH = stackRef.current.scrollHeight;
-        return Math.max(0, contentH - viewportH);
-      };
+    // ---------------------------------------
+    // MAIN SCROLL TIMELINE
+    // ---------------------------------------
 
-      const col1Cells = Array.from(col1Ref.current.querySelectorAll(".cell"));
-      const col2Cells = Array.from(col2Ref.current.querySelectorAll(".cell"));
-      const col3Cells = Array.from(col3Ref.current.querySelectorAll(".cell"));
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: pinRef.current,
+        start: "top top",
+        end: () => "+=" + window.innerHeight * 6,
+        scrub: 1.2,
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+    });
 
-      const maxRows = Math.max(
-        col1Cells.length,
-        col2Cells.length,
-        col3Cells.length,
-      );
+    const switchDuration = 1;
 
-      const lateralCells = [];
-      for (let i = 0; i < maxRows; i++) {
-        if (col1Cells[i]) lateralCells.push(col1Cells[i]);
-        if (col2Cells[i]) lateralCells.push(col2Cells[i]);
-        if (col3Cells[i]) lateralCells.push(col3Cells[i]);
-      }
+    // ---------------------------------------
+    // DOCTOR SWITCH
+    // ---------------------------------------
 
-      gsap.set(lateralCells, { opacity: 0 });
+    tl.add("switchStart", 0);
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: pinRef.current,
-          start: "top top",
-          end: () => "+=" + window.innerHeight * 6,
-          scrub: 1.2,
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
+    tl.to(
+      stackRef.current,
+      {
+        xPercent: () => (isMobile() ? -100 : 0),
+        y: () => (isMobile() ? 0 : -getTargetY()),
+        ease: "none",
+        duration: switchDuration,
+      },
+      "switchStart"
+    );
 
-   const isMobile = () =>
-  window.matchMedia(
-    "(max-width: 900px)"
-  ).matches
+    tl.to(
+      largeGreggRef.current,
+      {
+        x: "100%",
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
 
-const switchDuration = 1
+    tl.to(
+      largeDanRef.current,
+      {
+        x: "0%",
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
+
+    tl.to(
+      smallDanRef.current,
+      {
+        x: "100%",
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
+
+    tl.to(
+      smallGreggRef.current,
+      {
+        x: "0%",
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
+
+    tl.to(
+      greggNameRef.current,
+      {
+        opacity: 0,
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
+
+    tl.to(
+      danNameRef.current,
+      {
+        opacity: 1,
+        duration: switchDuration,
+        ease: "power2.inOut",
+      },
+      "switchStart"
+    );
+
+    // ---------------------------------------
+    // HORIZONTAL PANEL TRANSITIONS
+    // ---------------------------------------
+
+    tl.to(trackRef.current, {
+      xPercent: -66.666,
+      ease: "none",
+      duration: 2,
+    });
+
+    const panels = trackRef.current.children;
+
+    tl.to(trackRef.current, {
+      xPercent: -100 * (panels.length - 1),
+      ease: "none",
+      duration: 2,
+    });
+
+    // ---------------------------------------
+    // GRID REVEAL
+    // ---------------------------------------
+
+tl.add("pulseStart", ">");
+
+const pulseDuration = 0.5;
+const pulseStagger = 0.12;
+
+pulseParticles.forEach((particle, i) => {
+  const angle = (i / pulseParticles.length) * Math.PI * 2;
+  const distance = 72;
+
+  tl.fromTo(
+    particle,
+    {
+      x: 0,
+      y: 0,
+      opacity: 1,
+    },
+    {
+      x: Math.cos(angle) * distance,
+      y: Math.sin(angle) * distance,
+      opacity: 1,
+      duration: pulseDuration,
+      ease: "power2.out",
+      immediateRender: false,
+    },
+    `pulseStart+=${i * pulseStagger}`
+  );
+});
+
+
+const pulseEnd =
+  pulseDuration +
+  (pulseParticles.length - 1) * pulseStagger;
+
+tl.add("ringSpin", `pulseStart+=${pulseEnd}`);
+
+// ---------------------------------------
+// 2. SPIN THE ENTIRE RING
+// ---------------------------------------
+
+const particleGroup =
+  circlePulseRef.current.querySelector(".particles");
 
 tl.to(
-  stackRef.current,
+  particleGroup,
   {
-
-    xPercent: () =>
-      isMobile() ? -100 : 0,
-
-    y: () =>
-      isMobile()
-        ? 0
-        : -getTargetY(),
-
+    rotation: 360,
+    duration: 1.5,
     ease: "none",
-    duration: switchDuration,
   },
-  0
-)
+  "ringSpin"
+);
 
-   tl.add("switchStart", 0)
+// ---------------------------------------
+// 3. COLLAPSE ALL EIGHT CIRCLES TO CENTER
+// ---------------------------------------
+
+tl.add("ringCollapse", "ringSpin+=1.5");
+
+
+const collapseDuration = 0.5;
+const collapseStagger = 0.12;
+
+pulseParticles.forEach((particle, i) => {
+  tl.to(
+    particle,
+    {
+      x: 0,
+      y: 0,
+      duration: collapseDuration,
+      ease: "power2.in",
+    },
+    `ringCollapse+=${i * collapseStagger}`
+  );
+});
+
+// Wait for the final circle to reach the center
+const collapseEnd =
+  collapseDuration +
+  (pulseParticles.length - 1) * collapseStagger;
+
+// ---------------------------------------
+// FADE OUT THE FINAL GREEN CIRCLE
+// ---------------------------------------
+
+tl.add("pulseFade", `ringCollapse+=${collapseEnd}`);
 
 tl.to(
-  largeGreggRef.current,
-  {
-    x: "100%",
-    duration: switchDuration,
-    ease: "power2.inOut",
-  },
-  "switchStart"
-)
-
-tl.to(
-  largeDanRef.current,
-  {
-    x: "0%",
-    duration: switchDuration,
-    ease: "power2.inOut",
-  },
-  "switchStart"
-)
-
-tl.to(
-  smallDanRef.current,
-  {
-    x: "100%",
-    duration: switchDuration,
-    ease: "power2.inOut",
-  },
-  "switchStart"
-)
-
-tl.to(
-  smallGreggRef.current,
-  {
-    x: "0%",
-    duration: switchDuration,
-    ease: "power2.inOut",
-  },
-  "switchStart"
-)
-
-tl.to(
-  greggNameRef.current,
+  pulseParticles,
   {
     opacity: 0,
-    duration: switchDuration,
+    duration: 0.6,
     ease: "power2.inOut",
   },
-  "switchStart"
-)
+  "pulseFade"
+);
+
+// Reveal the grid after the circle disappears
+tl.add("gridReveal", "pulseFade+=0.6");
+
 
 tl.to(
-  danNameRef.current,
+  visibleCells,
   {
     opacity: 1,
-    duration: switchDuration,
-    ease: "power2.inOut",
+    duration: 0.65,
+    stagger: 0.12,
+    ease: "power2.out",
   },
-  "switchStart"
-)
+  "gridReveal"
+);
 
-      tl.to(trackRef.current, {
-        xPercent: -66.666,
+tl.to(
+  imageCells,
+  {
+    opacity: 1,
+    duration: 0.65,
+    stagger: {
+      each: 0.12,
+      from: "start",
+    },
+    ease: "power2.out",
+  },
+  "gridReveal+=0.2"
+);
+
+
+
+    // ---------------------------------------
+    // NEW GRID MOVEMENT
+    // ---------------------------------------
+
+    tl.add("gridMove");
+
+    const moveDuration = 2.4;
+
+    // Column 1:
+    // Move upward by three full rows (one viewport).
+    // The original three rows disappear.
+    tl.to(
+      col1Ref.current,
+      {
+        y: () => -rowHeight() * 3,
+        duration: moveDuration,
         ease: "none",
-        duration: 2,
-      });
+      },
+      "gridMove"
+    );
 
-      const panels = trackRef.current.children;
-
-      tl.to(trackRef.current, {
-        xPercent: -100 * (panels.length - 1),
+    // Column 2:
+    // Begins two rows above the viewport.
+    // Move another three rows upward.
+    tl.to(
+      col2Ref.current,
+      {
+        y: () => -rowHeight() * 5,
+        duration: moveDuration,
         ease: "none",
-        duration: 2,
-      });
+      },
+      "gridMove"
+    );
 
-      tl.to(
-        lateralCells,
+    // Giant image:
+    // Move upward exactly one viewport height.
+    // This matches the movement of columns 1 and 2.
+    tl.to(
+      giantImageRef.current,
+      {
+        y: () => -rowHeight() * 3,
+        duration: moveDuration,
+        ease: "none",
+      },
+      "gridMove"
+    );
+
+    // Column 3:
+    // Starts three rows above.
+    // Moves downward by three rows.
+    // The original top three cards enter the viewport.
+    tl.to(
+      col3Ref.current,
+      {
+        y: 0,
+        duration: moveDuration,
+        ease: "none",
+      },
+      "gridMove"
+    );
+
+    // ---------------------------------------
+    // TEAM REVEAL
+    // ---------------------------------------
+
+    tl.add("teamReveal", ">");
+
+    const cards = gridRef.current?.getCards?.();
+    const scroller = gridRef.current?.getScroller?.();
+
+    if (cards?.length) {
+      tl.from(
+        cards,
         {
-          opacity: 1,
-          stagger: 0.12,
-          ease: "power2.out",
-        },
-        ">-=0.4",
-      );
-
-      tl.to([col1Ref.current, col2Ref.current, col3Ref.current], {
-        yPercent: (i) => (i % 2 === 0 ? -100 : 100),
-        ease: "none",
-        duration: 2,
-        stagger: { each: 0.3 },
-      });
-
-      tl.add("teamReveal", ">");
-
-      const cards = gridRef.current?.getCards?.();
-      const scroller = gridRef.current?.getScroller?.();
-      if (cards?.length) {
-        tl.from(
-          cards,
-          {
-            opacity: 0,
-            y: 40,
-            duration: 1.1,
-            stagger: {
-              each: 0.15,
-              ease: "power1.out",
-            },
-            ease: "power3.out",
-            clearProps: "all",
+          opacity: 0,
+          y: 40,
+          duration: 1.1,
+          stagger: {
+            each: 0.15,
+            ease: "power1.out",
           },
-          "teamReveal",
+          ease: "power3.out",
+          clearProps: "all",
+        },
+        "teamReveal"
+      );
+    }
+
+    if (scroller) {
+      const maxScroll =
+        scroller.scrollWidth - scroller.clientWidth;
+
+      if (maxScroll > 0) {
+        tl.to(
+          scroller,
+          {
+            scrollLeft: maxScroll,
+            ease: "none",
+            duration: 1.5,
+          },
+          "teamReveal+=1.2"
         );
       }
+    }
 
-      if (scroller) {
-        const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    ScrollTrigger.refresh();
+  }, pinRef);
 
-        if (maxScroll > 0) {
-          tl.to(
-            scroller,
-            {
-              scrollLeft: maxScroll,
-              ease: "none",
-              duration: 1.5,
-            },
-            "teamReveal+=1.2",
-          );
-        }
-      }
+  return () => ctx.revert();
+}, []);
 
-      ScrollTrigger.refresh();
-    }, pinRef);
-
-    return () => ctx.revert();
-  }, []);
   // useLayoutEffect(() => {
   // const lenis = new Lenis({
   //   duration: 0.5,
@@ -1432,8 +1529,25 @@ tl.to(
   return (
     <>
       <div className="h-screen w-screen">
-{/* <WillemLoader /> */}
-<AsciiInstanced />
+        
+                {/* <Canvas
+                camera={{ position: [0, 0, 1000], fov: 75 }}
+          gl={{ antialias: true, alpha: true }}
+            onCreated={({ gl }) => {
+    gl.setClearColor(0x000000, 0)
+  }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  zIndex: 0,
+                }}
+              >
+                <Scene />
+              </Canvas> */}
+{/* <AsciiInstanced /> */}
       <div
         ref={pinRef}
         className="relative w-full h-screen overflow-hidden bg-[#17181C]"
@@ -1711,175 +1825,208 @@ tl.to(
             <MaskText />
           </div> */}
 
-          <div
-            ref={newSectionRef}
-            className="w-screen h-screen shrink-0 relative overflow-hidden"
-          >
-            <div
-              onMouseEnter={() => setIsFocused(true)}
-              onMouseLeave={() => setIsFocused(false)}
-              className="bg-[#17181C] w-screen h-screen grid grid-cols-3 text-[#333] font-neuehaas45 text-[14px] leading-relaxed"
-            >
-              <div className="absolute inset-0">
-                {/* <Canvas
-                camera={{ position: [0, 0, 1000], fov: 75 }}
-          gl={{ antialias: true, alpha: true }}
-            onCreated={({ gl }) => {
-    gl.setClearColor(0x000000, 0)
-  }}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  zIndex: 0,
-                }}
-              >
-                <Scene />
-              </Canvas> */}
-              </div>
+<div
+  ref={newSectionRef}
+  className="relative h-screen w-screen shrink-0 overflow-hidden bg-[#17181C]"
+>
+  {/* GREEN CIRCLE ANIMATION */}
+<div className="pointer-events-none absolute inset-0 z-20">
+  <CirclePulse ref={circlePulseRef} />
+</div>
+  <div
+    onMouseEnter={() => setIsFocused(true)}
+    onMouseLeave={() => setIsFocused(false)}
+    className="relative grid h-screen w-screen grid-cols-3 bg-[#17181C] font-neuehaas45 text-[14px] leading-relaxed text-[#333]"
+  >
+    <CirclePulse />
+    {/* COLUMN 1 */}
+    <div className="overflow-hidden">
+      <div ref={col1Ref} className="flex flex-col will-change-transform">
 
-              {/* Col 1 */}
-              <div className="overflow-hidden">
-                <div
-                  ref={col1Ref}
-                  className="flex flex-col will-change-transform"
-                >
-                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
-                    <div className="mt-[48px]">
-                      <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
-                        The systems, the flow, the details — all dialed in so
-                        your visits stay smooth start to finish.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]"></div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
-                      <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                        Our members have received the designation of Specialized
-                        Orthodontic Assistant. This is a voluntary certification
-                        program started by the American Association of
-                        Orthodontists to recognize those in the profession for
-                        their knowledge and experience.
-                      </p>
-                    </a>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      Entrust your smile's transformation to our handpicked team
-                      of orthodontic specialists.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {/* Col 2  */}
-              <div className="overflow-hidden">
-                <div
-                  ref={col2Ref}
-                  className="flex flex-col will-change-transform"
-                  style={{ transform: "translateY(-66.66vh)" }}
-                >
-                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
-                    <div className="mt-[48px]">
-                      <p className="font-neuehaas45 text-[#333] tracking-wide text-[13px] leading-[1.4]">
-                        The systems, the flow, the details — all dialed in so
-                        your visits stay smooth start to finish.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]"></p>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
-                      <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                        Our members have received the designation of Specialized
-                        Orthodontic Assistant. This is a voluntary certification
-                        program started by the American Association of
-                        Orthodontists to recognize those in the profession for
-                        their knowledge and experience.
-                      </p>
-                    </a>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      Entrust your smile's transformation to our handpicked team
-                      of orthodontic specialists.
-                    </p>
-                  </div>
-                  <a
-                    href="https://g.co/kgs/Sds93Ha"
-                    className="cell flex justify-center items-center bg-[#FCFFFE] rounded-[12px] p-8 border-b border-r border-[#E4E7FF] h-[33.33vh]"
-                  >
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      This office is on 🔥! The orthodontists as well as every
-                      single staff member.
-                    </p>
-                  </a>
-                </div>
-              </div>
-
-              {/* Col 3  */}
-              <div className="overflow-hidden">
-                <div
-                  ref={col3Ref}
-                  className="flex flex-col will-change-transform"
-                >
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[16px] leading-[1.1]">
-                      Trained in CPR and first aid
-                    </p>
-                  </div>
-                  <a
-                    href="https://g.co/kgs/YkknjNg"
-                    className="cell flex justify-center items-center  bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] h-[33.33vh]"
-                  >
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      Had a wonderful experience at FreySmiles. Everyone is
-                      extremely professional, polite, timely. Would highly
-                      recommend! — TK
-                    </p>
-                  </a>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      We've invested in in-office trainings with leading
-                      clinical consultants that have helped us develop systems
-                      and protocols streamlining our processes.
-                    </p>
-                  </div>
-                  <div className="cell relative bg-[#FCFFFE] rounded-[12px] p-8 border border-[#E4E7FF] h-[33.33vh] flex flex-col justify-start items-start shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
-                    <div className="mt-[48px]">
-                      <a
-                        href="https://g.co/kgs/example-review-1"
-                        className="block hover:opacity-90 transition-opacity duration-200"
-                      >
-                        <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.4] text-[#252424]">
-                          Fun fact — our team is made up of former patients,
-                          something we think is important, because we have all
-                          experienced treatment and can help guide you through
-                          it.
-                        </p>
-                      </a>
-                    </div>
-                  </div>
-                  <div className="cell bg-[#FCFFFE] rounded-[12px] p-8 border-r border-b border-[#E4E7FF] flex justify-center items-center h-[33.33vh]">
-                    <p className="font-neuehaas45 tracking-wide text-[13px] leading-[1.1]">
-                      Eco-friendly practice: We prioritize recycling and digital
-                      workflows to reduce waste.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <section
-              ref={teamSectionRef}
-              className="absolute inset-0 z-0 pointer-events-none team-section"
-            >
-              <GridContainer ref={gridRef} />
-            </section>
+        {/* Row 1 */}
+        <div className="cell relative flex h-[33.333333vh] flex-col items-start justify-start rounded-[12px] border border-[#E4E7FF] bg-[#FCFFFE] p-8 shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+          <div className="mt-[48px]">
+            <p className="font-neuehaas45 text-[13px] leading-[1.4] tracking-wide text-[#333]">
+              The systems, the flow, the details — all dialed in so your
+              visits stay smooth start to finish.
+            </p>
           </div>
+        </div>
+
+
+
+        {/* Row 4 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            Entrust your smile's transformation to our handpicked team
+            of orthodontic specialists.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* COLUMN 2 */}
+    <div className="overflow-hidden">
+      <div
+        ref={col2Ref}
+        className="flex flex-col will-change-transform"
+
+      >
+        {/* Row 1 */}
+        <div className="cell relative flex h-[33.333333vh] flex-col items-start justify-start rounded-[12px] border border-[#E4E7FF] bg-[#FCFFFE] p-8 shadow-[0_2px_6px_rgba(0,0,0,0.04)]">
+          <div className="mt-[48px]">
+            <p className="font-neuehaas45 text-[13px] leading-[1.4] tracking-wide text-[#333]">
+              The systems, the flow, the details — all dialed in so your
+              visits stay smooth start to finish.
+            </p>
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide" />
+        </div>
+
+        {/* Row 3 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <a href="https://www.trapezio.com/training-resources/course-outlines/soa-prep-course-outline/">
+            <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+              Our members have received the designation of Specialized
+              Orthodontic Assistant. This is a voluntary certification
+              program started by the American Association of
+              Orthodontists to recognize those in the profession for
+              their knowledge and experience.
+            </p>
+          </a>
+        </div>
+
+        {/* Row 4 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            Entrust your smile's transformation to our handpicked team
+            of orthodontic specialists.
+          </p>
+        </div>
+
+        {/* Row 5 */}
+        <a
+          href="https://g.co/kgs/Sds93Ha"
+          className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8"
+        >
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            This office is on 🔥! The orthodontists as well as every
+            single staff member.
+          </p>
+        </a>
+      </div>
+    </div>
+
+    {/* COLUMN 3 */}
+<div className="overflow-hidden">
+  <div ref={col3Ref} className="flex flex-col will-change-transform">
+
+    {/* NEW — three cards initially above the viewport */}
+    <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] bg-[#FCFFFE] p-8">
+      New card A
+    </div>
+
+    <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] bg-[#FCFFFE] p-8">
+      New card B
+    </div>
+
+    <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] bg-[#FCFFFE] p-8">
+      New card C
+    </div>
+
+        {/* Row 1 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[16px] leading-[1.1] tracking-wide">
+            Trained in CPR and first aid
+          </p>
+        </div>
+
+        {/* Row 2 */}
+        <a
+          href="https://g.co/kgs/YkknjNg"
+          className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8"
+        >
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            Had a wonderful experience at FreySmiles. Everyone is
+            extremely professional, polite, timely. Would highly
+            recommend! — TK
+          </p>
+        </a>
+
+        {/* Row 3 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            We've invested in in-office trainings with leading clinical
+            consultants that have helped us develop systems and
+            protocols streamlining our processes.
+          </p>
+        </div>
+
+        {/* Row 4 */}
+        <div className="cell relative flex h-[33.333333vh] flex-col items-start justify-start rounded-[12px] border border-[#E4E7FF] bg-[#FCFFFE] p-8 shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
+          <div className="mt-[48px]">
+            <a
+              href="https://g.co/kgs/example-review-1"
+              className="block transition-opacity duration-200 hover:opacity-90"
+            >
+              <p className="font-neuehaas45 text-[13px] leading-[1.4] tracking-wide text-[#252424]">
+                Fun fact — our team is made up of former patients,
+                something we think is important, because we have all
+                experienced treatment and can help guide you through it.
+              </p>
+            </a>
+          </div>
+        </div>
+
+        {/* Row 5 */}
+        <div className="cell flex h-[33.333333vh] items-center justify-center rounded-[12px] border-r border-b border-[#E4E7FF] bg-[#FCFFFE] p-8">
+          <p className="font-neuehaas45 text-[13px] leading-[1.1] tracking-wide">
+            Eco-friendly practice: We prioritize recycling and digital
+            workflows to reduce waste.
+          </p>
+        </div>
+      </div>
+    </div>
+
+{/* ONE GIANT IMAGE — COLUMNS 1–2, ROWS 2–3 */}
+<div
+  ref={giantImageRef}
+  className="pointer-events-none absolute left-0 top-[33.333333vh] z-10 grid h-[66.666666vh] w-2/3 grid-cols-2 grid-rows-2 will-change-transform"
+  style={{
+    gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+  }}
+>
+  {[0, 1, 2, 3].map((index) => (
+    <div
+      key={index}
+      className="giant-image-cell relative min-h-0 overflow-hidden rounded-[12px]"
+    >
+      <img
+        src="/images/Free-Poster-02.jpg"
+        alt=""
+        className="absolute block h-[200%] w-[200%] max-w-none"
+        style={{
+          left: index % 2 === 0 ? "0%" : "-100%",
+          top: index < 2 ? "0%" : "-100%",
+        }}
+      />
+    </div>
+  ))}
+</div>
+  </div>
+
+  {/* EXISTING TEAM SECTION */}
+  <section
+    ref={teamSectionRef}
+    className="team-section pointer-events-none absolute inset-0 z-0"
+  >
+    <GridContainer ref={gridRef} />
+  </section>
+</div>
           {/* <ShaderHoverEffect /> */}
           {/* <div style={greenCursorStyle}>
           {isFocused && (
